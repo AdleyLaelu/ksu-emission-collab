@@ -1,0 +1,42 @@
+@import "tailwindcss";
+
+
+.hamburger {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-around;
+  width: 24px;
+  height: 24px;
+  cursor: pointer;
+}
+
+.hamburger span {
+  display: block;
+  height: 3px;
+  background: #333;
+  border-radius: 2px;
+}
+
+body {
+  background-color: #fff;
+  color: #18181b;
+}
+
+.dark {
+  background-color: #18181b;
+  color: #f3f4f6;
+}
+
+.dark .bg-white {
+  background-color: #23272f !important;
+}
+
+.dark .text-black {
+  color: #f3f4f6 !important;
+}
+
+.dark .border-gray-300 {
+  border-color: #444 !important;
+}
+
+/* Add more dark styles as needed */
