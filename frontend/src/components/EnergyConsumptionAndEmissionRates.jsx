@@ -60,9 +60,9 @@ const CITY_NAME_MAP = {
   Seattle: "Seattle",
 };
 
-// Zoom toolbar (takes chartRef directly)
+// Inline zoom toolbar — sits in the chart header row, no absolute positioning
 const ZoomToolbar = ({ chartRef }) => (
-  <div className="absolute top-2 right-2 z-10 flex bg-white rounded border border-gray-300 shadow-sm overflow-hidden select-none">
+  <div className="flex bg-white rounded border border-gray-300 shadow-sm overflow-hidden select-none shrink-0">
     <button onClick={() => chartRef.current?.zoom(1.1)} className="px-2.5 py-1 text-blue-600 hover:bg-gray-50 border-r border-gray-200 text-base font-bold leading-none transition-colors" title="Zoom In" type="button">+</button>
     <button onClick={() => chartRef.current?.zoom(0.9)} className="px-2.5 py-1 text-blue-600 hover:bg-gray-50 border-r border-gray-200 text-base font-bold leading-none transition-colors" title="Zoom Out" type="button">-</button>
     <button onClick={() => chartRef.current?.resetZoom()} className="px-2.5 py-1 text-[10px] font-semibold text-blue-600 hover:bg-gray-50 uppercase tracking-wide transition-colors" title="Reset Zoom" type="button">Reset</button>
@@ -508,44 +508,53 @@ export default function EnergyConsumptionAndEmissionRates() {
           Select fuel type, emission type, and vehicle age to generate charts
         </div>
       ) : (
-        <>
-          {/* Two charts side by side */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mt-1">
-            <div
-              className="relative border border-gray-200 rounded-lg bg-white shadow-sm"
-              style={{ height: 380 }}
-              onMouseLeave={() => setHoveredVehicle(null)}
-            >
-              <div className="text-center text-sm font-semibold text-gray-600 pt-2 pb-1">
+        <div className="grid grid-cols-10 gap-4 mt-1 items-start">
+          {/* Chart 1 — col-span-4 */}
+          <div
+            className="col-span-4 border border-gray-200 rounded-lg bg-white shadow-sm flex flex-col"
+            style={{ height: 380 }}
+            onMouseLeave={() => setHoveredVehicle(null)}
+          >
+            <div className="flex items-center px-2 pt-2 pb-1 gap-2">
+              <div className="flex-1" />
+              <span className="text-sm font-semibold text-gray-600">
                 {fuelType === "Electricity" ? "Energy Rate" : "Fuel Consumption Rate"}
+              </span>
+              <div className="flex-1 flex justify-end">
+                <ZoomToolbar chartRef={consumptionChartRef} />
               </div>
-              <div style={{ height: "calc(100% - 32px)", padding: "0 8px 8px" }}>
-                <Line key={`c-${chartKey}`} ref={consumptionChartRef} data={consumptionChartData} options={consumptionOptions} />
-              </div>
-              <ZoomToolbar chartRef={consumptionChartRef} />
             </div>
-
-            <div
-              className="relative border border-gray-200 rounded-lg bg-white shadow-sm"
-              style={{ height: 380 }}
-              onMouseLeave={() => setHoveredVehicle(null)}
-            >
-              <div className="text-center text-sm font-semibold text-gray-600 pt-2 pb-1">
-                {emissionType || "Emission Type"}
-              </div>
-              <div style={{ height: "calc(100% - 32px)", padding: "0 8px 8px" }}>
-                <Line key={`e-${chartKey}`} ref={emissionChartRef} data={emissionChartData} options={emissionOptions} />
-              </div>
-              <ZoomToolbar chartRef={emissionChartRef} />
+            <div className="flex-1 min-h-0 px-2 pb-2">
+              <Line key={`c-${chartKey}`} ref={consumptionChartRef} data={consumptionChartData} options={consumptionOptions} />
             </div>
           </div>
 
-          {/* Interactive legend — click to pin-highlight, hover to preview */}
+          {/* Chart 2 — col-span-4 */}
           <div
-            className="flex flex-wrap items-center gap-x-3 gap-y-1 px-3 py-2 border border-gray-200 rounded-lg bg-white"
+            className="col-span-4 border border-gray-200 rounded-lg bg-white shadow-sm flex flex-col"
+            style={{ height: 380 }}
             onMouseLeave={() => setHoveredVehicle(null)}
           >
-            <span className="text-xs font-semibold text-gray-500 mr-1">Vehicle Types</span>
+            <div className="flex items-center px-2 pt-2 pb-1 gap-2">
+              <div className="flex-1" />
+              <span className="text-sm font-semibold text-gray-600">
+                {emissionType || "Emission Type"}
+              </span>
+              <div className="flex-1 flex justify-end">
+                <ZoomToolbar chartRef={emissionChartRef} />
+              </div>
+            </div>
+            <div className="flex-1 min-h-0 px-2 pb-2">
+              <Line key={`e-${chartKey}`} ref={emissionChartRef} data={emissionChartData} options={emissionOptions} />
+            </div>
+          </div>
+
+          {/* Interactive legend — col-span-2, click to pin-highlight, hover to preview */}
+          <div
+            className="col-span-2 flex flex-col gap-0.5 px-3 py-2 border border-gray-200 rounded-lg bg-white"
+            onMouseLeave={() => setHoveredVehicle(null)}
+          >
+            <span className="text-xs font-semibold text-gray-500 mb-1">Vehicle Types</span>
             {VEHICLE_TYPES.map((type, idx) => {
               const color = VEHICLE_COLORS[idx % VEHICLE_COLORS.length];
               const isPinned = pinnedVehicle === type;
@@ -569,13 +578,13 @@ export default function EnergyConsumptionAndEmissionRates() {
               <button
                 type="button"
                 onClick={() => setPinnedVehicle(null)}
-                className="text-xs text-blue-500 hover:text-blue-700 font-medium ml-auto"
+                className="text-xs text-blue-500 hover:text-blue-700 font-medium mt-1"
               >
                 Clear
               </button>
             )}
           </div>
-        </>
+        </div>
       )}
     </div>
   );
