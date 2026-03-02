@@ -197,9 +197,8 @@ function VehicleTrafficVolume() {
   const methodToUse = abmAvailable ? (exactABMYear ? "ABM Direct" : "ABM Interpolated") : "MFD";
 
   return (
-    <div className="flex flex-row items-stretch gap-6 pt-4 justify-center w-full max-w-full">
-      <div className="flex-1 flex flex-col items-center">
-        <div className="w-full max-w-5xl mx-auto flex flex-col gap-6 justify-end items-end">
+    <div className="flex flex-col pt-4 w-full max-w-full items-center">
+      <div className="w-full max-w-5xl mx-auto flex flex-col gap-6 justify-end items-end">
           {/* Method Indicator Badge */}
           {city && classificationState.baseYear && (
             <div className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-medium ${
@@ -353,15 +352,45 @@ function VehicleTrafficVolume() {
               </div>
             )}
 
-            {/* Interactive Chart — linked to map via shared hover state */}
-            <TrafficChart
-              tractData={trafficChartData.tracts}
-              dataSource={trafficChartData.dataSource}
-              city={trafficChartData.city}
-              year={trafficChartData.year}
-              activeTract={activeTract}
-              onTractHover={handleTractHover}
-            />
+            {/* Interactive Chart + Tract Map side by side */}
+            <div className="flex flex-row gap-6 items-start">
+              <div className="flex-1 min-w-0">
+                <TrafficChart
+                  tractData={trafficChartData.tracts}
+                  dataSource={trafficChartData.dataSource}
+                  city={trafficChartData.city}
+                  year={trafficChartData.year}
+                  activeTract={activeTract}
+                  onTractHover={handleTractHover}
+                />
+              </div>
+              {classificationState.city && (
+                <div className="flex flex-col gap-2 w-72 shrink-0">
+                  <InteractiveTractMap
+                    city={classificationState.city}
+                    tractColors={tractColors}
+                    activeTract={activeTract}
+                    pinnedTract={pinnedTract}
+                    onTractHover={handleTractHover}
+                    onTractClick={handleTractClick}
+                  />
+                  {pinnedTract && (
+                    <div className="flex items-center justify-between px-3 py-1.5 bg-blue-50 border border-blue-200 rounded text-xs">
+                      <span className="text-blue-700 font-medium">
+                        Pinned: {pinnedTract.length > 6 ? pinnedTract.slice(-6) : pinnedTract}
+                      </span>
+                      <button
+                        type="button"
+                        className="text-blue-500 hover:text-blue-700 font-medium"
+                        onClick={() => setPinnedTract(null)}
+                      >
+                        Clear
+                      </button>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
 
             {/* MFD Parameters Table */}
             {hasMFTParametersData && (
@@ -376,36 +405,6 @@ function VehicleTrafficVolume() {
             )}
           </div>
         )}
-      </div>
-
-      {/* Right Column: Interactive Tract Map */}
-      <div className="flex flex-col gap-6 w-72 shrink-0">
-        {classificationState.city && (
-          <InteractiveTractMap
-            city={classificationState.city}
-            tractColors={tractColors}
-            activeTract={activeTract}
-            pinnedTract={pinnedTract}
-            onTractHover={handleTractHover}
-            onTractClick={handleTractClick}
-          />
-        )}
-        {/* Pinned tract indicator */}
-        {pinnedTract && (
-          <div className="flex items-center justify-between px-3 py-1.5 bg-blue-50 border border-blue-200 rounded text-xs">
-            <span className="text-blue-700 font-medium">
-              Pinned: {pinnedTract.length > 6 ? pinnedTract.slice(-6) : pinnedTract}
-            </span>
-            <button
-              type="button"
-              className="text-blue-500 hover:text-blue-700 font-medium"
-              onClick={() => setPinnedTract(null)}
-            >
-              Clear
-            </button>
-          </div>
-        )}
-      </div>
     </div>
   );
 }
