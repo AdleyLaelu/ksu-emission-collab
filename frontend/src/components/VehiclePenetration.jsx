@@ -43,6 +43,77 @@ function VehiclePenetration({ activeStep }) {
       (currentPage + 1) * rowsPerPage
     ) || [];
 
+  // Find the primary numeric column (Vehicle Count, Count, or Penetration)
+  const numericColIndex = React.useMemo(() => {
+    const headers = penetrationState.penetrationHeaders || [];
+    let idx = headers.findIndex((h) => /vehicle.*count/i.test(String(h || "")));
+    if (idx >= 0) return idx;
+    idx = headers.findIndex((h) => /^count$/i.test(String(h || "").trim()));
+    if (idx >= 0) return idx;
+    idx = headers.findIndex((h) => /penetration/i.test(String(h || "")));
+    if (idx >= 0) return idx;
+    return headers.length > 0 ? headers.length - 1 : -1;
+  }, [penetrationState.penetrationHeaders]);
+
+  // Display headers: append "Vehicle %" when a numeric column exists
+  const displayHeaders = React.useMemo(() => {
+    const headers = penetrationState.penetrationHeaders || [];
+    if (numericColIndex < 0) return headers;
+    return [...headers, "Vehicle %"];
+  }, [penetrationState.penetrationHeaders, numericColIndex]);
+
+  // Total for the current page (for percentage calculation)
+  const totalNumericValue = React.useMemo(() => {
+    if (numericColIndex < 0) return 0;
+    return paginatedData.reduce(
+      (sum, row) => sum + (parseFloat(row?.[numericColIndex]) || 0), 0
+    );
+  }, [paginatedData, numericColIndex]);
+
+  // Display data: paginated rows with computed percentage appended
+  const displayData = React.useMemo(() => {
+    if (numericColIndex < 0) return paginatedData;
+    return paginatedData.map((row) => {
+      const val = parseFloat(row?.[numericColIndex]) || 0;
+      const pct = totalNumericValue > 0
+        ? ((val / totalNumericValue) * 100).toFixed(2)
+        : "0.00";
+      return [...row, pct];
+    });
+  }, [paginatedData, numericColIndex, totalNumericValue]);
+
+  // Column config: percentage column is read-only
+  const columnConfig = React.useMemo(() => {
+    if (numericColIndex < 0) return undefined;
+    const headers = penetrationState.penetrationHeaders || [];
+    return [...headers.map(() => ({})), { readOnly: true, className: "htDimmed" }];
+  }, [penetrationState.penetrationHeaders, numericColIndex]);
+
+  // Handle cell edits — persist changes back to allPenetrationData
+  const handleTableChange = React.useCallback((changes, source) => {
+    if (!changes || source === "loadData") return;
+    const { penetrationState: state, setPenetrationState: setState } =
+      useAppStore.getState();
+    const filtered = state.penetrationData || [];
+    const all = state.allPenetrationData || [];
+    const pctCol = (state.penetrationHeaders || []).length;
+    let dirty = false;
+    const newAll = [...all];
+    changes.forEach(([row, col, oldVal, newVal]) => {
+      if (col >= pctCol || oldVal === newVal) return;
+      const idx = currentPage * rowsPerPage + row;
+      const ref = filtered[idx];
+      if (!ref) return;
+      const allIdx = all.indexOf(ref);
+      if (allIdx >= 0) {
+        newAll[allIdx] = [...all[allIdx]];
+        newAll[allIdx][col] = newVal;
+        dirty = true;
+      }
+    });
+    if (dirty) setState({ allPenetrationData: newAll });
+  }, [currentPage, rowsPerPage]);
+
   const totalPages = Math.ceil(
     (penetrationState.penetrationData?.length || 0) / rowsPerPage
   );
@@ -357,8 +428,10 @@ function VehiclePenetration({ activeStep }) {
               </select>
             </div>
             <HotTable
-              data={paginatedData}
-              colHeaders={penetrationState.penetrationHeaders}
+              data={displayData}
+              colHeaders={displayHeaders}
+              columns={columnConfig}
+              afterChange={handleTableChange}
               rowHeaders
               stretchH="all"
               height={350}
