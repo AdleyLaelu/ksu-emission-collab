@@ -206,8 +206,8 @@ function ProjectedDemand() {
   }, [penetrationState.projectedYear, mappedCity]);
 
   return (
-    <div className="flex flex-col pl-6 pt-4">
-      <div className="flex flex-col gap-6">
+    <div className="flex flex-col pt-4 w-full max-w-full items-center">
+      <div className="w-full max-w-7xl mx-auto flex flex-col gap-6">
         <form className="flex items-end gap-4 p-4 rounded">
           {!abmAvailable && (
             <label className="flex items-center bg-blue-500 hover:bg-blue-600 text-white font-semibold px-4 rounded cursor-pointer h-[32px] whitespace-nowrap gap-2">
@@ -282,7 +282,7 @@ function ProjectedDemand() {
         {/* --- Results Section --- */}
         {/* ABM Mode: Interactive Chart */}
         {hasChartData && (
-          <div className="flex flex-col gap-2 w-full max-w-5xl">
+          <div className="flex flex-col gap-2 w-full max-w-7xl">
             {/* Stale Data Warning */}
             {isDataStale && (
               <div className="flex items-center gap-2 px-4 py-2 rounded-lg bg-amber-50 text-amber-800 border border-amber-300">

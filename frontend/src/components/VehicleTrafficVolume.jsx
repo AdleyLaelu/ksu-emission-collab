@@ -198,7 +198,7 @@ function VehicleTrafficVolume() {
 
   return (
     <div className="flex flex-col pt-4 w-full max-w-full items-center">
-      <div className="w-full max-w-5xl mx-auto flex flex-col gap-6 justify-end items-end">
+      <div className="w-full max-w-7xl mx-auto flex flex-col gap-6 justify-end items-end">
           <form className="flex flex-row flex-nowrap items-end gap-2 p-2 rounded w-full min-w-0">
           {abmAvailable ? (
             <button
@@ -300,7 +300,7 @@ function VehicleTrafficVolume() {
 
         {/* --- Results Section: Interactive Chart --- */}
         {showResults && trafficState.speedEstimated && trafficChartData && (
-          <div className="flex flex-col gap-2 w-full max-w-5xl mt-6">
+          <div className="flex flex-col gap-2 w-full max-w-7xl mt-6">
             {/* Method Used Badge */}
             {trafficState.methodUsed && (
               <div className={`flex items-center gap-2 px-3 py-1 rounded text-sm font-medium w-fit ${
