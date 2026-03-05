@@ -42,9 +42,8 @@ function ProjectedDemand() {
   // Interactive chart data (ABM mode)
   const [trafficChartData, setTrafficChartData] = useState(null);
   const [chartYear, setChartYear] = useState(null);
-  // Static image fallback (non-ABM mode)
+  // eslint-disable-next-line no-unused-vars
   const [dynamicPlotImg, setDynamicPlotImg] = useState(null);
-  const [imageYear, setImageYear] = useState(null);
 
   // Shared hover/pin state for map ↔ chart linking
   const [hoveredTract, setHoveredTract] = useState(null);
@@ -83,8 +82,7 @@ function ProjectedDemand() {
 
   // Check if current data is stale (different year than selected)
   const currentYear = penetrationState.projectedYear || "";
-  const isDataStale = (trafficChartData && chartYear && chartYear !== currentYear) ||
-                      (dynamicPlotImg && imageYear && imageYear !== currentYear);
+  const isDataStale = trafficChartData && chartYear && chartYear !== currentYear;
 
   // File Upload Logic
   const loadSheet = (file, keyHeaders, keyData) => {
@@ -156,32 +154,69 @@ function ProjectedDemand() {
   return (
     <div className="flex flex-col pl-6 pt-4">
       <div className="flex flex-col gap-6">
-        {/* Method Indicator Badge */}
-        {mappedCity && year && (
-          <div className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-medium w-fit ${
-            abmAvailable
-              ? 'bg-green-100 text-green-800 border border-green-300'
-              : 'bg-blue-100 text-blue-800 border border-blue-300'
-          }`}>
-            {abmAvailable ? (
-              <>
-                <Zap className="w-4 h-4" />
-                <span>Activity-Based Model {exactABMYear ? '(Direct)' : '(Interpolated)'}</span>
-              </>
-            ) : (
-              <>
-                <FileSpreadsheet className="w-4 h-4" />
-                <span>Static Mode - Upload Required</span>
-              </>
-            )}
-          </div>
-        )}
-
         <form className="flex items-end gap-4 p-4 rounded">
-          {/* Hide upload button when ABM is available - no files needed */}
-          {!abmAvailable && (
-            <label className="flex items-center bg-blue-400 text-white font-semibold px-4 h-[32px] rounded cursor-pointer whitespace-nowrap gap-2">
-              <span>Projected Demand</span>
+          {abmAvailable ? (
+            <button
+              type="button"
+              className="flex items-center bg-blue-500 hover:bg-blue-600 text-white font-semibold px-4 rounded h-[32px] whitespace-nowrap gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+              disabled={!canEstimateSpeed || isLoading}
+              onClick={async () => {
+                if (!mappedCity || !year) return;
+
+                setIsLoading(true);
+                setShowTable(true);
+                setProjectedDemandState({ speedEstimated: true });
+
+                try {
+                  console.log(`[ABM Projected] Processing ${mappedCity} ${year} using Activity-Based Model`);
+                  toast.info(`Using Activity-Based Model for projected year ${year}`, { autoClose: 2000 });
+
+                  const abmRes = await fetch(`${API_URL}/process/traffic/abm`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                      city_name: mappedCity,
+                      year: parseInt(year, 10),
+                      method: "auto"
+                    })
+                  });
+
+                  if (!abmRes.ok) {
+                    const errData = await abmRes.json();
+                    throw new Error(errData.message || errData.error || "ABM processing failed");
+                  }
+
+                  const abmData = await abmRes.json();
+                  console.log("[ABM Projected] Response:", abmData);
+                  setMethodUsed(abmData.method_used || (exactABMYear ? "ABM Direct" : "ABM Interpolated"));
+                  toast.success(`ABM processed ${abmData.tracts_processed} tracts for year ${year}`, { autoClose: 3000 });
+
+                  const dataUrl = `${API_URL}/plot/traffic/data/${encodeURIComponent(mappedCity)}/${encodeURIComponent(year)}`;
+                  const dataRes = await fetch(dataUrl);
+                  if (!dataRes.ok) {
+                    const errBody = await dataRes.json().catch(() => ({}));
+                    throw new Error(errBody.error || "Failed to fetch traffic chart data");
+                  }
+                  const chartJson = await dataRes.json();
+                  setTrafficChartData(chartJson);
+                  setChartYear(year);
+                  setDynamicPlotImg(null);
+                } catch (err) {
+                  console.error("Projected demand processing error:", err);
+                  toast.error(err.message || "Failed to process projected demand");
+                  setTrafficChartData(null);
+                  setDynamicPlotImg(null);
+                } finally {
+                  setIsLoading(false);
+                }
+              }}
+            >
+              {isLoading ? 'Processing...' : 'Average Daily Traffic Speed and Volume Data'}
+              <CloudUpload className="w-5 h-5" />
+            </button>
+          ) : (
+            <label className="flex items-center bg-blue-500 hover:bg-blue-600 text-white font-semibold px-4 rounded cursor-pointer h-[32px] whitespace-nowrap gap-2">
+              Average Daily Traffic Speed and Volume Data
               <CloudUpload className="w-5 h-5" />
               <input
                 type="file"
@@ -222,97 +257,22 @@ function ProjectedDemand() {
             </select>
           </div>
 
-          <div className="flex flex-col gap-1 w-full">
+          <div className="flex flex-col gap-1">
             <label className="text-xs font-medium text-gray-600">City</label>
-            <div className="flex items-center gap-2">
-              <select
-                value={mappedCity}
-                disabled
-                className={`bg-gray-300 text-gray-600 rounded px-2 py-1 w-48 ${
-                  theme === "dark" ? "border-gray-700" : "border-white"
-                }`}
-              >
-                <option value="">City</option>
-                {statesList.slice(1).map((st) => (
-                  <option key={st} value={st}>
-                    {st}
-                  </option>
-                ))}
-              </select>
-              <button
-                type="button"
-                className={`${abmAvailable ? 'bg-green-600 hover:bg-green-700' : 'bg-blue-500 hover:bg-blue-600'} text-white font-semibold px-4 py-2 rounded disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2`}
-                disabled={!canEstimateSpeed || isLoading}
-                onClick={async () => {
-                  if (!mappedCity || !year) return;
-
-                  setIsLoading(true);
-                  setShowTable(true);
-                  setProjectedDemandState({ speedEstimated: true });
-
-                  try {
-                    if (abmAvailable) {
-                      // ABM Mode: process + fetch interactive chart data
-                      console.log(`[ABM Projected] Processing ${mappedCity} ${year} using Activity-Based Model`);
-                      toast.info(`Using Activity-Based Model for projected year ${year}`, { autoClose: 2000 });
-
-                      const abmRes = await fetch(`${API_URL}/process/traffic/abm`, {
-                        method: "POST",
-                        headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify({
-                          city_name: mappedCity,
-                          year: parseInt(year, 10),
-                          method: "auto"
-                        })
-                      });
-
-                      if (!abmRes.ok) {
-                        const errData = await abmRes.json();
-                        throw new Error(errData.message || errData.error || "ABM processing failed");
-                      }
-
-                      const abmData = await abmRes.json();
-                      console.log("[ABM Projected] Response:", abmData);
-                      setMethodUsed(abmData.method_used || (exactABMYear ? "ABM Direct" : "ABM Interpolated"));
-                      toast.success(`ABM processed ${abmData.tracts_processed} tracts for year ${year}`, { autoClose: 3000 });
-
-                      // Fetch interactive chart data (JSON)
-                      const dataUrl = `${API_URL}/plot/traffic/data/${encodeURIComponent(mappedCity)}/${encodeURIComponent(year)}`;
-                      const dataRes = await fetch(dataUrl);
-                      if (!dataRes.ok) {
-                        const errBody = await dataRes.json().catch(() => ({}));
-                        throw new Error(errBody.error || "Failed to fetch traffic chart data");
-                      }
-                      const chartJson = await dataRes.json();
-                      setTrafficChartData(chartJson);
-                      setChartYear(year);
-                      setDynamicPlotImg(null); // Clear any old static image
-                    } else {
-                      // Non-ABM mode: static image
-                      setMethodUsed("Static");
-                      setImageYear(year);
-                      setTrafficChartData(null); // No interactive data
-                    }
-                  } catch (err) {
-                    console.error("Projected demand processing error:", err);
-                    toast.error(err.message || "Failed to process projected demand");
-                    setTrafficChartData(null);
-                    setDynamicPlotImg(null);
-                  } finally {
-                    setIsLoading(false);
-                  }
-                }}
-              >
-                {isLoading ? (
-                  <span>Processing...</span>
-                ) : (
-                  <>
-                    {abmAvailable && <Zap className="w-4 h-4" />}
-                    {isDataStale ? `Update for ${year}` : (abmAvailable ? 'Load Traffic Data' : 'Estimate Speed')}
-                  </>
-                )}
-              </button>
-            </div>
+            <select
+              value={mappedCity}
+              disabled
+              className={`bg-gray-300 text-gray-600 rounded px-2 py-1 w-48 ${
+                theme === "dark" ? "border-gray-700" : "border-white"
+              }`}
+            >
+              <option value="">City</option>
+              {statesList.slice(1).map((st) => (
+                <option key={st} value={st}>
+                  {st}
+                </option>
+              ))}
+            </select>
           </div>
         </form>
 
@@ -393,7 +353,7 @@ function ProjectedDemand() {
             )}
             <div className="relative w-full border border-gray-200 rounded-lg overflow-hidden bg-white shadow-sm">
               <div className="pt-4 pb-2 text-center">
-                <span className="text-lg font-semibold">Year {imageYear || year}</span>
+                <span className="text-lg font-semibold">Year {year}</span>
               </div>
               <div className="w-full h-[360px] overflow-auto">
                 <img

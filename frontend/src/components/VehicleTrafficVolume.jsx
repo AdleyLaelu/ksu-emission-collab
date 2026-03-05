@@ -199,51 +199,73 @@ function VehicleTrafficVolume() {
   return (
     <div className="flex flex-col pt-4 w-full max-w-full items-center">
       <div className="w-full max-w-5xl mx-auto flex flex-col gap-6 justify-end items-end">
-          {/* Method Indicator Badge */}
-          {city && classificationState.baseYear && (
-            <div className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-medium ${
-              abmAvailable
-                ? 'bg-green-100 text-green-800 border border-green-300'
-                : 'bg-blue-100 text-blue-800 border border-blue-300'
-            }`}>
-              {abmAvailable ? (
-                <>
-                  <Zap className="w-4 h-4" />
-                  <span>Activity-Based Model {exactABMYear ? '(Direct)' : '(Interpolated)'}</span>
-                </>
-              ) : (
-                <>
-                  <FileSpreadsheet className="w-4 h-4" />
-                  <span>MFD Mode - Upload Required</span>
-                </>
-              )}
-            </div>
-          )}
-          <form className="flex flex-row flex-nowrap items-end gap-2 p-2 rounded w-full min-w-0 mr-16 ml-auto">
-          {/* Hide upload buttons when ABM is available - no files needed */}
-          {!abmAvailable && (
-            <>
-              <label className="flex items-center bg-blue-400 text-white font-semibold px-4 rounded cursor-pointer h-10 min-w-[160px] whitespace-nowrap justify-center">
-                <span className="mr-2 whitespace-nowrap">Traffic Volume</span>
-                <CloudUpload className="ml-2 w-5 h-5" />
-                <input
-                  type="file"
-                  accept=".xlsx,.xls,.csv"
-                  onChange={(e) => loadSheet(e.target.files[0], 'trafficVolume')}
-                  className="hidden"
-                />
-              </label>
-              <label className="flex items-center bg-blue-400 text-white font-semibold px-4 rounded cursor-pointer h-10 min-w-[160px] whitespace-nowrap justify-center ml-4">
-                <span className="mr-2 ml-2 whitespace-nowrap">MFD Parameters</span>
-                <CloudUpload className="ml-2 w-5 h-5" />
-                <input
-                  type="file"
-                  accept=".xlsx,.xls,.csv"
-                  onChange={(e) => loadSheet(e.target.files[0], 'mftParameters')}
-                  className="hidden"
-                />
-              </label>
-            </>
+          <form className="flex flex-row flex-nowrap items-end gap-2 p-2 rounded w-full min-w-0">
+          {abmAvailable ? (
+            <button
+              type="button"
+              className="flex items-center bg-blue-500 hover:bg-blue-600 text-white font-semibold px-4 rounded h-10 whitespace-nowrap gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+              disabled={!canEstimateSpeed}
+              onClick={async () => {
+                const currentCity = (classificationState.city ?? classificationState.cityInput) || "";
+                const year = classificationState.baseYear || "";
+                if (!currentCity || !year) return;
+
+                setTrafficState({ showResults: true, speedEstimated: true, methodUsed: methodToUse });
+
+                try {
+                  console.log(`[ABM] Processing ${currentCity} ${year} using Activity-Based Model`);
+                  toast.info(`Using Activity-Based Model for ${currentCity} ${year}`, { autoClose: 2000 });
+
+                  const abmRes = await fetch(`${API_URL}/process/traffic/abm`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                      city_name: currentCity,
+                      year: parseInt(year, 10),
+                      method: "auto"
+                    })
+                  });
+
+                  if (!abmRes.ok) {
+                    const errData = await abmRes.json();
+                    throw new Error(errData.message || errData.error || "ABM processing failed");
+                  }
+
+                  const abmData = await abmRes.json();
+                  console.log("[ABM] Response:", abmData);
+                  toast.success(`ABM processed ${abmData.tracts_processed} tracts (${abmData.method_used})`, { autoClose: 3000 });
+
+                  const url = `${API_URL}/plot/traffic/data/${encodeURIComponent(currentCity)}/${encodeURIComponent(year)}`;
+                  const res = await fetch(url);
+                  if (!res.ok) {
+                    const errBody = await res.json().catch(() => ({}));
+                    throw new Error(errBody.error || "Failed to fetch traffic chart data");
+                  }
+                  const chartJson = await res.json();
+                  setTrafficState({ trafficChartData: chartJson });
+
+                } catch (err) {
+                  console.error("Processing error:", err);
+                  setTrafficState({ trafficChartData: null });
+                  toast.error(err.message || "Failed to process traffic data");
+                  addNotification(err.message || "Failed to load traffic data");
+                }
+              }}
+            >
+              Average Daily Traffic Speed and Volume Data
+              <CloudUpload className="w-5 h-5" />
+            </button>
+          ) : (
+            <label className="flex items-center bg-blue-500 hover:bg-blue-600 text-white font-semibold px-4 rounded cursor-pointer h-10 whitespace-nowrap gap-2">
+              Average Daily Traffic Speed and Volume Data
+              <CloudUpload className="w-5 h-5" />
+              <input
+                type="file"
+                accept=".xlsx,.xls,.csv"
+                onChange={(e) => loadSheet(e.target.files[0], 'trafficVolume')}
+                className="hidden"
+              />
+            </label>
           )}
           <div className="flex flex-col gap-1 items-center">
             <label className="text-xs font-medium text-gray-600">Base Year</label>
@@ -273,67 +295,6 @@ function VehicleTrafficVolume() {
               ))}
             </select>
           </div>
-          <button
-            type="button"
-            className={`${abmAvailable ? 'bg-green-600 hover:bg-green-700' : 'bg-blue-500 hover:bg-blue-600'} text-white font-semibold text-base px-4 py-2 rounded disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2`}
-            style={{ minWidth: 140, maxWidth: 180, height: 40, whiteSpace: 'nowrap' }}
-            onClick={async () => {
-              const currentCity = (classificationState.city ?? classificationState.cityInput) || "";
-              const year = classificationState.baseYear || "";
-              if (!currentCity || !year) return;
-
-              setTrafficState({ showResults: true, speedEstimated: true, methodUsed: methodToUse });
-
-              try {
-                // If ABM is available for Atlanta, use the ABM endpoint
-                if (abmAvailable) {
-                  console.log(`[ABM] Processing ${currentCity} ${year} using Activity-Based Model`);
-                  toast.info(`Using Activity-Based Model for ${currentCity} ${year}`, { autoClose: 2000 });
-
-                  const abmRes = await fetch(`${API_URL}/process/traffic/abm`, {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({
-                      city_name: currentCity,
-                      year: parseInt(year, 10),
-                      method: "auto"
-                    })
-                  });
-
-                  if (!abmRes.ok) {
-                    const errData = await abmRes.json();
-                    throw new Error(errData.message || errData.error || "ABM processing failed");
-                  }
-
-                  const abmData = await abmRes.json();
-                  console.log("[ABM] Response:", abmData);
-                  toast.success(`ABM processed ${abmData.tracts_processed} tracts (${abmData.method_used})`, { autoClose: 3000 });
-                } else {
-                  console.log(`[MFD] Processing ${currentCity} ${year} using Macroscopic Fundamental Diagram`);
-                }
-
-                // Fetch interactive chart data (JSON) instead of static PNG
-                const url = `${API_URL}/plot/traffic/data/${encodeURIComponent(currentCity)}/${encodeURIComponent(year)}`;
-                const res = await fetch(url);
-                if (!res.ok) {
-                  const errBody = await res.json().catch(() => ({}));
-                  throw new Error(errBody.error || "Failed to fetch traffic chart data");
-                }
-                const chartJson = await res.json();
-                setTrafficState({ trafficChartData: chartJson });
-
-              } catch (err) {
-                console.error("Processing error:", err);
-                setTrafficState({ trafficChartData: null });
-                toast.error(err.message || "Failed to process traffic data");
-                addNotification(err.message || "Failed to load traffic data");
-              }
-            }}
-            disabled={!canEstimateSpeed}
-          >
-            {abmAvailable && <Zap className="w-4 h-4" />}
-            {abmAvailable ? 'Load Traffic Data' : 'Estimate Speed'}
-          </button>
           </form>
         </div>
 
