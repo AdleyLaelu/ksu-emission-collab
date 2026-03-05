@@ -82,11 +82,17 @@ function VehiclePenetration({ activeStep }) {
     });
   }, [paginatedData, numericColIndex, totalNumericValue]);
 
-  // Column config: percentage column is read-only
+  // Column config: center numeric columns, percentage column is read-only
   const columnConfig = React.useMemo(() => {
     if (numericColIndex < 0) return undefined;
     const headers = penetrationState.penetrationHeaders || [];
-    return [...headers.map(() => ({})), { readOnly: true, className: "htDimmed" }];
+    return [
+      ...headers.map((h) => {
+        const isNumeric = /age|count|rate|penetration/i.test(String(h || ""));
+        return isNumeric ? { className: "htCenter" } : {};
+      }),
+      { readOnly: true, className: "htDimmed htCenter" }
+    ];
   }, [penetrationState.penetrationHeaders, numericColIndex]);
 
   // Handle cell edits — persist changes back to allPenetrationData
@@ -441,8 +447,10 @@ function VehiclePenetration({ activeStep }) {
                 theme === "dark" ? "ht-theme-main-dark" : "ht-theme-main"
               }
               afterGetColHeader={(col, TH) => {
-                TH.style.textAlign = 'left';
-                TH.style.paddingLeft = '5px';
+                const header = displayHeaders[col] || "";
+                const isNumeric = /age|count|rate|penetration|%/i.test(String(header));
+                TH.style.textAlign = isNumeric ? 'center' : 'left';
+                TH.style.paddingLeft = isNumeric ? '0' : '5px';
                 TH.style.fontWeight = 'bold';
               }}
             />
