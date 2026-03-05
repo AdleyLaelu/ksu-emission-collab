@@ -332,7 +332,7 @@ function VehicleTrafficVolume() {
             disabled={!canEstimateSpeed}
           >
             {abmAvailable && <Zap className="w-4 h-4" />}
-            Estimate Speed
+            {abmAvailable ? 'Load Traffic Data' : 'Estimate Speed'}
           </button>
           </form>
         </div>

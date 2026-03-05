@@ -308,7 +308,7 @@ function ProjectedDemand() {
                 ) : (
                   <>
                     {abmAvailable && <Zap className="w-4 h-4" />}
-                    {isDataStale ? `Update for ${year}` : "Estimate Speed"}
+                    {isDataStale ? `Update for ${year}` : (abmAvailable ? 'Load Traffic Data' : 'Estimate Speed')}
                   </>
                 )}
               </button>
