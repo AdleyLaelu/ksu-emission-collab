@@ -198,9 +198,11 @@ export default function TrafficChart({
         x: {
           type: "linear",
           min: 0,
-          max: 23.75,
+          max: 24,
           ticks: {
             stepSize: 1,
+            autoSkip: false,
+            maxTicksLimit: 25,
             callback: (value) => (Number.isInteger(value) ? value : ""),
             font: { size: 12 },
           },

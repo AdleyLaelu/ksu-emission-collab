@@ -410,15 +410,17 @@ function ProjectedDemand() {
           </div>
         ) : null}
 
-        {/* Tract Parameters Table */}
-        <div style={{ maxWidth: '950px', overflowX: 'auto', overflowY: 'hidden', textAlign:'center', marginTop:'32px'}}>
-          <div className="bg-[#f7f7f9] text-[#222222] text-center box-border font-semibold border border-solid border-[#cccccc] rounded-none" style={{borderRadius:0}}>
-            <span>Macroscopic Traffic Model Parameters</span>
+        {/* Tract Parameters Table — only for non-ABM mode */}
+        {!abmAvailable && (
+          <div style={{ maxWidth: '950px', overflowX: 'auto', overflowY: 'hidden', textAlign:'center', marginTop:'32px'}}>
+            <div className="bg-[#f7f7f9] text-[#222222] text-center box-border font-semibold border border-solid border-[#cccccc] rounded-none" style={{borderRadius:0}}>
+              <span>Macroscopic Traffic Model Parameters</span>
+            </div>
+            <div style={{display:'inline-block', width:'100%'}}>
+              <TractParametersTable trafficState={trafficState} alignLeft />
+            </div>
           </div>
-          <div style={{display:'inline-block', width:'100%'}}>
-            <TractParametersTable trafficState={trafficState} alignLeft />
-          </div>
-        </div>
+        )}
       </div>
     </div>
   );
