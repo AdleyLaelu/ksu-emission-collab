@@ -207,7 +207,7 @@ export default function TrafficChart({
             maxRotation: 0,
           },
           title: { display: true, text: "Time (hr)", font: { size: 14 } },
-          grid: { color: "rgba(0,0,0,0.25)", lineWidth: 0.5 },
+          grid: { color: "rgba(0,0,0,0.25)", lineWidth: 0.5, drawTicks: false },
           border: { color: "rgba(0,0,0,0.3)" },
         },
         y: {
@@ -225,7 +225,7 @@ export default function TrafficChart({
             callback: (value) => (value % 10 === 0 ? value : ""),
             font: { size: 12 },
           },
-          grid: { color: "rgba(0,0,0,0.25)", lineWidth: 0.5 },
+          grid: { color: "rgba(0,0,0,0.25)", lineWidth: 0.5, drawTicks: false },
           border: { color: "rgba(0,0,0,0.3)" },
         },
         y1: {
