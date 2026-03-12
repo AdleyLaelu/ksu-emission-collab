@@ -125,9 +125,9 @@ export default function TrafficChart({
     return Math.ceil(max / 10) * 10; // round up to nearest 10
   }, [processedTracts]);
 
-  // xCells = 24 / 0.2 = 120, yCells = yMax / 1 = yMax
+  // xCells = 24 / 0.5 = 48, yCells = yMax / 2
   // aspectRatio = xCells / yCells for square grid boxes
-  const squareAspectRatio = 120 / yMax;
+  const squareAspectRatio = 48 / (yMax / 2);
 
   // Debounced hover handler — only fires when tract actually changes
   const lastHoveredRef = useRef(null);
@@ -215,14 +215,14 @@ export default function TrafficChart({
           min: 0,
           max: 24,
           ticks: {
-            stepSize: 0.2,
+            stepSize: 0.5,
             autoSkip: false,
             callback: (value) => (Number.isInteger(value) ? value : ""),
             font: { size: 12 },
             maxRotation: 0,
           },
           title: { display: true, text: "Time (hr)", font: { size: 14 } },
-          grid: { color: "rgba(0,0,0,0.25)", lineWidth: 0.5, drawTicks: false },
+          grid: { color: "rgba(0,0,0,0.12)", lineWidth: 0.5, drawTicks: false },
           border: { color: "rgba(0,0,0,0.3)" },
         },
         y: {
@@ -236,12 +236,12 @@ export default function TrafficChart({
             font: { size: 14 },
           },
           ticks: {
-            stepSize: 1,
+            stepSize: 2,
             autoSkip: false,
             callback: (value) => (value % 10 === 0 ? value : ""),
             font: { size: 12 },
           },
-          grid: { color: "rgba(0,0,0,0.25)", lineWidth: 0.5, drawTicks: false },
+          grid: { color: "rgba(0,0,0,0.12)", lineWidth: 0.5, drawTicks: false },
           border: { color: "rgba(0,0,0,0.3)" },
         },
         y1: {
