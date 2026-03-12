@@ -115,6 +115,20 @@ export default function TrafficChart({
     return { datasets };
   }, [processedTracts, activeTract]);
 
+  // Compute y-axis max from data so we can set aspect ratio for square grid cells
+  const yMax = useMemo(() => {
+    if (!processedTracts.length) return 60;
+    let max = 0;
+    processedTracts.forEach((t) => {
+      t.speedData.forEach((p) => { if (p.y > max) max = p.y; });
+    });
+    return Math.ceil(max / 10) * 10; // round up to nearest 10
+  }, [processedTracts]);
+
+  // xCells = 24 / 0.2 = 120, yCells = yMax / 1 = yMax
+  // aspectRatio = xCells / yCells for square grid boxes
+  const squareAspectRatio = 120 / yMax;
+
   // Debounced hover handler — only fires when tract actually changes
   const lastHoveredRef = useRef(null);
   const onHoverTract = useCallback((tractId) => {
@@ -127,7 +141,8 @@ export default function TrafficChart({
   const options = useMemo(
     () => ({
       responsive: true,
-      maintainAspectRatio: false,
+      maintainAspectRatio: true,
+      aspectRatio: squareAspectRatio,
       animation: false,
       interaction: {
         mode: "nearest",
@@ -214,6 +229,7 @@ export default function TrafficChart({
           type: "linear",
           position: "left",
           min: 0,
+          max: yMax,
           title: {
             display: true,
             text: "Traffic Speed (mph)",
@@ -242,7 +258,7 @@ export default function TrafficChart({
         },
       },
     }),
-    [onHoverTract, processedTracts]
+    [onHoverTract, processedTracts, squareAspectRatio, yMax]
   );
 
   if (!tractData?.length) return null;
@@ -252,13 +268,12 @@ export default function TrafficChart({
       {/* Chart area */}
       <div
         className="relative border border-gray-200 rounded-lg bg-white shadow-sm"
-        style={{ height: 440 }}
         onMouseLeave={() => onHoverTract(null)}
       >
         <div className="text-center text-base font-semibold text-gray-700 pt-3 pb-1">
           Year {year} - {city} [{dataSource}]
         </div>
-        <div style={{ height: "calc(100% - 40px)", padding: "0 8px 8px" }}>
+        <div style={{ padding: "0 8px 8px" }}>
           <Line ref={chartRef} data={chartData} options={options} />
         </div>
         <ZoomToolbar chartRef={chartRef} />
