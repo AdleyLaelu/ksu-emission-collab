@@ -301,14 +301,17 @@ function InputStepper({ finalNext, activeStep, setActiveStep }) {
 
       {/* Navigation Buttons */}
       <div className="w-full max-w-7xl mx-auto flex flex-row items-center mt-2 justify-between">
-        <button
-          className={`${activeStep === 0 ? 'bg-gray-500' : 'bg-blue-500'} text-white px-4 py-2 rounded disabled:opacity-50`}
-          onClick={handleBack}
-          disabled={activeStep === 0}
-          style={{ minWidth: 100 }}
-        >
-          Back
-        </button>
+        {activeStep > 0 ? (
+          <button
+            className="bg-blue-500 text-white px-4 py-2 rounded"
+            onClick={handleBack}
+            style={{ minWidth: 100 }}
+          >
+            Back
+          </button>
+        ) : (
+          <div style={{ minWidth: 100 }} />
+        )}
         <div className="flex flex-row gap-4">
           {activeStep < steps.length - 1 && (
             <button

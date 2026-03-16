@@ -436,6 +436,13 @@ function VehicleClassification({ activeStep }) {
             </div>
           </form>
 
+          {/* Helper text when no city selected */}
+          {!classificationState.city && (
+            <p className={`text-sm italic px-4 ${theme === "dark" ? "text-gray-400" : "text-gray-500"}`}>
+              Select a city to begin entering vehicle classification data.
+            </p>
+          )}
+
           {/* Handsontable */}
           {classificationState.classificationData?.length > 0 ? (
             <div
