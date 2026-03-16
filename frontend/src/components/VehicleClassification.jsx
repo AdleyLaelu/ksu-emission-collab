@@ -486,7 +486,7 @@ function VehicleClassification({ activeStep }) {
               />
               <div className="flex flex-col sm:flex-row justify-between gap-2 sm:gap-4 mt-4">
                 <button
-                  className="px-6 py-2 bg-gray-600 text-white rounded hover:bg-gray-700 disabled:opacity-50"
+                  className="px-6 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50"
                   onClick={handleBack}
                   disabled={currentPage === 0}
                   type="button"
