@@ -164,7 +164,7 @@ function ProjectedDemand() {
         if (cancelled) return;
         setMethodUsed(abmData.method_used || (isExactABMYear(selectedYear) ? "ABM Direct" : "ABM Interpolated"));
 
-        const dataUrl = `${API_URL}/plot/traffic/data/${encodeURIComponent(mappedCity)}/${encodeURIComponent(selectedYear)}`;
+        const dataUrl = `${API_URL}/plot/traffic/data/${encodeURIComponent(mappedCity)}/${encodeURIComponent(selectedYear)}?source=abm`;
         const dataRes = await fetch(dataUrl);
         if (!dataRes.ok) {
           const errBody = await dataRes.json().catch(() => ({}));
@@ -189,17 +189,68 @@ function ProjectedDemand() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [penetrationState.projectedYear, mappedCity, isABM]);
 
-  // MFD mode: mark speed as estimated when projected year is selected (enables table/image display)
+  // MFD mode: process traffic data and fetch interactive chart when projected year changes
   useEffect(() => {
     if (!isMFD) return;
     const selectedYear = penetrationState.projectedYear;
-    if (selectedYear) {
-      setShowTable(true);
-      setProjectedDemandState({ speedEstimated: true });
-      setMethodUsed("MFD");
-    }
+    if (!selectedYear || !mappedCity) return;
+    if (trafficChartData && chartYear === selectedYear) return;
+
+    // Need MFD parameters file from Step 2
+    const mfdParamsFile = trafficState.trafficMFTParametersFile;
+
+    setShowTable(true);
+    setProjectedDemandState({ speedEstimated: true });
+    setMethodUsed("MFD");
+
+    // If no MFD params file, we can't process; just show table/static image
+    if (!mfdParamsFile) return;
+
+    let cancelled = false;
+    const processMFD = async () => {
+      setIsLoading(true);
+      try {
+        // Step 1: Run MFD processing for the projected year
+        const formData = new FormData();
+        formData.append("parameters_file", mfdParamsFile);
+        formData.append("city_name", mappedCity);
+        formData.append("year", selectedYear);
+
+        const processRes = await fetch(`${API_URL}/process/traffic`, {
+          method: "POST",
+          body: formData,
+        });
+        if (!processRes.ok) {
+          const errData = await processRes.json().catch(() => ({}));
+          console.error("MFD processing failed for projected year:", errData);
+          return;
+        }
+
+        if (cancelled) return;
+
+        // Step 2: Fetch chart data (force MFD source to avoid ABM data leaking in)
+        const dataUrl = `${API_URL}/plot/traffic/data/${encodeURIComponent(mappedCity)}/${encodeURIComponent(selectedYear)}?source=mfd`;
+        const dataRes = await fetch(dataUrl);
+        if (!dataRes.ok) {
+          console.log("No MFD chart data available for projected year");
+          return;
+        }
+        const chartJson = await dataRes.json();
+        if (cancelled) return;
+        setTrafficChartData(chartJson);
+        setChartYear(selectedYear);
+      } catch (err) {
+        if (cancelled) return;
+        console.error("MFD projected demand processing error:", err);
+      } finally {
+        if (!cancelled) setIsLoading(false);
+      }
+    };
+
+    processMFD();
+    return () => { cancelled = true; };
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [penetrationState.projectedYear, isMFD]);
+  }, [penetrationState.projectedYear, mappedCity, isMFD]);
 
   return (
     <div className="flex flex-col pt-4 w-full max-w-full items-center">

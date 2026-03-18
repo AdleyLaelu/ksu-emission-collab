@@ -1302,21 +1302,40 @@ def plot_traffic_data_route(city_name, year):
         base_dir = os.path.dirname(os.path.abspath(__file__))
         output_dir = os.path.join(base_dir, 'Combined_sheet_output_speed', state)
 
-        # Priority: ABM Direct > ABM Interpolated > MFD
+        # Optional: ?source=mfd or ?source=abm to force a specific data source
+        forced_source = request.args.get("source", "").lower()
+
         abm_direct = os.path.join(output_dir, f'{state}_{year}_ABM.xlsx')
         abm_interp = os.path.join(output_dir, f'{state}_{year}_ABM_interpolated.xlsx')
         mfd_file = os.path.join(output_dir, f'{state}_{year}.xlsx')
 
-        if os.path.exists(abm_direct):
-            excel_path = abm_direct
-            data_source = "ABM Direct"
-        elif os.path.exists(abm_interp):
-            excel_path = abm_interp
-            data_source = "ABM Interpolated"
-        elif os.path.exists(mfd_file):
-            excel_path = mfd_file
-            data_source = "MFD"
+        excel_path = None
+        data_source = None
+
+        if forced_source == "mfd":
+            if os.path.exists(mfd_file):
+                excel_path = mfd_file
+                data_source = "MFD"
+        elif forced_source == "abm":
+            if os.path.exists(abm_direct):
+                excel_path = abm_direct
+                data_source = "ABM Direct"
+            elif os.path.exists(abm_interp):
+                excel_path = abm_interp
+                data_source = "ABM Interpolated"
         else:
+            # Default priority: ABM Direct > ABM Interpolated > MFD
+            if os.path.exists(abm_direct):
+                excel_path = abm_direct
+                data_source = "ABM Direct"
+            elif os.path.exists(abm_interp):
+                excel_path = abm_interp
+                data_source = "ABM Interpolated"
+            elif os.path.exists(mfd_file):
+                excel_path = mfd_file
+                data_source = "MFD"
+
+        if not excel_path:
             return jsonify({"error": "No data file found. Run processing first."}), 404
 
         excel_file = pd.ExcelFile(excel_path)

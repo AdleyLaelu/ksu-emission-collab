@@ -119,7 +119,7 @@ function VehicleTrafficVolume() {
       const abmData = await abmRes.json();
       toast.success(`ABM processed ${abmData.tracts_processed} tracts (${abmData.method_used})`, { autoClose: 3000 });
 
-      const url = `${API_URL}/plot/traffic/data/${encodeURIComponent(city)}/${encodeURIComponent(year)}`;
+      const url = `${API_URL}/plot/traffic/data/${encodeURIComponent(city)}/${encodeURIComponent(year)}?source=abm`;
       const res = await fetch(url);
       if (!res.ok) {
         const errBody = await res.json().catch(() => ({}));
