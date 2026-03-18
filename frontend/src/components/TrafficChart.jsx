@@ -80,11 +80,12 @@ export default function TrafficChart({
     processedTracts.forEach((tract) => {
       const { tractId, color, speedData, volumeData } = tract;
       const isActive = activeTract === tractId;
+      const isDimmed = activeTract != null && !isActive;
 
       datasets.push({
         label: `Speed - ${tractId}`,
         data: speedData,
-        borderColor: color,
+        borderColor: isDimmed ? color + "18" : color,
         backgroundColor: "transparent",
         borderWidth: isActive ? 3 : 1,
         pointRadius: 0,
@@ -99,7 +100,7 @@ export default function TrafficChart({
       datasets.push({
         label: `Volume - ${tractId}`,
         data: volumeData,
-        borderColor: color,
+        borderColor: isDimmed ? color + "18" : color,
         backgroundColor: "transparent",
         borderWidth: isActive ? 3 : 1,
         borderDash: [6, 3],
@@ -222,8 +223,8 @@ export default function TrafficChart({
             maxRotation: 0,
           },
           title: { display: true, text: "Time (hr)", font: { size: 14 } },
-          grid: { color: "rgba(0,0,0,0.12)", lineWidth: 0.5, drawTicks: false },
-          border: { color: "rgba(0,0,0,0.3)" },
+          grid: { color: "rgba(0,0,0,0.05)", lineWidth: 0.5, drawTicks: false },
+          border: { color: "rgba(0,0,0,0.15)" },
         },
         y: {
           type: "linear",
@@ -241,8 +242,8 @@ export default function TrafficChart({
             callback: (value) => (value % 10 === 0 ? value : ""),
             font: { size: 12 },
           },
-          grid: { color: "rgba(0,0,0,0.12)", lineWidth: 0.5, drawTicks: false },
-          border: { color: "rgba(0,0,0,0.3)" },
+          grid: { color: "rgba(0,0,0,0.05)", lineWidth: 0.5, drawTicks: false },
+          border: { color: "rgba(0,0,0,0.15)" },
         },
         y1: {
           type: "linear",
@@ -254,7 +255,7 @@ export default function TrafficChart({
           },
           ticks: { font: { size: 12 } },
           grid: { drawOnChartArea: false },
-          border: { color: "rgba(0,0,0,0.3)" },
+          border: { color: "rgba(0,0,0,0.15)" },
         },
       },
     }),
