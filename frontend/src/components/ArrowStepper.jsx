@@ -6,15 +6,7 @@ import useAppStore from '../useAppStore';
 import { toast } from "react-toastify";
 import FinalResultsPage from "./FinalResultsPage";
 
-// ABM availability check - matches VehicleTrafficVolume.jsx
-const ABM_MIN_YEAR = 2020;
-const ABM_MAX_YEAR = 2050;
-const isABMAvailable = (city, year) => {
-  if (!city || !year) return false;
-  const normalizedCity = city.toLowerCase().trim();
-  const yearNum = parseInt(year, 10);
-  return normalizedCity === "atlanta" && yearNum >= ABM_MIN_YEAR && yearNum <= ABM_MAX_YEAR;
-};
+// Mode is now read from useAppStore.trafficMode
 
 export default function ArrowStepper() {
   // Track Vehicle/Grid selection for Results step, default to empty
@@ -45,15 +37,12 @@ export default function ArrowStepper() {
   const ConsumptionAndEmission = useAppStore((s) => s.ConsumptionAndEmission);
   const GridEmission = useAppStore((s) => s.GridEmission);
 
-  // Check if ABM mode is active (Atlanta + year 2020-2050)
-  const city = classificationState.city ?? classificationState.cityInput;
-  const year = classificationState.baseYear;
-  const abmAvailable = isABMAvailable(city, year);
+  const trafficMode = useAppStore((s) => s.trafficMode);
 
-  // Validation helpers - ABM mode doesn't require MFD parameters upload
-  const trafficDataComplete = abmAvailable
-    ? trafficVolumeState.speedEstimated  // ABM: just need to have clicked Estimate Speed
-    : trafficVolumeState.trafficMFTParametersData.length > 0;  // MFD: need uploaded data
+  // Validation helpers based on selected traffic mode
+  const trafficDataComplete = trafficMode === "ABM"
+    ? trafficVolumeState.speedEstimated
+    : trafficVolumeState.trafficMFTParametersData.length > 0;
 
   const inputDataComplete =
     classificationState.classificationData.length > 0 &&

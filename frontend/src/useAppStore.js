@@ -72,6 +72,15 @@ const useAppStore = create((set, get) => ({
     })),
 
   // ------------------------------
+  // Traffic mode slice (ABM vs MFD, locked after Step 2 confirms)
+  // ------------------------------
+  trafficMode: null,       // "ABM" | "MFD" | null (not yet chosen)
+  trafficModeLocked: false, // true after user proceeds past Step 2
+  setTrafficMode: (mode) => set({ trafficMode: mode }),
+  lockTrafficMode: () => set({ trafficModeLocked: true }),
+  resetTrafficMode: () => set({ trafficMode: null, trafficModeLocked: false }),
+
+  // ------------------------------
   // Traffic volume slice
   // ------------------------------
   trafficVolumeState: {
@@ -81,8 +90,7 @@ const useAppStore = create((set, get) => ({
     trafficMFTParametersFile: null,
     trafficMFTParametersData: [],
     trafficMFTParametersHeaders: [],
-    // NEW: computed speeds per (tract, hour) etc. — fill this from your effects
-    speedTable: [], // rows like { tract, hour, volume, uf, kj, speed, density }
+    speedTable: [],
   },
   setTrafficVolumeState: (partial) =>
     set((state) => ({
