@@ -142,7 +142,11 @@ function ProjectedDemand() {
     const selectedYear = penetrationState.projectedYear;
     if (!selectedYear || !mappedCity) return;
     if (!isABMAvailable(mappedCity, selectedYear)) return;
-    if (trafficChartData && chartYear === selectedYear) return;
+    if (chartYear === selectedYear && trafficChartData) return;
+
+    // Clear stale data immediately
+    setTrafficChartData(null);
+    setChartYear(null);
 
     let cancelled = false;
     const loadABMData = async () => {
@@ -194,23 +198,23 @@ function ProjectedDemand() {
     if (!isMFD) return;
     const selectedYear = penetrationState.projectedYear;
     if (!selectedYear || !mappedCity) return;
-    if (trafficChartData && chartYear === selectedYear) return;
+    if (chartYear === selectedYear && trafficChartData) return;
 
-    // Need MFD parameters file from Step 2
     const mfdParamsFile = trafficState.trafficMFTParametersFile;
 
+    // Clear stale chart data immediately to prevent flashing
+    setTrafficChartData(null);
+    setChartYear(null);
     setShowTable(true);
     setProjectedDemandState({ speedEstimated: true });
     setMethodUsed("MFD");
 
-    // If no MFD params file, we can't process; just show table/static image
     if (!mfdParamsFile) return;
 
     let cancelled = false;
     const processMFD = async () => {
       setIsLoading(true);
       try {
-        // Step 1: Run MFD processing for the projected year
         const formData = new FormData();
         formData.append("parameters_file", mfdParamsFile);
         formData.append("city_name", mappedCity);
@@ -221,20 +225,14 @@ function ProjectedDemand() {
           body: formData,
         });
         if (!processRes.ok) {
-          const errData = await processRes.json().catch(() => ({}));
-          console.error("MFD processing failed for projected year:", errData);
+          console.error("MFD processing failed for projected year");
           return;
         }
-
         if (cancelled) return;
 
-        // Step 2: Fetch chart data (force MFD source to avoid ABM data leaking in)
         const dataUrl = `${API_URL}/plot/traffic/data/${encodeURIComponent(mappedCity)}/${encodeURIComponent(selectedYear)}?source=mfd`;
         const dataRes = await fetch(dataUrl);
-        if (!dataRes.ok) {
-          console.log("No MFD chart data available for projected year");
-          return;
-        }
+        if (!dataRes.ok) return;
         const chartJson = await dataRes.json();
         if (cancelled) return;
         setTrafficChartData(chartJson);
@@ -396,8 +394,8 @@ function ProjectedDemand() {
           </div>
         )}
 
-        {/* --- MFD Results: Static Image fallback (only when NO interactive chart) --- */}
-        {isMFD && !hasChartData && projectedDemandState.speedEstimated && projectedImg && mappedCity && (
+        {/* --- MFD Results: Static Image fallback (only when NO interactive chart and NOT loading) --- */}
+        {isMFD && !hasChartData && !isLoading && projectedDemandState.speedEstimated && projectedImg && mappedCity && (
           <div className="flex flex-col gap-2 w-full max-w-7xl">
             {methodUsed && (
               <div className="flex items-center gap-2 px-3 py-1 rounded text-sm font-medium w-fit bg-blue-50 text-blue-700 border border-blue-200">
