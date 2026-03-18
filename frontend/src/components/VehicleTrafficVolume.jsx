@@ -159,18 +159,34 @@ function VehicleTrafficVolume() {
       }
       setTrafficState(updates);
 
-      // Background MFD processing when parameters file is uploaded
-      if (type === "mftParameters" && parsed.length) {
+      // MFD processing: when parameters file is uploaded and traffic volume file exists, process and show chart
+      if (type === "mftParameters" && parsed.length && city && year) {
         try {
-          if (city && year) {
-            const formData = new FormData();
-            formData.append("city_name", city);
-            formData.append("year", year);
-            formData.append("parameters_file", file);
-            await fetch(`${API_URL}/process/traffic`, { method: "POST", body: formData });
+          const formData = new FormData();
+          formData.append("city_name", city);
+          formData.append("year", year);
+          formData.append("parameters_file", file);
+
+          toast.info("Processing MFD traffic data...", { autoClose: 2000 });
+          const processRes = await fetch(`${API_URL}/process/traffic`, { method: "POST", body: formData });
+          if (processRes.ok) {
+            // Fetch chart data
+            const chartUrl = `${API_URL}/plot/traffic/data/${encodeURIComponent(city)}/${encodeURIComponent(year)}?source=mfd`;
+            const chartRes = await fetch(chartUrl);
+            if (chartRes.ok) {
+              const chartJson = await chartRes.json();
+              setTrafficState({
+                showResults: true,
+                speedEstimated: true,
+                methodUsed: "MFD",
+                trafficChartData: chartJson,
+              });
+              toast.success("MFD processing complete", { autoClose: 2000 });
+            }
           }
         } catch (err) {
-          console.error("MFD background processing failed", err);
+          console.error("MFD processing failed", err);
+          toast.error("MFD processing failed: " + err.message);
         }
       }
     };
