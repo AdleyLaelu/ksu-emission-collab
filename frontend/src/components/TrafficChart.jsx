@@ -116,7 +116,7 @@ export default function TrafficChart({
     return { datasets };
   }, [processedTracts, activeTract]);
 
-  // Compute y-axis max from data so we can set aspect ratio for square grid cells
+  // Compute y-axis max from data
   const yMax = useMemo(() => {
     if (!processedTracts.length) return 60;
     let max = 0;
@@ -125,11 +125,6 @@ export default function TrafficChart({
     });
     return Math.ceil(max / 10) * 10; // round up to nearest 10
   }, [processedTracts]);
-
-  // Dynamic aspect ratio but clamped to stay wide and tight
-  // Lower bound 2.2 prevents the chart from getting too tall with high yMax
-  const rawAspectRatio = 48 / (yMax / 2);
-  const squareAspectRatio = Math.max(2.2, rawAspectRatio);
 
   // Debounced hover handler — only fires when tract actually changes
   const lastHoveredRef = useRef(null);
@@ -144,7 +139,7 @@ export default function TrafficChart({
     () => ({
       responsive: true,
       maintainAspectRatio: true,
-      aspectRatio: squareAspectRatio,
+      aspectRatio: 2.4,
       animation: false,
       interaction: {
         mode: "nearest",
@@ -260,7 +255,7 @@ export default function TrafficChart({
         },
       },
     }),
-    [onHoverTract, processedTracts, squareAspectRatio, yMax]
+    [onHoverTract, processedTracts, yMax]
   );
 
   if (!tractData?.length) return null;
