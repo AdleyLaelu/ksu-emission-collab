@@ -268,7 +268,7 @@ export default function EnergyConsumptionAndEmissionRates() {
   }, [fuelType, emissionType, vehicleAge, city, emissionBackend, setVehicleData]);
 
   // Build chart datasets from vehicleData (pure derivation, no intermediate state)
-  const { consumptionChartData, emissionChartData, consumptionUnit, emissionUnit } = useMemo(() => {
+  const { consumptionChartData, emissionChartData, consumptionUnit, emissionUnit, consumptionYMax, emissionYMax } = useMemo(() => {
     const colorMap = {};
     VEHICLE_TYPES.forEach((t, i) => {
       colorMap[t] = VEHICLE_COLORS[i % VEHICLE_COLORS.length];
@@ -337,11 +337,19 @@ export default function EnergyConsumptionAndEmissionRates() {
       }
     });
 
+    // Compute y-max for square grid calculation
+    let cYMax = 0;
+    cDatasets.forEach((ds) => ds.data.forEach((p) => { if (p.y > cYMax) cYMax = p.y; }));
+    let eYMax = 0;
+    eDatasets.forEach((ds) => ds.data.forEach((p) => { if (p.y > eYMax) eYMax = p.y; }));
+
     return {
       consumptionChartData: { datasets: cDatasets },
       emissionChartData: { datasets: eDatasets },
       consumptionUnit: cUnit,
       emissionUnit: eUnit,
+      consumptionYMax: Math.ceil(cYMax) || 60,
+      emissionYMax: Math.ceil(eYMax) || 60,
     };
   }, [vehicleData, activeVehicle]);
 
@@ -362,76 +370,95 @@ export default function EnergyConsumptionAndEmissionRates() {
 
   // Chart options builder
   const buildOptions = useCallback(
-    (yAxisText, xMax) => ({
-      responsive: true,
-      maintainAspectRatio: false,
-      animation: false,
-      interaction: { mode: "nearest", intersect: false, axis: "xy" },
-      onHover: handleChartHover,
-      plugins: {
-        legend: { display: false },
-        tooltip: {
-          enabled: true,
-          backgroundColor: "#fff",
-          titleColor: "#222",
-          bodyColor: "#222",
-          borderColor: "#ccc",
-          borderWidth: 1,
-          displayColors: true,
-          callbacks: {
-            title: (items) => items[0]?.dataset?.label || "",
-            label: (item) => {
-              if (!item?.parsed) return "";
-              return [
-                `Speed: ${item.parsed.x} mph`,
-                `Value: ${item.parsed.y?.toFixed(4) ?? "\u2014"}`,
-              ];
-            },
-            labelColor: (item) => {
-              const idx = VEHICLE_TYPES.indexOf(item.dataset?.vehicleType);
-              const c = idx >= 0 ? VEHICLE_COLORS[idx] : "#ccc";
-              return { borderColor: c, backgroundColor: c };
+    (yAxisText, xMax, yMax) => {
+      // Compute y-axis step to produce roughly square grid cells.
+      // Chart area is ~380px tall, ~width of col-span-4 (~480px).
+      // x goes 0..xRange with stepSize 2, so xCells = xRange/2.
+      // For square cells: yStep = yRange / xCells * (chartWidth / chartHeight).
+      // Approximate: chartWidth/chartHeight ~ 1.3 for these containers.
+      const xRange = xMax || 70;
+      const xStep = 2;
+      const xCells = xRange / xStep;
+      const aspectFactor = 1.3;
+      const rawYStep = (yMax || 60) / (xCells * aspectFactor);
+      // Snap to a "nice" step: 1, 2, 5, 10, 20, 50, 100, 200, 500...
+      const niceSteps = [1, 2, 5, 10, 20, 25, 50, 100, 200, 250, 500, 1000];
+      const yStep = niceSteps.find((s) => s >= rawYStep) || rawYStep;
+
+      return {
+        responsive: true,
+        maintainAspectRatio: false,
+        animation: false,
+        interaction: { mode: "nearest", intersect: false, axis: "xy" },
+        onHover: handleChartHover,
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            enabled: true,
+            backgroundColor: "#fff",
+            titleColor: "#222",
+            bodyColor: "#222",
+            borderColor: "#ccc",
+            borderWidth: 1,
+            displayColors: true,
+            callbacks: {
+              title: (items) => items[0]?.dataset?.label || "",
+              label: (item) => {
+                if (!item?.parsed) return "";
+                return [
+                  `Speed: ${item.parsed.x} mph`,
+                  `Value: ${item.parsed.y?.toFixed(4) ?? "\u2014"}`,
+                ];
+              },
+              labelColor: (item) => {
+                const idx = VEHICLE_TYPES.indexOf(item.dataset?.vehicleType);
+                const c = idx >= 0 ? VEHICLE_COLORS[idx] : "#ccc";
+                return { borderColor: c, backgroundColor: c };
+              },
             },
           },
-        },
-        zoom: {
-          limits: { x: { min: 0 }, y: { min: 0 } },
-          pan: { enabled: true, mode: "x" },
-          zoom: { wheel: { enabled: true }, pinch: { enabled: true }, mode: "x" },
-        },
-      },
-      parsing: { xAxisKey: "x", yAxisKey: "y" },
-      scales: {
-        x: {
-          type: "linear",
-          min: 0,
-          ...(xMax != null ? { max: xMax } : {}),
-          ticks: {
-            stepSize: 2,
-            callback: (value) => (value % 10 === 0 ? value : ""),
-            font: { size: 11 },
-            autoSkip: false,
+          zoom: {
+            limits: { x: { min: 0 }, y: { min: 0 } },
+            pan: { enabled: true, mode: "x" },
+            zoom: { wheel: { enabled: true }, pinch: { enabled: true }, mode: "x" },
           },
-          title: { display: true, text: "Speed (mph)", font: { size: 13 } },
-          grid: { color: "rgba(0,0,0,0.25)", lineWidth: 0.5 },
-          border: { color: "rgba(0,0,0,0.3)" },
         },
-        y: {
-          type: "linear",
-          position: "left",
-          min: 0,
-          title: { display: true, text: yAxisText, font: { size: 13 } },
-          ticks: { font: { size: 11 } },
-          grid: { color: "rgba(0,0,0,0.25)", lineWidth: 0.5 },
-          border: { color: "rgba(0,0,0,0.3)" },
+        parsing: { xAxisKey: "x", yAxisKey: "y" },
+        scales: {
+          x: {
+            type: "linear",
+            min: 0,
+            ...(xMax != null ? { max: xMax } : {}),
+            ticks: {
+              stepSize: xStep,
+              callback: (value) => (value % 10 === 0 ? value : ""),
+              font: { size: 11 },
+              autoSkip: false,
+            },
+            title: { display: true, text: "Speed (mph)", font: { size: 13 } },
+            grid: { color: "rgba(0,0,0,0.06)", lineWidth: 0.5 },
+            border: { color: "rgba(0,0,0,0.15)" },
+          },
+          y: {
+            type: "linear",
+            position: "left",
+            min: 0,
+            title: { display: true, text: yAxisText, font: { size: 13 } },
+            ticks: {
+              stepSize: yStep,
+              font: { size: 11 },
+            },
+            grid: { color: "rgba(0,0,0,0.06)", lineWidth: 0.5 },
+            border: { color: "rgba(0,0,0,0.15)" },
+          },
         },
-      },
-    }),
+      };
+    },
     [handleChartHover]
   );
 
-  const consumptionOptions = useMemo(() => buildOptions(consumptionYAxisText), [buildOptions, consumptionYAxisText]);
-  const emissionOptions = useMemo(() => buildOptions(emissionYAxisText, 70), [buildOptions, emissionYAxisText]);
+  const consumptionOptions = useMemo(() => buildOptions(consumptionYAxisText, undefined, consumptionYMax), [buildOptions, consumptionYAxisText, consumptionYMax]);
+  const emissionOptions = useMemo(() => buildOptions(emissionYAxisText, 70, emissionYMax), [buildOptions, emissionYAxisText, emissionYMax]);
 
   const hasData = consumptionChartData.datasets.length > 0 || emissionChartData.datasets.length > 0;
   const allParamsSet = !!(fuelType && emissionType && vehicleAge);
@@ -558,7 +585,7 @@ export default function EnergyConsumptionAndEmissionRates() {
 
           {/* Interactive legend — col-span-2, click to pin-highlight, hover to preview */}
           <div
-            className="col-span-2 flex flex-col gap-0.5 px-3 py-2 border border-gray-200 rounded-lg bg-white"
+            className="col-span-2 flex flex-col gap-0.5 px-3 py-2 border border-gray-200 rounded-lg bg-white overflow-hidden min-w-0"
             onMouseLeave={() => setHoveredVehicle(null)}
           >
             <span className="text-xs font-semibold text-gray-500 mb-1">Vehicle Types</span>
@@ -570,14 +597,14 @@ export default function EnergyConsumptionAndEmissionRates() {
                 <button
                   key={type}
                   type="button"
-                  className={`flex items-center gap-1.5 px-2 py-0.5 rounded text-xs transition-all cursor-pointer select-none
+                  className={`flex items-center gap-1.5 px-2 py-0.5 rounded text-xs transition-all cursor-pointer select-none min-w-0
                     ${isPinned ? "bg-blue-50 ring-1 ring-blue-300" : "hover:bg-gray-50"}
                     ${isDimmed ? "opacity-30" : "opacity-100"}`}
                   onMouseEnter={() => setHoveredVehicle(type)}
                   onClick={() => setPinnedVehicle((prev) => (prev === type ? null : type))}
                 >
                   <span className="inline-block w-4 h-0.5 rounded-full shrink-0" style={{ backgroundColor: color }} />
-                  <span className="font-medium text-gray-700 whitespace-nowrap">{type}</span>
+                  <span className="font-medium text-gray-700 truncate">{type}</span>
                 </button>
               );
             })}
