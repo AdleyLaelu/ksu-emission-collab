@@ -13,16 +13,7 @@ const steps = [
   "Projected Demand",
 ];
 
-// ABM availability check - Atlanta has pre-computed data for years 2020-2050
-const ABM_MIN_YEAR = 2020;
-const ABM_MAX_YEAR = 2050;
-
-const isABMAvailable = (city, year) => {
-  if (!city || !year) return false;
-  const normalizedCity = city.toLowerCase().trim();
-  const yearNum = parseInt(year, 10);
-  return normalizedCity === "atlanta" && yearNum >= ABM_MIN_YEAR && yearNum <= ABM_MAX_YEAR;
-};
+// Mode is now read from useAppStore.trafficMode ("ABM" | "MFD" | null)
 
 function InputStepper({ finalNext, activeStep, setActiveStep }) {
   const lastSentDataRef = useRef(null);
@@ -128,29 +119,24 @@ function InputStepper({ finalNext, activeStep, setActiveStep }) {
       }
     }
 
-    // Step 2: Traffic Volume - needs TWO files OR ABM mode with estimated speed
+    // Step 2: Traffic Volume - uses trafficMode from store
     else if (activeStep === 2) {
       const state = store.trafficVolumeState;
       const classState = store.classificationState;
+      const mode = store.trafficMode;
 
-      // Check if ABM mode is active
-      const city = classState.city || classState.cityInput || "";
-      const year = classState.baseYear || "";
-      const abmAvailable = isABMAvailable(city, year);
-
-      // ABM mode: skip file upload, just proceed if speed was estimated
-      if (abmAvailable) {
+      if (mode === "ABM") {
         if (state.speedEstimated) {
           console.log("ABM mode - speed estimated, proceeding to next step");
-          // Skip file upload and proceed directly
+          // Lock the mode so user can't switch in later steps
+          store.lockTrafficMode();
         } else {
           window.dispatchEvent(
-            new CustomEvent("app-notification", { detail: { text: "Please estimate speed first" } })
+            new CustomEvent("app-notification", { detail: { text: "Please process ABM data first" } })
           );
           return;
         }
-      } else {
-        // Non-ABM mode: Check if both files exist
+      } else if (mode === "MFD") {
         if (!state.trafficVolumeFile || !state.trafficMFTParametersFile) {
           window.dispatchEvent(
             new CustomEvent("app-notification", { detail: { text: "Please upload both Traffic Volume and MFD Parameters files" } })
@@ -158,87 +144,70 @@ function InputStepper({ finalNext, activeStep, setActiveStep }) {
           return;
         }
 
-        // Non-ABM mode: Upload files to backend
+        // Lock the mode
+        store.lockTrafficMode();
+
         const formData = new FormData();
         formData.append("city_name", classState.city || classState.cityInput || "");
-
-        const storedTransactionId =
-          localStorage.getItem("transaction_id") || "emission-analysis-2025";
-        formData.append("transaction_id", storedTransactionId);
-
+        formData.append("transaction_id", localStorage.getItem("transaction_id") || "emission-analysis-2025");
         formData.append("file1", state.trafficVolumeFile);
         formData.append("file2", state.trafficMFTParametersFile);
 
         try {
-          console.log("Uploading to /upload/traffic_volume...");
-          const res = await fetch(`${API_URL}/upload/traffic_volume`, {
-            method: "POST",
-            body: formData,
-          });
-
+          const res = await fetch(`${API_URL}/upload/traffic_volume`, { method: "POST", body: formData });
           if (!res.ok) {
             const errorData = await res.json();
             throw new Error(errorData.error || "Upload failed");
           }
-
           const data = await res.json();
-          console.log("Backend response:", data);
+          if (data.transaction_id) localStorage.setItem("transaction_id", data.transaction_id);
           window.dispatchEvent(
             new CustomEvent("app-notification", { detail: { text: "Traffic data uploaded successfully!" } })
           );
-
-          if (data.transaction_id) {
-            localStorage.setItem("transaction_id", data.transaction_id);
-          }
         } catch (err) {
           console.error("Upload error:", err);
           window.dispatchEvent(
             new CustomEvent("app-notification", { detail: { text: "Upload failed: " + err.message } })
           );
-          return; // Don't proceed to next step on error
+          return;
         }
+      } else {
+        window.dispatchEvent(
+          new CustomEvent("app-notification", { detail: { text: "Please select a traffic method (ABM or MFD)" } })
+        );
+        return;
       }
     }
 
-    // Step 3: Projected Demand - needs file upload OR ABM mode with estimated speed
+    // Step 3: Projected Demand - uses trafficMode from store
     else if (activeStep === 3) {
       const state = store.projectedDemandState;
       const classState = store.classificationState;
       const penState = store.penetrationState;
+      const mode = store.trafficMode;
 
       const city = classState.city || classState.cityInput || "";
       const projectedYear = penState.projectedYear || "";
-      const abmAvailable = isABMAvailable(city, projectedYear);
 
-      // ABM mode: skip file upload, just check if speed was estimated
-      if (abmAvailable) {
+      if (mode === "ABM") {
         if (state.speedEstimated) {
           console.log("ABM mode - projected demand estimated, proceeding");
-          // ABM mode doesn't need file upload
         } else {
           window.dispatchEvent(
-            new CustomEvent("app-notification", { detail: { text: "Please estimate speed for projected year first" } })
+            new CustomEvent("app-notification", { detail: { text: "Please select a projected year to load ABM data" } })
           );
           return;
         }
       } else {
-        // Non-ABM mode: upload file if provided
+        // MFD mode: upload file if provided
         if (state.projectedTrafficVolumeFile) {
           const formData = new FormData();
-
           formData.append("city_name", city);
           formData.append("year", projectedYear || classState.baseYear || "");
-
-          const storedTransactionId =
-            localStorage.getItem("transaction_id") || "emission-analysis-2025";
-          formData.append("transaction_id", storedTransactionId);
-
-          // Send the original uploaded file
+          formData.append("transaction_id", localStorage.getItem("transaction_id") || "emission-analysis-2025");
           formData.append("file_csv", state.projectedTrafficVolumeFile);
 
-          // Send the table data as JSON text (for file_table parameter)
           if (state.projectedTrafficVolumeHeaders && state.projectedTrafficVolumeData) {
-            // Convert headers and data to array of objects (JSON format)
             const headers = state.projectedTrafficVolumeHeaders;
             const rows = state.projectedTrafficVolumeData;
             const tableData = rows.map(row => {
@@ -252,21 +221,13 @@ function InputStepper({ finalNext, activeStep, setActiveStep }) {
           }
 
           try {
-            const res = await fetch(`${API_URL}/upload/projected_traffic`, {
-              method: "POST",
-              body: formData,
-            });
+            const res = await fetch(`${API_URL}/upload/projected_traffic`, { method: "POST", body: formData });
             if (!res.ok) throw new Error("Upload failed");
             const respData = await res.json();
-            console.log("Backend response:", respData);
+            if (respData.transaction_id) localStorage.setItem("transaction_id", respData.transaction_id);
             window.dispatchEvent(
               new CustomEvent("app-notification", { detail: { text: "Data uploaded successfully!" } })
             );
-
-            // Store transaction_id for later use
-            if (respData.transaction_id) {
-              localStorage.setItem("transaction_id", respData.transaction_id);
-            }
           } catch (err) {
             console.error("Upload error:", err);
             window.dispatchEvent(
@@ -290,7 +251,7 @@ function InputStepper({ finalNext, activeStep, setActiveStep }) {
   };
 
   return (
-    <div className="flex flex-col items-center gap-5 pl-2 pt-0 mt-[-5rem] w-full">
+    <div className="flex flex-col items-center gap-5 pt-0 w-full">
       {/* Step-wise content */}
       <div className="w-full">
         {activeStep === 0 && <VehicleClassification activeStep={activeStep} />}
@@ -301,14 +262,17 @@ function InputStepper({ finalNext, activeStep, setActiveStep }) {
 
       {/* Navigation Buttons */}
       <div className="w-full max-w-7xl mx-auto flex flex-row items-center mt-2 justify-between">
-        <button
-          className={`${activeStep === 0 ? 'bg-gray-500' : 'bg-blue-500'} text-white px-4 py-2 rounded disabled:opacity-50`}
-          onClick={handleBack}
-          disabled={activeStep === 0}
-          style={{ minWidth: 100 }}
-        >
-          Back
-        </button>
+        {activeStep > 0 ? (
+          <button
+            className="bg-blue-500 text-white px-4 py-2 rounded"
+            onClick={handleBack}
+            style={{ minWidth: 100 }}
+          >
+            Back
+          </button>
+        ) : (
+          <div style={{ minWidth: 100 }} />
+        )}
         <div className="flex flex-row gap-4">
           {activeStep < steps.length - 1 && (
             <button
@@ -323,68 +287,45 @@ function InputStepper({ finalNext, activeStep, setActiveStep }) {
             <button
               className="bg-green-600 text-white px-4 py-2 rounded -ml-2"
               onClick={async () => {
-                // First save the projected demand data to database
+                // Save projected demand data (MFD mode only)
                 const store = useAppStore.getState();
-                const state = store.projectedDemandState;
-                const classState = store.classificationState;
-                const penState = store.penetrationState;
+                const mode = store.trafficMode;
 
-                if (state.projectedTrafficVolumeFile) {
-                  const formData = new FormData();
+                if (mode === "MFD") {
+                  const state = store.projectedDemandState;
+                  const classState = store.classificationState;
+                  const penState = store.penetrationState;
 
-                  const city = classState.city || classState.cityInput || "";
-                  const year = penState.projectedYear || classState.baseYear || "";
+                  if (state.projectedTrafficVolumeFile) {
+                    const formData = new FormData();
+                    formData.append("city_name", classState.city || classState.cityInput || "");
+                    formData.append("year", penState.projectedYear || classState.baseYear || "");
+                    formData.append("transaction_id", localStorage.getItem("transaction_id") || "emission-analysis-2025");
+                    formData.append("file_csv", state.projectedTrafficVolumeFile);
 
-                  formData.append("city_name", city);
-                  formData.append("year", year);
-
-                  const storedTransactionId =
-                    localStorage.getItem("transaction_id") || "emission-analysis-2025";
-                  formData.append("transaction_id", storedTransactionId);
-
-                  // Send the original uploaded file
-                  formData.append("file_csv", state.projectedTrafficVolumeFile);
-
-                  // Send the table data as JSON text (for file_table parameter)
-                  if (state.projectedTrafficVolumeHeaders && state.projectedTrafficVolumeData) {
-                    // Convert headers and data to array of objects (JSON format)
-                    const headers = state.projectedTrafficVolumeHeaders;
-                    const rows = state.projectedTrafficVolumeData;
-                    const tableData = rows.map(row => {
-                      const obj = {};
-                      headers.forEach((header, index) => {
-                        obj[header] = row[index];
+                    if (state.projectedTrafficVolumeHeaders && state.projectedTrafficVolumeData) {
+                      const headers = state.projectedTrafficVolumeHeaders;
+                      const rows = state.projectedTrafficVolumeData;
+                      const tableData = rows.map(row => {
+                        const obj = {};
+                        headers.forEach((header, index) => { obj[header] = row[index]; });
+                        return obj;
                       });
-                      return obj;
-                    });
-                    formData.append("file_table", JSON.stringify(tableData));
-                  }
-
-                  try {
-                    const res = await fetch(`${API_URL}/upload/projected_traffic`, {
-                      method: "POST",
-                      body: formData,
-                    });
-                    if (!res.ok) throw new Error("Upload failed");
-                    const respData = await res.json();
-                    console.log("Backend response:", respData);
-                    window.dispatchEvent(
-                      new CustomEvent("app-notification", { detail: { text: "Data uploaded successfully!" } })
-                    );
-
-                    // Store transaction_id for later use
-                    if (respData.transaction_id) {
-                      localStorage.setItem("transaction_id", respData.transaction_id);
+                      formData.append("file_table", JSON.stringify(tableData));
                     }
-                  } catch (err) {
-                    console.error("Upload error:", err);
-                    window.dispatchEvent(
-                      new CustomEvent("app-notification", { detail: { text: "Upload failed: " + err.message } })
-                    );
+
+                    try {
+                      const res = await fetch(`${API_URL}/upload/projected_traffic`, { method: "POST", body: formData });
+                      if (!res.ok) throw new Error("Upload failed");
+                      const respData = await res.json();
+                      if (respData.transaction_id) localStorage.setItem("transaction_id", respData.transaction_id);
+                    } catch (err) {
+                      console.error("Upload error:", err);
+                    }
                   }
                 }
 
-                // Then navigate to analysis page
+                // Navigate to analysis page
                 finalNext();
               }}
               style={{ minWidth: 140 }}

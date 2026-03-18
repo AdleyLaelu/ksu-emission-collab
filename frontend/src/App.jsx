@@ -53,7 +53,7 @@ const App = () => {
         </div>
 
         {/* Content — pad to avoid overlap */}
-        <main className="pt-[110px] pb-[56px]">
+        <main className="pt-[110px] pb-[72px]">
           <Routes>
             <Route path="/" element={<ArrowStepper />} />
             {/* <Route path="/signin" element={<SignIn />} /> */}

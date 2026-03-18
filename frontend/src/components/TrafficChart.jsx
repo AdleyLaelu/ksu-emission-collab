@@ -80,11 +80,12 @@ export default function TrafficChart({
     processedTracts.forEach((tract) => {
       const { tractId, color, speedData, volumeData } = tract;
       const isActive = activeTract === tractId;
+      const isDimmed = activeTract != null && !isActive;
 
       datasets.push({
         label: `Speed - ${tractId}`,
         data: speedData,
-        borderColor: color,
+        borderColor: isDimmed ? color + "18" : color,
         backgroundColor: "transparent",
         borderWidth: isActive ? 3 : 1,
         pointRadius: 0,
@@ -99,7 +100,7 @@ export default function TrafficChart({
       datasets.push({
         label: `Volume - ${tractId}`,
         data: volumeData,
-        borderColor: color,
+        borderColor: isDimmed ? color + "18" : color,
         backgroundColor: "transparent",
         borderWidth: isActive ? 3 : 1,
         borderDash: [6, 3],
@@ -115,6 +116,16 @@ export default function TrafficChart({
     return { datasets };
   }, [processedTracts, activeTract]);
 
+  // Compute y-axis max from data
+  const yMax = useMemo(() => {
+    if (!processedTracts.length) return 60;
+    let max = 0;
+    processedTracts.forEach((t) => {
+      t.speedData.forEach((p) => { if (p.y > max) max = p.y; });
+    });
+    return Math.ceil(max / 10) * 10; // round up to nearest 10
+  }, [processedTracts]);
+
   // Debounced hover handler — only fires when tract actually changes
   const lastHoveredRef = useRef(null);
   const onHoverTract = useCallback((tractId) => {
@@ -127,7 +138,8 @@ export default function TrafficChart({
   const options = useMemo(
     () => ({
       responsive: true,
-      maintainAspectRatio: false,
+      maintainAspectRatio: true,
+      aspectRatio: 2.4,
       animation: false,
       interaction: {
         mode: "nearest",
@@ -198,25 +210,36 @@ export default function TrafficChart({
         x: {
           type: "linear",
           min: 0,
-          max: 23.75,
+          max: 24,
           ticks: {
-            stepSize: 1,
+            stepSize: 0.5,
+            autoSkip: false,
             callback: (value) => (Number.isInteger(value) ? value : ""),
             font: { size: 12 },
+            maxRotation: 0,
           },
           title: { display: true, text: "Time (hr)", font: { size: 14 } },
-          grid: { display: true, color: "rgba(0,0,0,0.06)" },
+          grid: { color: "rgba(0,0,0,0.05)", lineWidth: 0.5, drawTicks: false },
+          border: { color: "rgba(0,0,0,0.15)" },
         },
         y: {
           type: "linear",
           position: "left",
+          min: 0,
+          max: yMax,
           title: {
             display: true,
             text: "Traffic Speed (mph)",
             font: { size: 14 },
           },
-          ticks: { font: { size: 12 } },
-          grid: { display: true, color: "rgba(0,0,0,0.06)" },
+          ticks: {
+            stepSize: 2,
+            autoSkip: false,
+            callback: (value) => (value % 10 === 0 ? value : ""),
+            font: { size: 12 },
+          },
+          grid: { color: "rgba(0,0,0,0.05)", lineWidth: 0.5, drawTicks: false },
+          border: { color: "rgba(0,0,0,0.15)" },
         },
         y1: {
           type: "linear",
@@ -228,10 +251,11 @@ export default function TrafficChart({
           },
           ticks: { font: { size: 12 } },
           grid: { drawOnChartArea: false },
+          border: { color: "rgba(0,0,0,0.15)" },
         },
       },
     }),
-    [onHoverTract, processedTracts]
+    [onHoverTract, processedTracts, yMax]
   );
 
   if (!tractData?.length) return null;
@@ -241,13 +265,12 @@ export default function TrafficChart({
       {/* Chart area */}
       <div
         className="relative border border-gray-200 rounded-lg bg-white shadow-sm"
-        style={{ height: 440 }}
         onMouseLeave={() => onHoverTract(null)}
       >
         <div className="text-center text-base font-semibold text-gray-700 pt-3 pb-1">
           Year {year} - {city} [{dataSource}]
         </div>
-        <div style={{ height: "calc(100% - 40px)", padding: "0 8px 8px" }}>
+        <div style={{ padding: "0 8px 8px" }}>
           <Line ref={chartRef} data={chartData} options={options} />
         </div>
         <ZoomToolbar chartRef={chartRef} />

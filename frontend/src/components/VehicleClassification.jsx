@@ -72,6 +72,77 @@ function VehicleClassification({ activeStep }) {
     );
   }, [classificationState.classificationData, currentPage, rowsPerPage]);
 
+  // Find Vehicle Count column index from headers
+  const vehicleCountColIndex = React.useMemo(() => {
+    const headers = classificationState.classificationHeaders || [];
+    return headers.findIndex((h) => /vehicle.*count/i.test(String(h || "")));
+  }, [classificationState.classificationHeaders]);
+
+  // Display headers: append "Vehicle %" when Vehicle Count column exists
+  const displayHeaders = React.useMemo(() => {
+    const headers = classificationState.classificationHeaders || [];
+    if (vehicleCountColIndex < 0) return headers;
+    return [...headers, "Vehicle %"];
+  }, [classificationState.classificationHeaders, vehicleCountColIndex]);
+
+  // Total vehicle count for the current page (for percentage calculation)
+  const totalVehicleCount = React.useMemo(() => {
+    if (vehicleCountColIndex < 0) return 0;
+    return paginatedData.reduce(
+      (sum, row) => sum + (parseFloat(row?.[vehicleCountColIndex]) || 0), 0
+    );
+  }, [paginatedData, vehicleCountColIndex]);
+
+  // Display data: paginated rows with computed percentage appended
+  const displayData = React.useMemo(() => {
+    if (vehicleCountColIndex < 0) return paginatedData;
+    return paginatedData.map((row) => {
+      const count = parseFloat(row?.[vehicleCountColIndex]) || 0;
+      const pct = totalVehicleCount > 0
+        ? ((count / totalVehicleCount) * 100).toFixed(2)
+        : "0.00";
+      return [...row, pct];
+    });
+  }, [paginatedData, vehicleCountColIndex, totalVehicleCount]);
+
+  // Column config: center numeric columns, percentage column is read-only
+  const columnConfig = React.useMemo(() => {
+    if (vehicleCountColIndex < 0) return undefined;
+    const headers = classificationState.classificationHeaders || [];
+    return [
+      ...headers.map((h) => {
+        const isNumeric = /age|count|rate|penetration/i.test(String(h || ""));
+        return isNumeric ? { className: "htCenter" } : {};
+      }),
+      { readOnly: true, className: "htDimmed htCenter" }
+    ];
+  }, [classificationState.classificationHeaders, vehicleCountColIndex]);
+
+  // Handle cell edits — persist changes back to allClassificationData
+  const handleTableChange = React.useCallback((changes, source) => {
+    if (!changes || source === "loadData") return;
+    const { classificationState: state, setClassificationState: setState } =
+      useAppStore.getState();
+    const filtered = state.classificationData || [];
+    const all = state.allClassificationData || [];
+    const pctCol = (state.classificationHeaders || []).length;
+    let dirty = false;
+    const newAll = [...all];
+    changes.forEach(([row, col, oldVal, newVal]) => {
+      if (col >= pctCol || oldVal === newVal) return;
+      const idx = currentPage * rowsPerPage + row;
+      const ref = filtered[idx];
+      if (!ref) return;
+      const allIdx = all.indexOf(ref);
+      if (allIdx >= 0) {
+        newAll[allIdx] = [...all[allIdx]];
+        newAll[allIdx][col] = newVal;
+        dirty = true;
+      }
+    });
+    if (dirty) setState({ allClassificationData: newAll });
+  }, [currentPage, rowsPerPage]);
+
   const handleRowsPerPageChange = (e) => {
     setRowsPerPage(Number(e.target.value));
     setCurrentPage(0);
@@ -225,7 +296,7 @@ function VehicleClassification({ activeStep }) {
   };
 
   return (
-    <div className="flex flex-row items-stretch gap-6 pl-6 pt-4">
+    <div className="flex flex-row items-stretch gap-6 pt-4 w-full max-w-7xl mx-auto">
       {/* Left panel: form + table */}
       <div className="flex-1 flex flex-col items-center">
         <div className="w-full max-w-3xl mx-auto flex flex-col gap-6">
@@ -365,6 +436,13 @@ function VehicleClassification({ activeStep }) {
             </div>
           </form>
 
+          {/* Helper text when no city selected */}
+          {!classificationState.city && (
+            <p className={`text-sm italic px-4 ${theme === "dark" ? "text-gray-400" : "text-gray-500"}`}>
+              Select a city to begin entering vehicle classification data.
+            </p>
+          )}
+
           {/* Handsontable */}
           {classificationState.classificationData?.length > 0 ? (
             <div
@@ -386,8 +464,10 @@ function VehicleClassification({ activeStep }) {
                 </select>
               </div>
               <HotTable
-                data={paginatedData}
-                colHeaders={classificationState.classificationHeaders}
+                data={displayData}
+                colHeaders={displayHeaders}
+                columns={columnConfig}
+                afterChange={handleTableChange}
                 rowHeaders
                 stretchH="all"
                 height={350}
@@ -397,14 +477,16 @@ function VehicleClassification({ activeStep }) {
                   theme === "dark" ? "ht-theme-main-dark" : "ht-theme-main"
                 }
                 afterGetColHeader={(col, TH) => {
-                  TH.style.textAlign = "left";
-                  TH.style.paddingLeft = "5px";
+                  const header = displayHeaders[col] || "";
+                  const isNumeric = /age|count|rate|penetration|%/i.test(String(header));
+                  TH.style.textAlign = isNumeric ? "center" : "left";
+                  TH.style.paddingLeft = isNumeric ? "0" : "5px";
                   TH.style.fontWeight = "bold";
                 }}
               />
               <div className="flex flex-col sm:flex-row justify-between gap-2 sm:gap-4 mt-4">
                 <button
-                  className="px-6 py-2 bg-gray-600 text-white rounded hover:bg-gray-700 disabled:opacity-50"
+                  className="px-6 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50"
                   onClick={handleBack}
                   disabled={currentPage === 0}
                   type="button"
@@ -433,12 +515,12 @@ function VehicleClassification({ activeStep }) {
       </div>
 
       {/* Right panel: only map image if available */}
-      <div className="flex flex-col gap-6">
+      <div className="flex flex-col gap-6 shrink-0">
         {classificationState.city && cityImages[classificationState.city] && (
           <img
             src={cityImages[classificationState.city]}
             alt={classificationState.city}
-            className="w-full h-[500px] object-contain rounded"
+            className="w-auto max-h-[300px] object-contain rounded"
           />
         )}
       </div>
