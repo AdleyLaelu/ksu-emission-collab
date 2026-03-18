@@ -103,8 +103,7 @@ export default function ArrowStepper() {
 
   return (
     <div
-      className="arrow-stepper flex flex-col gap-8 p-6"
-      style={{ minHeight: "calc(100vh - 185px)" }}
+      className="arrow-stepper flex flex-col gap-4 p-4"
     >
       <style>{`
         .arrow-stepper { --arrow: 10px; --border-width: 4px; }
@@ -242,14 +241,9 @@ export default function ArrowStepper() {
       `}</style>
 
       {/* Top row: arrow stepper and vertical stepper side by side */}
-      <div className={`flex flex-row items-start gap-16 w-full justify-center ${activeStep === 0 ? '-ml-6' : ''} ${(activeStep === 1 || activeStep === 2) ? '-ml-4' : ''} ${activeStep !== -1 ? 'pl-56' : ''}`}>
+      <div className="flex flex-row items-start gap-8 w-full max-w-7xl mx-auto justify-center">
         {/* Arrow stepper */}
-        <div
-          className="flex items-center gap-4"
-          style={
-            (activeStep === 1 || activeStep === 2) ? { marginLeft: '48px' } : {}
-          }
-        >
+        <div className="flex items-center gap-4">
           {steps.map((step, index) => (
             <div key={step} className={getStepStyle(index) + " min-w-[232px]"}>
               <span>{step}</span>
@@ -267,7 +261,7 @@ export default function ArrowStepper() {
         </div>
         {/* Vertical stepper: only show after Start is clicked */}
         {activeStep !== -1 && (
-          <div style={{ marginLeft: '-30px' }}>
+          <div>
             {(() => {
               let stepperActiveStep = 0;
               let stepperSteps = inputSteps;
@@ -303,9 +297,9 @@ export default function ArrowStepper() {
             {/* Unified row: navigation and step content aligned */}
       <div className="flex flex-col gap-4 w-full">
         {/* Step Content (InputStepper, AnalysisStepper, GridEmissionRates) */}
-        <div className="flex-1">
+        <div className="flex-1 max-w-7xl mx-auto w-full">
           {activeStep === 0 && (
-            <div className="flex flex-row items-center gap-4 p-4 bg-white">
+            <div className="p-4 bg-white">
               <InputStepper
                 finalNext={handleNext}
                 activeStep={inputSubStep}
@@ -314,7 +308,7 @@ export default function ArrowStepper() {
             </div>
           )}
           {activeStep === 1 && (
-            <div className="flex flex-row items-center gap-4 p-4 bg-white">
+            <div className="p-4 bg-white">
               <AnalysisStepper
                 finalNext={(direction) => {
                   if (direction === 'back') {
@@ -342,7 +336,7 @@ export default function ArrowStepper() {
             </div>
           )}
           {activeStep === 2 && (
-            <div className="flex flex-row items-center gap-4 p-4 bg-white">
+            <div className="p-4 bg-white">
               <FinalResultsPage
                 resultsSelection={resultsSelection}
                 setResultsSelection={setResultsSelection}
@@ -353,7 +347,7 @@ export default function ArrowStepper() {
 
         {/* Navigation Buttons: Back button at the bottom */}
         {activeStep === 2 && (
-          <div className="flex justify-start gap-4 w-full pb-4 ml-25">
+          <div className="flex justify-start gap-4 w-full max-w-7xl mx-auto pb-4">
             <button
               onClick={handleBack}
               className="px-6 py-2 bg-gray-500 text-white rounded-md hover:bg-gray-600 transition-colors"

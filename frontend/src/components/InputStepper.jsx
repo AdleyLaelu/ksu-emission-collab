@@ -290,7 +290,7 @@ function InputStepper({ finalNext, activeStep, setActiveStep }) {
   };
 
   return (
-    <div className="flex flex-col items-center gap-5 pl-2 pt-0 mt-[-5rem] w-full">
+    <div className="flex flex-col items-center gap-5 pt-0 w-full">
       {/* Step-wise content */}
       <div className="w-full">
         {activeStep === 0 && <VehicleClassification activeStep={activeStep} />}
