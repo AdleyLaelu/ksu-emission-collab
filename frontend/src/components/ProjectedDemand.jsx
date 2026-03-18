@@ -396,9 +396,9 @@ function ProjectedDemand() {
           </div>
         )}
 
-        {/* --- MFD Results: Static Image + Table --- */}
-        {isMFD && projectedDemandState.speedEstimated && projectedImg && mappedCity && (
-          <div className="flex flex-col gap-2 max-w-[950px]">
+        {/* --- MFD Results: Static Image fallback (only when NO interactive chart) --- */}
+        {isMFD && !hasChartData && projectedDemandState.speedEstimated && projectedImg && mappedCity && (
+          <div className="flex flex-col gap-2 w-full max-w-7xl">
             {methodUsed && (
               <div className="flex items-center gap-2 px-3 py-1 rounded text-sm font-medium w-fit bg-blue-50 text-blue-700 border border-blue-200">
                 <FileSpreadsheet className="w-3 h-3" />
@@ -421,16 +421,16 @@ function ProjectedDemand() {
           </div>
         )}
 
-        {/* MFD: Table */}
+        {/* MFD: Uploaded data table */}
         {isMFD && showTable && projectedDemandState.speedEstimated && projectedDemandState.projectedTrafficVolumeData?.length > 0 ? (
-          <div className="bg-[#f7f7f9] text-[#222222]" style={{ width: "950px", margin: "0 auto", overflowX: "auto" }}>
-            <div style={{ width: "950px", background: "#f7f7f9", border: "1px solid #ccc", borderBottom: "none", textAlign: "center", fontSize: "1.15rem", color: "#222" }}>
+          <div className="w-full max-w-7xl bg-[#f7f7f9] text-[#222222] overflow-x-auto">
+            <div className="bg-[#f7f7f9] border border-[#ccc] border-b-0 text-center text-lg text-[#222]">
               <span>Projected Increase In Traffic Volumes</span>
             </div>
-            <div style={{ width: "950px", overflowX: "auto" }}>
+            <div className="overflow-x-auto">
               <HotTable
                 className="overflow-auto"
-                style={{ width: "950px", minHeight: 500 }}
+                style={{ minHeight: 400 }}
                 data={projectedDemandState.projectedTrafficVolumeData}
                 colHeaders={projectedDemandState.projectedTrafficVolumeHeaders}
                 rowHeaders
@@ -438,28 +438,26 @@ function ProjectedDemand() {
                 licenseKey="non-commercial-and-evaluation"
                 themeName={theme === "dark" ? "ht-theme-main-dark" : "ht-theme-main"}
                 afterGetColHeader={(col, TH) => {
-                  TH.style.textAlign = "left";
-                  TH.style.paddingLeft = "5px";
+                  TH.style.textAlign = "center";
                   TH.style.fontWeight = "bold";
                 }}
+                cells={() => ({ className: "htCenter" })}
               />
             </div>
           </div>
         ) : isMFD && showTable && projectedDemandState.speedEstimated ? (
-          <div className="min-w-[60%] flex items-center justify-center h-[500px] text-gray-500">
+          <div className="w-full max-w-7xl flex items-center justify-center h-32 text-gray-500 text-sm border border-dashed border-gray-300 rounded-lg">
             No data available. Please upload a projected demand file.
           </div>
         ) : null}
 
         {/* MFD: Tract Parameters Table */}
         {isMFD && (
-          <div style={{ maxWidth: "950px", overflowX: "auto", textAlign: "center", marginTop: "32px" }}>
-            <div className="bg-[#f7f7f9] text-[#222222] text-center box-border font-semibold border border-solid border-[#cccccc]">
+          <div className="w-full max-w-7xl overflow-x-auto mt-4">
+            <div className="bg-[#f7f7f9] text-[#222222] text-center font-semibold border border-[#cccccc]">
               <span>Macroscopic Traffic Model Parameters</span>
             </div>
-            <div style={{ display: "inline-block", width: "100%" }}>
-              <TractParametersTable trafficState={trafficState} alignLeft />
-            </div>
+            <TractParametersTable trafficState={trafficState} alignLeft />
           </div>
         )}
       </div>
