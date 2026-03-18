@@ -135,7 +135,8 @@ function ProjectedDemand() {
 
   const hasChartData = trafficChartData && !isDataStale;
 
-  // Auto-load ABM data when projected year changes (only in ABM mode)
+  // Auto-load ABM chart data when projected year changes (ABM mode only)
+  // MFD mode does NOT auto-fetch chart data; it relies on uploaded files + static images
   useEffect(() => {
     if (!isABM) return;
     const selectedYear = penetrationState.projectedYear;
@@ -175,7 +176,7 @@ function ProjectedDemand() {
         setChartYear(selectedYear);
       } catch (err) {
         if (cancelled) return;
-        console.error("Projected demand auto-load error:", err);
+        console.error("Projected demand ABM load error:", err);
         toast.error(err.message || "Failed to load projected demand data");
         setTrafficChartData(null);
       } finally {
@@ -187,6 +188,18 @@ function ProjectedDemand() {
     return () => { cancelled = true; };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [penetrationState.projectedYear, mappedCity, isABM]);
+
+  // MFD mode: mark speed as estimated when projected year is selected (enables table/image display)
+  useEffect(() => {
+    if (!isMFD) return;
+    const selectedYear = penetrationState.projectedYear;
+    if (selectedYear) {
+      setShowTable(true);
+      setProjectedDemandState({ speedEstimated: true });
+      setMethodUsed("MFD");
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [penetrationState.projectedYear, isMFD]);
 
   return (
     <div className="flex flex-col pt-4 w-full max-w-full items-center">
@@ -281,8 +294,8 @@ function ProjectedDemand() {
           </div>
         )}
 
-        {/* --- ABM Results: Interactive Chart --- */}
-        {isABM && hasChartData && (
+        {/* --- Results: Interactive Chart (both ABM and MFD when data exists) --- */}
+        {hasChartData && (
           <div className="flex flex-col gap-2 w-full max-w-7xl">
             {methodUsed && !isDataStale && (
               <div className={`flex items-center gap-2 px-3 py-1 rounded text-sm font-medium w-fit ${
