@@ -27,6 +27,7 @@ const isABMAvailable = (city, year) => {
   return normalizedCity === "atlanta" && yearNum >= ABM_MIN_YEAR && yearNum <= ABM_MAX_YEAR;
 };
 
+// eslint-disable-next-line no-unused-vars
 const isExactABMYear = (year) => ABM_AVAILABLE_YEARS.includes(parseInt(year, 10));
 
 function VehicleTrafficVolume() {
@@ -36,6 +37,7 @@ function VehicleTrafficVolume() {
   const trafficMode = useAppStore((s) => s.trafficMode);
   const trafficModeLocked = useAppStore((s) => s.trafficModeLocked);
   const setTrafficMode = useAppStore((s) => s.setTrafficMode);
+  // eslint-disable-next-line no-unused-vars
   const addNotification = useAppStore.getState().addNotification;
 
   // Shared hover/pin state for map <-> chart linking
@@ -97,42 +99,48 @@ function VehicleTrafficVolume() {
     });
   };
 
-  // --- ABM: Process and fetch chart data ---
-  const handleABMProcess = async () => {
-    if (!city || !year) return;
-    const exactYear = isExactABMYear(year);
-    const method = exactYear ? "ABM Direct" : "ABM Interpolated";
+  // ABM file stored in trafficVolumeState
+  const abmFile = trafficState.abmFile || null;
 
-    setTrafficState({ showResults: true, speedEstimated: true, methodUsed: method });
+  // --- ABM: Upload file and process ---
+  const handleABMUpload = (file) => {
+    if (!file) return;
+    setTrafficState({ abmFile: file, showResults: false, speedEstimated: false, trafficChartData: null });
 
-    try {
-      toast.info(`Using Activity-Based Model for ${city} ${year}`, { autoClose: 2000 });
-      const abmRes = await fetch(`${API_URL}/process/traffic/abm`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ city_name: city, year: parseInt(year, 10), method: "auto" }),
-      });
-      if (!abmRes.ok) {
-        const errData = await abmRes.json();
-        throw new Error(errData.message || errData.error || "ABM processing failed");
+    // Auto-process after upload
+    (async () => {
+      try {
+        toast.info("Processing uploaded ABM data...", { autoClose: 2000 });
+        const formData = new FormData();
+        formData.append("file", file);
+        formData.append("city_name", city);
+        formData.append("year", year);
+
+        const abmRes = await fetch(`${API_URL}/process/traffic/abm/upload`, {
+          method: "POST",
+          body: formData,
+        });
+        if (!abmRes.ok) {
+          const errData = await abmRes.json();
+          throw new Error(errData.message || errData.error || "ABM processing failed");
+        }
+        const abmData = await abmRes.json();
+        toast.success(`Processed ${abmData.tracts_processed} tracts`, { autoClose: 3000 });
+
+        const url = `${API_URL}/plot/traffic/data/${encodeURIComponent(city)}/${encodeURIComponent(year)}?source=abm`;
+        const res = await fetch(url);
+        if (!res.ok) {
+          const errBody = await res.json().catch(() => ({}));
+          throw new Error(errBody.error || "Failed to fetch chart data");
+        }
+        const chartJson = await res.json();
+        setTrafficState({ showResults: true, speedEstimated: true, methodUsed: "ABM Upload", trafficChartData: chartJson });
+      } catch (err) {
+        console.error("ABM upload error:", err);
+        setTrafficState({ trafficChartData: null });
+        toast.error(err.message || "Failed to process ABM data");
       }
-      const abmData = await abmRes.json();
-      toast.success(`ABM processed ${abmData.tracts_processed} tracts (${abmData.method_used})`, { autoClose: 3000 });
-
-      const url = `${API_URL}/plot/traffic/data/${encodeURIComponent(city)}/${encodeURIComponent(year)}?source=abm`;
-      const res = await fetch(url);
-      if (!res.ok) {
-        const errBody = await res.json().catch(() => ({}));
-        throw new Error(errBody.error || "Failed to fetch traffic chart data");
-      }
-      const chartJson = await res.json();
-      setTrafficState({ trafficChartData: chartJson });
-    } catch (err) {
-      console.error("ABM processing error:", err);
-      setTrafficState({ trafficChartData: null });
-      toast.error(err.message || "Failed to process traffic data");
-      addNotification(err.message || "Failed to load traffic data");
-    }
+    })();
   };
 
   // --- MFD: Load uploaded file ---
@@ -243,15 +251,42 @@ function VehicleTrafficVolume() {
         {/* === ABM Mode UI === */}
         {trafficMode === "ABM" && (
           <div className="flex flex-col gap-4">
-            <form className="flex flex-row flex-nowrap items-end gap-2 p-2 rounded w-full min-w-0">
-              <button
-                type="button"
-                className="flex items-center bg-blue-500 hover:bg-blue-600 text-white font-semibold px-4 rounded h-10 whitespace-nowrap gap-2"
-                onClick={handleABMProcess}
+            {/* Guidance */}
+            <div className="bg-green-50 border border-green-200 rounded-lg px-4 py-3 text-sm text-green-800">
+              <p className="font-semibold mb-1">Upload ABM Traffic Data</p>
+              <p className="text-green-700">
+                Upload a CSV file with columns: <code className="bg-green-100 px-1 rounded text-xs">Tract ID</code>,{" "}
+                <code className="bg-green-100 px-1 rounded text-xs">Time</code>,{" "}
+                <code className="bg-green-100 px-1 rounded text-xs">Traffic Volume</code>,{" "}
+                <code className="bg-green-100 px-1 rounded text-xs">Traffic Speed</code>.
+                Each tract should have 96 rows (15-min intervals over 24 hours).
+              </p>
+              <a
+                href="/ABM_template.csv"
+                download="ABM_template.csv"
+                className="inline-flex items-center gap-1 mt-2 text-green-600 hover:text-green-800 font-medium text-xs underline"
               >
-                Average Daily Traffic Speed and Volume Data
-                <CloudUpload className="w-5 h-5" />
-              </button>
+                <FileSpreadsheet className="w-3 h-3" />
+                Download template CSV
+              </a>
+            </div>
+
+            <form className="flex flex-row flex-nowrap items-end gap-3 p-2 rounded w-full min-w-0">
+              {/* ABM file upload */}
+              <div className="flex flex-col gap-1">
+                <label className="text-xs font-medium text-gray-600">ABM Traffic Data</label>
+                <label className="flex items-center bg-blue-500 hover:bg-blue-600 text-white font-semibold px-4 rounded cursor-pointer h-10 whitespace-nowrap gap-2 text-sm">
+                  {abmFile ? abmFile.name : "Upload ABM Data"}
+                  <CloudUpload className="w-4 h-4" />
+                  <input
+                    type="file"
+                    accept=".csv"
+                    onChange={(e) => handleABMUpload(e.target.files[0])}
+                    className="hidden"
+                  />
+                </label>
+              </div>
+
               <div className="flex flex-col gap-1 items-center">
                 <label className="text-xs font-medium text-gray-600">Base Year</label>
                 <select
@@ -277,6 +312,13 @@ function VehicleTrafficVolume() {
                 </select>
               </div>
             </form>
+
+            {/* Upload status */}
+            {abmFile && (
+              <span className={`px-2 text-sm ${trafficState.speedEstimated ? "text-green-600" : "text-blue-600"}`}>
+                {trafficState.speedEstimated ? "\u2713 Data processed" : "Processing..."}
+              </span>
+            )}
           </div>
         )}
 

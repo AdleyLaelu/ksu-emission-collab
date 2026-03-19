@@ -1251,6 +1251,90 @@ def process_traffic_abm_route():
         return jsonify({"status": "error", "message": f"An unexpected error occurred: {str(e)}"}), 500
 
 
+@app.route("/process/traffic/abm/upload", methods=["POST"])
+def process_traffic_abm_upload_route():
+    """
+    Process user-uploaded ABM data CSV.
+    Expects multipart form-data:
+    - file: CSV with columns: Tract ID, Time, Traffic Volume, Traffic Speed
+    - city_name: e.g. "Atlanta"
+    - year: e.g. "2024"
+    """
+    try:
+        if 'file' not in request.files:
+            return jsonify({"error": "Missing 'file' in form-data"}), 400
+
+        file = request.files['file']
+        city_name = request.form.get('city_name')
+        year = request.form.get('year')
+
+        if not city_name or not year:
+            return jsonify({"error": "Missing 'city_name' or 'year'"}), 400
+
+        year_int = int(year)
+
+        state = CITY_TO_STATE.get(city_name)
+        if not state:
+            return jsonify({"error": f"City '{city_name}' not found"}), 400
+
+        # Read uploaded CSV
+        import io
+        content = file.read().decode('utf-8')
+        df_all = pd.read_csv(io.StringIO(content))
+
+        required_cols = {'Tract ID', 'Time', 'Traffic Volume', 'Traffic Speed'}
+        if not required_cols.issubset(set(df_all.columns)):
+            return jsonify({
+                "error": f"CSV must have columns: {', '.join(sorted(required_cols))}. Found: {', '.join(df_all.columns)}"
+            }), 400
+
+        # Ensure Tract ID is string (zero-padded)
+        df_all['Tract ID'] = df_all['Tract ID'].astype(str).str.zfill(11)
+
+        # Split by tract and build output Excel
+        base_dir = os.path.dirname(os.path.abspath(__file__))
+        output_dir = os.path.join(base_dir, 'Combined_sheet_output_speed', state)
+        os.makedirs(output_dir, exist_ok=True)
+        output_file = os.path.join(output_dir, f'{state}_{year}_ABM.xlsx')
+
+        import numpy as np
+        tract_ids = df_all['Tract ID'].unique()
+        processed_data = {}
+
+        for tract_id in tract_ids:
+            tract_df = df_all[df_all['Tract ID'] == tract_id].copy()
+            tract_df = tract_df.sort_values('Time').reset_index(drop=True)
+            tract_df['Speed'] = tract_df['Traffic Speed']
+            tract_df['Adjusted Traffic Volume'] = tract_df['Traffic Volume']
+            tract_df['Density'] = np.where(
+                tract_df['Traffic Speed'] > 0,
+                tract_df['Traffic Volume'] / tract_df['Traffic Speed'],
+                np.nan
+            )
+            processed_data[tract_id] = tract_df
+
+        with pd.ExcelWriter(output_file, engine='openpyxl') as writer:
+            for tract_id, df in processed_data.items():
+                sheet_name = f'tract={tract_id}'
+                df.to_excel(writer, sheet_name=sheet_name, index=False)
+
+        print(f"[INFO] ABM upload processing complete. {len(processed_data)} tracts. Output: {output_file}")
+
+        return jsonify({
+            "status": "success",
+            "message": f"ABM data processed for {city_name} ({year})",
+            "method_used": "abm_upload",
+            "tracts_processed": len(processed_data),
+            "tract_ids": sorted(list(tract_ids)),
+        })
+
+    except Exception as e:
+        print(f"[ERROR] /process/traffic/abm/upload: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({"status": "error", "message": str(e)}), 500
+
+
 @app.route("/abm/info", methods=["GET"])
 def get_abm_info():
     """

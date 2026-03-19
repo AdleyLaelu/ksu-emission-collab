@@ -28,6 +28,7 @@ const isABMAvailable = (city, year) => {
   return normalizedCity === "atlanta" && yearNum >= ABM_MIN_YEAR && yearNum <= ABM_MAX_YEAR;
 };
 
+// eslint-disable-next-line no-unused-vars
 const isExactABMYear = (year) => ABM_AVAILABLE_YEARS.includes(parseInt(year, 10));
 
 function ProjectedDemand() {
@@ -124,6 +125,7 @@ function ProjectedDemand() {
   const year = penetrationState.projectedYear || classificationState.baseYear || "";
 
   // ABM availability for the projected year
+  // eslint-disable-next-line no-unused-vars
   const abmAvailableForYear = isABMAvailable(mappedCity, year);
 
   // For non-ABM mode, use static images
@@ -135,63 +137,51 @@ function ProjectedDemand() {
 
   const hasChartData = trafficChartData && !isDataStale;
 
-  // Auto-load ABM chart data when projected year changes (ABM mode only)
-  // MFD mode does NOT auto-fetch chart data; it relies on uploaded files + static images
-  useEffect(() => {
-    if (!isABM) return;
-    const selectedYear = penetrationState.projectedYear;
-    if (!selectedYear || !mappedCity) return;
-    if (!isABMAvailable(mappedCity, selectedYear)) return;
-    if (chartYear === selectedYear && trafficChartData) return;
+  // ABM mode: upload handler for projected year
+  const handleABMProjectedUpload = async (file, selectedYear) => {
+    if (!file || !selectedYear || !mappedCity) return;
 
-    // Clear stale data immediately
     setTrafficChartData(null);
     setChartYear(null);
+    setIsLoading(true);
+    setShowTable(true);
 
-    let cancelled = false;
-    const loadABMData = async () => {
-      setIsLoading(true);
-      setShowTable(true);
-      setProjectedDemandState({ speedEstimated: true });
+    try {
+      toast.info("Processing ABM data for projected year...", { autoClose: 2000 });
+      const formData = new FormData();
+      formData.append("file", file);
+      formData.append("city_name", mappedCity);
+      formData.append("year", selectedYear);
 
-      try {
-        const abmRes = await fetch(`${API_URL}/process/traffic/abm`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ city_name: mappedCity, year: parseInt(selectedYear, 10), method: "auto" }),
-        });
-        if (!abmRes.ok) {
-          const errData = await abmRes.json();
-          throw new Error(errData.message || errData.error || "ABM processing failed");
-        }
-        const abmData = await abmRes.json();
-        if (cancelled) return;
-        setMethodUsed(abmData.method_used || (isExactABMYear(selectedYear) ? "ABM Direct" : "ABM Interpolated"));
-
-        const dataUrl = `${API_URL}/plot/traffic/data/${encodeURIComponent(mappedCity)}/${encodeURIComponent(selectedYear)}?source=abm`;
-        const dataRes = await fetch(dataUrl);
-        if (!dataRes.ok) {
-          const errBody = await dataRes.json().catch(() => ({}));
-          throw new Error(errBody.error || "Failed to fetch traffic chart data");
-        }
-        const chartJson = await dataRes.json();
-        if (cancelled) return;
-        setTrafficChartData(chartJson);
-        setChartYear(selectedYear);
-      } catch (err) {
-        if (cancelled) return;
-        console.error("Projected demand ABM load error:", err);
-        toast.error(err.message || "Failed to load projected demand data");
-        setTrafficChartData(null);
-      } finally {
-        if (!cancelled) setIsLoading(false);
+      const abmRes = await fetch(`${API_URL}/process/traffic/abm/upload`, {
+        method: "POST",
+        body: formData,
+      });
+      if (!abmRes.ok) {
+        const errData = await abmRes.json();
+        throw new Error(errData.message || errData.error || "ABM processing failed");
       }
-    };
+      const abmData = await abmRes.json();
+      setMethodUsed("ABM Upload");
+      toast.success(`Processed ${abmData.tracts_processed} tracts`, { autoClose: 2000 });
 
-    loadABMData();
-    return () => { cancelled = true; };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [penetrationState.projectedYear, mappedCity, isABM]);
+      const dataUrl = `${API_URL}/plot/traffic/data/${encodeURIComponent(mappedCity)}/${encodeURIComponent(selectedYear)}?source=abm`;
+      const dataRes = await fetch(dataUrl);
+      if (!dataRes.ok) {
+        throw new Error("Failed to fetch chart data");
+      }
+      const chartJson = await dataRes.json();
+      setTrafficChartData(chartJson);
+      setChartYear(selectedYear);
+      setProjectedDemandState({ speedEstimated: true });
+    } catch (err) {
+      console.error("ABM projected upload error:", err);
+      toast.error(err.message || "Failed to process ABM data");
+      setTrafficChartData(null);
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   // MFD mode: process traffic data and fetch interactive chart when projected year changes
   useEffect(() => {
@@ -271,6 +261,31 @@ function ProjectedDemand() {
         </div>
 
         <form className="flex items-end gap-4 p-2 rounded">
+          {/* ABM mode: file upload for projected year */}
+          {isABM && (
+            <div className="flex flex-col gap-1">
+              <label className="text-xs font-medium text-gray-600">ABM Data (Projected Year)</label>
+              <label className="flex items-center bg-blue-500 hover:bg-blue-600 text-white font-semibold px-4 rounded cursor-pointer h-10 whitespace-nowrap gap-2 text-sm">
+                {projectedDemandState.abmProjectedFile
+                  ? projectedDemandState.abmProjectedFile.name
+                  : "Upload ABM Data"}
+                <CloudUpload className="w-4 h-4" />
+                <input
+                  type="file"
+                  accept=".csv"
+                  onChange={(e) => {
+                    const file = e.target.files[0];
+                    if (!file || !penetrationState.projectedYear) return;
+                    setProjectedDemandState({ abmProjectedFile: file });
+                    // Auto-process
+                    handleABMProjectedUpload(file, penetrationState.projectedYear);
+                  }}
+                  className="hidden"
+                />
+              </label>
+            </div>
+          )}
+
           {/* MFD mode: file upload */}
           {isMFD && (
             <label className="flex items-center bg-blue-500 hover:bg-blue-600 text-white font-semibold px-4 rounded cursor-pointer h-10 whitespace-nowrap gap-2 text-sm">
@@ -328,10 +343,13 @@ function ProjectedDemand() {
           </div>
         </form>
 
-        {/* ABM: year not in range warning */}
-        {isABM && year && !abmAvailableForYear && (
-          <div className="flex items-center gap-2 px-4 py-2 rounded-lg bg-amber-50 text-amber-800 border border-amber-300 text-sm">
-            ABM data is only available for years 2020-2050. Year {year} is out of range.
+        {/* ABM: guidance */}
+        {isABM && !projectedDemandState.abmProjectedFile && (
+          <div className="bg-green-50 border border-green-200 rounded-lg px-4 py-2 text-sm text-green-700">
+            Select a projected year and upload ABM data CSV for that year. Same format as Step 2.{" "}
+            <a href="/ABM_template.csv" download className="underline font-medium text-green-600 hover:text-green-800">
+              Download template
+            </a>
           </div>
         )}
 
