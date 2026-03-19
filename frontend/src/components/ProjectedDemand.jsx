@@ -260,74 +260,28 @@ function ProjectedDemand() {
           </div>
         </div>
 
-        <form className="flex items-end gap-4 p-2 rounded">
-          {/* ABM mode: file upload for projected year */}
-          {isABM && (
-            <div className="flex flex-col gap-1">
-              <label className="text-xs font-medium text-gray-600">ABM Data (Projected Year)</label>
-              <label className="flex items-center bg-blue-500 hover:bg-blue-600 text-white font-semibold px-4 rounded cursor-pointer h-10 whitespace-nowrap gap-2 text-sm">
-                {projectedDemandState.abmProjectedFile
-                  ? projectedDemandState.abmProjectedFile.name
-                  : "Upload ABM Data"}
-                <CloudUpload className="w-4 h-4" />
-                <input
-                  type="file"
-                  accept=".csv"
-                  onChange={(e) => {
-                    const file = e.target.files[0];
-                    if (!file || !penetrationState.projectedYear) return;
-                    setProjectedDemandState({ abmProjectedFile: file });
-                    // Auto-process
-                    handleABMProjectedUpload(file, penetrationState.projectedYear);
-                  }}
-                  className="hidden"
-                />
-              </label>
-            </div>
-          )}
-
-          {/* MFD mode: file upload */}
-          {isMFD && (
-            <label className="flex items-center bg-blue-500 hover:bg-blue-600 text-white font-semibold px-4 rounded cursor-pointer h-10 whitespace-nowrap gap-2 text-sm">
-              {projectedDemandState.projectedTrafficVolumeFile
-                ? projectedDemandState.projectedTrafficVolumeFile.name
-                : "Upload Projected Traffic Volume"}
-              <CloudUpload className="w-5 h-5" />
-              <input
-                type="file"
-                accept=".xlsx,.xls,.csv"
-                onChange={(e) => loadSheet(e.target.files[0], "projectedTrafficVolumeHeaders", "projectedTrafficVolumeData")}
-                className="hidden"
-              />
-            </label>
-          )}
-
-          <div className="flex flex-col gap-1">
-            <label className="text-xs font-medium text-gray-600">Base Year</label>
-            <input
-              type="text"
-              value={classificationState.baseYear || ""}
-              readOnly
-              className="border rounded px-2 py-1 w-20 h-10 bg-gray-200 text-gray-700"
-            />
-          </div>
+        <form className="flex items-end gap-4 p-2 rounded flex-wrap">
+          {/* Step 1: Pick projected year first */}
           <div className="flex flex-col gap-1">
             <label className="text-xs font-medium text-gray-600">Projected Year</label>
             <select
               value={penetrationState.projectedYear || ""}
               onChange={(e) => {
                 setPenetrationState({ projectedYear: e.target.value });
-                setProjectedDemandState({ speedEstimated: false });
+                setProjectedDemandState({ speedEstimated: false, abmProjectedFile: null });
+                setTrafficChartData(null);
+                setChartYear(null);
               }}
-              className="border rounded px-2 py-1 w-24 h-10"
+              className="border rounded px-2 py-1 w-28 h-10"
             >
-              <option value="">Select</option>
+              <option value="">Select Year</option>
               {classificationState.baseYear &&
-                Array.from({ length: 5 }, (_, i) => parseInt(classificationState.baseYear) + i + 1).map((yr) => (
+                Array.from({ length: 30 }, (_, i) => parseInt(classificationState.baseYear) + i + 1).map((yr) => (
                   <option key={yr} value={yr}>{yr}</option>
                 ))}
             </select>
           </div>
+
           <div className="flex flex-col gap-1">
             <label className="text-xs font-medium text-gray-600">City</label>
             <select
@@ -341,17 +295,63 @@ function ProjectedDemand() {
               ))}
             </select>
           </div>
+
+          {/* Step 2: Show upload button only after year is selected */}
+          {penetrationState.projectedYear && isABM && (
+            <div className="flex flex-col gap-1">
+              <label className="text-xs font-medium text-gray-600">ABM Data for {penetrationState.projectedYear}</label>
+              <label className="flex items-center bg-blue-500 hover:bg-blue-600 text-white font-semibold px-4 rounded cursor-pointer h-10 whitespace-nowrap gap-2 text-sm">
+                {projectedDemandState.abmProjectedFile
+                  ? projectedDemandState.abmProjectedFile.name
+                  : `Upload ABM Data (${penetrationState.projectedYear})`}
+                <CloudUpload className="w-4 h-4" />
+                <input
+                  type="file"
+                  accept=".csv"
+                  onChange={(e) => {
+                    const file = e.target.files[0];
+                    if (!file) return;
+                    setProjectedDemandState({ abmProjectedFile: file });
+                    handleABMProjectedUpload(file, penetrationState.projectedYear);
+                  }}
+                  className="hidden"
+                />
+              </label>
+            </div>
+          )}
+
+          {penetrationState.projectedYear && isMFD && (
+            <div className="flex flex-col gap-1">
+              <label className="text-xs font-medium text-gray-600">Projected Traffic Volume for {penetrationState.projectedYear}</label>
+              <label className="flex items-center bg-blue-500 hover:bg-blue-600 text-white font-semibold px-4 rounded cursor-pointer h-10 whitespace-nowrap gap-2 text-sm">
+                {projectedDemandState.projectedTrafficVolumeFile
+                  ? projectedDemandState.projectedTrafficVolumeFile.name
+                  : `Upload Data (${penetrationState.projectedYear})`}
+                <CloudUpload className="w-4 h-4" />
+                <input
+                  type="file"
+                  accept=".xlsx,.xls,.csv"
+                  onChange={(e) => loadSheet(e.target.files[0], "projectedTrafficVolumeHeaders", "projectedTrafficVolumeData")}
+                  className="hidden"
+                />
+              </label>
+            </div>
+          )}
         </form>
 
-        {/* ABM: guidance */}
-        {isABM && !projectedDemandState.abmProjectedFile && (
-          <div className="bg-green-50 border border-green-200 rounded-lg px-4 py-2 text-sm text-green-700">
-            Select a projected year and upload ABM data CSV for that year. Same format as Step 2.{" "}
-            <a href="/ABM_template.csv" download className="underline font-medium text-green-600 hover:text-green-800">
-              Download template
-            </a>
+        {/* Prompt to upload when year is selected but no file yet */}
+        {penetrationState.projectedYear && isABM && !projectedDemandState.abmProjectedFile && !isLoading && (
+          <div className="text-sm text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-4 py-2">
+            Please upload ABM traffic data for year {penetrationState.projectedYear}.{" "}
+            <a href="/ABM_template.csv" download className="underline font-medium hover:text-amber-900">Download template</a>
           </div>
         )}
+        {penetrationState.projectedYear && isMFD && !projectedDemandState.projectedTrafficVolumeFile && !isLoading && !hasChartData && (
+          <div className="text-sm text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-4 py-2">
+            Please upload projected traffic volume data for year {penetrationState.projectedYear}.
+          </div>
+        )}
+
 
         {/* Loading indicator */}
         {isLoading && (
