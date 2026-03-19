@@ -136,6 +136,35 @@ function ProjectedDemand() {
   }
 
   const hasChartData = trafficChartData && !isDataStale;
+  const yearCache = projectedDemandState.yearCache || {};
+
+  // Restore from cache when year changes
+  useEffect(() => {
+    const selectedYear = penetrationState.projectedYear;
+    if (!selectedYear) return;
+    const cached = yearCache[selectedYear];
+    if (cached) {
+      setTrafficChartData(cached.chartData);
+      setChartYear(selectedYear);
+      setMethodUsed(cached.methodUsed);
+      setShowTable(true);
+      setProjectedDemandState({
+        speedEstimated: true,
+        abmProjectedFile: cached.file,
+      });
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [penetrationState.projectedYear]);
+
+  // Save to cache helper
+  const saveToCache = (selectedYear, file, chartData, method) => {
+    setProjectedDemandState({
+      yearCache: {
+        ...useAppStore.getState().projectedDemandState.yearCache,
+        [selectedYear]: { file, chartData, methodUsed: method },
+      },
+    });
+  };
 
   // ABM mode: upload handler for projected year
   const handleABMProjectedUpload = async (file, selectedYear) => {
@@ -167,13 +196,13 @@ function ProjectedDemand() {
 
       const dataUrl = `${API_URL}/plot/traffic/data/${encodeURIComponent(mappedCity)}/${encodeURIComponent(selectedYear)}?source=abm`;
       const dataRes = await fetch(dataUrl);
-      if (!dataRes.ok) {
-        throw new Error("Failed to fetch chart data");
-      }
+      if (!dataRes.ok) throw new Error("Failed to fetch chart data");
       const chartJson = await dataRes.json();
+
       setTrafficChartData(chartJson);
       setChartYear(selectedYear);
       setProjectedDemandState({ speedEstimated: true });
+      saveToCache(selectedYear, file, chartJson, "ABM Upload");
     } catch (err) {
       console.error("ABM projected upload error:", err);
       toast.error(err.message || "Failed to process ABM data");
@@ -188,11 +217,14 @@ function ProjectedDemand() {
     if (!isMFD) return;
     const selectedYear = penetrationState.projectedYear;
     if (!selectedYear || !mappedCity) return;
+
+    // Check cache first
+    const cached = yearCache[selectedYear];
+    if (cached?.chartData) return; // already restored by the cache useEffect above
     if (chartYear === selectedYear && trafficChartData) return;
 
     const mfdParamsFile = trafficState.trafficMFTParametersFile;
 
-    // Clear stale chart data immediately to prevent flashing
     setTrafficChartData(null);
     setChartYear(null);
     setShowTable(true);
@@ -227,6 +259,7 @@ function ProjectedDemand() {
         if (cancelled) return;
         setTrafficChartData(chartJson);
         setChartYear(selectedYear);
+        saveToCache(selectedYear, mfdParamsFile, chartJson, "MFD");
       } catch (err) {
         if (cancelled) return;
         console.error("MFD projected demand processing error:", err);
@@ -267,10 +300,15 @@ function ProjectedDemand() {
             <select
               value={penetrationState.projectedYear || ""}
               onChange={(e) => {
-                setPenetrationState({ projectedYear: e.target.value });
-                setProjectedDemandState({ speedEstimated: false, abmProjectedFile: null });
-                setTrafficChartData(null);
-                setChartYear(null);
+                const newYear = e.target.value;
+                setPenetrationState({ projectedYear: newYear });
+                // Don't clear if cached; the restore effect will handle it
+                const cached = (useAppStore.getState().projectedDemandState.yearCache || {})[newYear];
+                if (!cached) {
+                  setProjectedDemandState({ speedEstimated: false, abmProjectedFile: null });
+                  setTrafficChartData(null);
+                  setChartYear(null);
+                }
               }}
               className="border rounded px-2 py-1 w-28 h-10"
             >

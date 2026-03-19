@@ -329,7 +329,7 @@ function VehiclePenetration({ activeStep }) {
                   <option value="" disabled>Year</option>
                   {classificationState.baseYear &&
                     Array.from(
-                      { length: 5 },
+                      { length: 30 },
                       (_, i) => parseInt(classificationState.baseYear, 10) + i + 1
                     ).map((year) => (
                       <option key={year} value={year}>
