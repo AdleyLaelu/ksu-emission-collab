@@ -380,14 +380,17 @@ export default function EnergyConsumptionAndEmissionRates() {
       const xStep = 2;
       const xCells = xRange / xStep;
       const aspectFactor = 1.3;
-      const rawYStep = (yMax || 60) / (xCells * aspectFactor);
-      // Snap to a "nice" step: 1, 2, 5, 10, 20, 50, 100, 200, 500...
-      const niceSteps = [1, 2, 5, 10, 20, 25, 50, 100, 200, 250, 500, 1000];
+      const effectiveYMax = yMax || 60;
+      const targetCells = Math.round(xCells * aspectFactor);
+      const rawYStep = effectiveYMax / targetCells;
+      // Snap to a "nice" step that covers small decimals through thousands
+      const niceSteps = [0.01, 0.02, 0.05, 0.1, 0.2, 0.5, 1, 2, 5, 10, 20, 25, 50, 100, 200, 250, 500, 1000];
       const yStep = niceSteps.find((s) => s >= rawYStep) || rawYStep;
 
       return {
         responsive: true,
-        maintainAspectRatio: false,
+        maintainAspectRatio: true,
+        aspectRatio: 1.2,
         animation: false,
         interaction: { mode: "nearest", intersect: false, axis: "xy" },
         onHover: handleChartHover,
@@ -443,10 +446,11 @@ export default function EnergyConsumptionAndEmissionRates() {
             type: "linear",
             position: "left",
             min: 0,
-            title: { display: true, text: yAxisText, font: { size: 13 } },
+            title: { display: true, text: yAxisText, font: { size: 12 } },
             ticks: {
               stepSize: yStep,
-              font: { size: 11 },
+              font: { size: 10 },
+              maxTicksLimit: 12,
             },
             grid: { color: "rgba(0,0,0,0.06)", lineWidth: 0.5 },
             border: { color: "rgba(0,0,0,0.15)" },
@@ -546,7 +550,7 @@ export default function EnergyConsumptionAndEmissionRates() {
           {/* Chart 1 — col-span-4 */}
           <div
             className="col-span-4 border border-gray-200 rounded-lg bg-white shadow-sm flex flex-col"
-            style={{ height: 380 }}
+            style={{}}
             onMouseLeave={() => setHoveredVehicle(null)}
           >
             <div className="flex items-center px-2 pt-2 pb-1 gap-2">
@@ -566,7 +570,7 @@ export default function EnergyConsumptionAndEmissionRates() {
           {/* Chart 2 — col-span-4 */}
           <div
             className="col-span-4 border border-gray-200 rounded-lg bg-white shadow-sm flex flex-col"
-            style={{ height: 380 }}
+            style={{}}
             onMouseLeave={() => setHoveredVehicle(null)}
           >
             <div className="flex items-center px-2 pt-2 pb-1 gap-2">
