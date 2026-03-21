@@ -425,7 +425,7 @@ function ProjectedDemand() {
                 />
               </div>
               {mappedCity && (
-                <div className="flex flex-col gap-2 w-72 shrink-0">
+                <div className="flex flex-col gap-2 w-64 shrink-0">
                   <InteractiveTractMap
                     city={mappedCity}
                     tractColors={tractColors}

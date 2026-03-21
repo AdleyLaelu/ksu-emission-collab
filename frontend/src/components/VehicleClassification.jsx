@@ -515,12 +515,12 @@ function VehicleClassification({ activeStep }) {
       </div>
 
       {/* Right panel: only map image if available */}
-      <div className="flex flex-col gap-6 shrink-0">
+      <div className="flex flex-col gap-4 w-64 shrink-0">
         {classificationState.city && cityImages[classificationState.city] && (
           <img
             src={cityImages[classificationState.city]}
             alt={classificationState.city}
-            className="w-auto max-h-[300px] object-contain rounded"
+            className="w-full max-h-[350px] object-contain rounded"
           />
         )}
       </div>

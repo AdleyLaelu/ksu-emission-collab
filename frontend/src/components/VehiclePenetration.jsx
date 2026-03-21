@@ -485,12 +485,12 @@ function VehiclePenetration({ activeStep }) {
       </div>
 
       {/* Right panel: only map image if available */}
-      <div className="flex flex-col gap-6">
+      <div className="flex flex-col gap-4 w-64 shrink-0">
         {classificationState.city && cityImages[classificationState.city] && (
           <img
             src={cityImages[classificationState.city]}
             alt={classificationState.city}
-            className="w-full max-h-[300px] md:max-h-[500px] object-contain rounded"
+            className="w-full max-h-[350px] object-contain rounded"
           />
         )}
       </div>
