@@ -368,14 +368,9 @@ export default function EnergyConsumptionAndEmissionRates() {
     }
   }, []);
 
-  // Chart options builder
+  // Chart options builder with dynamic y-axis step sizing (niceStepSize / square grid)
   const buildOptions = useCallback(
     (yAxisText, xMax, yMax) => {
-      // Compute y-axis step to produce roughly square grid cells.
-      // Chart area is ~380px tall, ~width of col-span-4 (~480px).
-      // x goes 0..xRange with stepSize 2, so xCells = xRange/2.
-      // For square cells: yStep = yRange / xCells * (chartWidth / chartHeight).
-      // Approximate: chartWidth/chartHeight ~ 1.3 for these containers.
       const xRange = xMax || 70;
       const xStep = 2;
       const xCells = xRange / xStep;
@@ -550,7 +545,6 @@ export default function EnergyConsumptionAndEmissionRates() {
           {/* Chart 1 — col-span-4 */}
           <div
             className="col-span-4 border border-gray-200 rounded-lg bg-white shadow-sm flex flex-col"
-            style={{}}
             onMouseLeave={() => setHoveredVehicle(null)}
           >
             <div className="flex items-center px-2 pt-2 pb-1 gap-2">
@@ -570,7 +564,6 @@ export default function EnergyConsumptionAndEmissionRates() {
           {/* Chart 2 — col-span-4 */}
           <div
             className="col-span-4 border border-gray-200 rounded-lg bg-white shadow-sm flex flex-col"
-            style={{}}
             onMouseLeave={() => setHoveredVehicle(null)}
           >
             <div className="flex items-center px-2 pt-2 pb-1 gap-2">

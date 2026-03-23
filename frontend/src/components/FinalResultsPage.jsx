@@ -1,45 +1,116 @@
 import useAppStore from "../useAppStore";
-import Button from "@mui/material/Button";
 import { useState } from "react";
-import GridChartR3 from "./GridChartR3";
-import VehicleChartR1R2 from "./VehicleChartR1R2";
+import GridChartR3, { SCENARIO_COLORS } from "./GridChartR3";
+import VehicleChartR1R2, { TRACT_COLORS } from "./VehicleChartR1R2";
 
+const FUEL_TYPES = ["CNG", "Diesel", "Electricity", "Ethanol", "Gasoline"];
+
+import GA_R1 from "../assets/r1r2data/GA_R1.json";
+import GA_R2 from "../assets/r1r2data/GA_R2.json";
+import CA_R1 from "../assets/r1r2data/CA_R1.json";
+import CA_R2 from "../assets/r1r2data/CA_R2.json";
+import NY_R1 from "../assets/r1r2data/NY_R1.json";
+import NY_R2 from "../assets/r1r2data/NY_R2.json";
+import WA_R1 from "../assets/r1r2data/WA_R1.json";
+import WA_R2 from "../assets/r1r2data/WA_R2.json";
+import GA_CO2 from "../assets/r3data/GA_CO2.json";
+
+const DATA_MAP = { GA_R1, GA_R2, CA_R1, CA_R2, NY_R1, NY_R2, WA_R1, WA_R2 };
+const CITY_TO_STATE = {
+  Atlanta: "GA", "Los Angeles": "CA", LosAngeles: "CA", NewYork: "NY", Seattle: "WA",
+};
+
+const CITY_OPTIONS = ["Atlanta", "Los Angeles", "New York", "Seattle"];
+
+const VEHICLE_TYPES = [
+  "Combination Long-haul Truck",
+  "Combination Short-haul Truck",
+  "Light Commercial Truck",
+  "Motorhome - Recreational Vehicle",
+  "Motorcycle",
+  "Other Buses",
+  "Passenger Car",
+  "Passenger Truck",
+  "Refuse Truck",
+  "School Bus",
+  "Single Unit Long-haul Truck",
+  "Single Unit Short-haul Truck",
+  "Transit Bus",
+];
+
+const VEHICLE_TYPE_COLORS = [
+  "#1f77b4",
+  "#ff7f0e",
+  "#2ca02c",
+  "#d62728",
+  "#9467bd",
+  "#8c564b",
+  "#e377c2",
+  "#7f7f7f",
+  "#bcbd22",
+  "#17becf",
+  "#a55194",
+  "#393b79",
+  "#637939",
+];
+
+const EMISSION_TYPES = [
+  { label: "CO₂", value: "CO2" },
+  { label: "NOₓ", value: "NOx" },
+  { label: "PM2.5B", value: "PM2.5B" },
+  { label: "PM2.5T", value: "PM2.5T" },
+];
+
+// Scenario names from R3 data (same for all states/gases)
+const SCENARIO_NAMES = Object.keys(GA_CO2.scenarios || {});
+
+function downloadCsv(cityName, chartMode) {
+  const state = CITY_TO_STATE[cityName] || CITY_TO_STATE[cityName?.replace(/\s/g, "")] || null;
+  if (!state) return;
+  const fileData = DATA_MAP[`${state}_${chartMode}`];
+  if (!fileData) return;
+  const metrics  = Object.keys(fileData);
+  const tractIds = Object.keys(fileData[metrics[0]]?.tracts || {});
+  const labels   = fileData[metrics[0]]?.labels || [];
+  const header   = ["Label", ...metrics.flatMap(m => tractIds.map(t => `${m}_${t}`))];
+  const rows     = labels.map((lbl, i) => [
+    lbl, ...metrics.flatMap(m => tractIds.map(t => fileData[m]?.tracts?.[t]?.[i] ?? "")),
+  ]);
+  const csv  = [header, ...rows].map(r => r.join(",")).join("\n");
+  const blob = new Blob([csv], { type: "text/csv" });
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement("a");
+  a.href = url; a.download = `${cityName}_${chartMode}_emissions.csv`; a.click();
+  URL.revokeObjectURL(url);
+}
 
 const FinalResultsPage = ({ resultsSelection, setResultsSelection }) => {
   const [dailyAnnualSelection, setDailyAnnualSelection] = useState("DAILY");
-  const ConsumptionAndEmissionState = useAppStore(
-    (s) => s.ConsumptionAndEmission
-  );
-  const setConsumptionAndEmissionState = useAppStore(
-    (s) => s.setConsumptionAndEmission
-  );
+
+  const ConsumptionAndEmissionState = useAppStore((s) => s.ConsumptionAndEmission);
+  const setConsumptionAndEmission = useAppStore((s) => s.setConsumptionAndEmission);
+  const classificationState = useAppStore((s) => s.classificationState);
   const theme = useAppStore((s) => s.theme);
-  const classificationState = useAppStore((state) => state.classificationState);
-  const FUEL_TYPES = ["CNG", "Diesel", "Electricity", "Ethanol", "Gasoline"];
-  const EMISSION_TYPES = [
-    { label: "CO₂", value: "CO2" },
-    { label: "NOₓ", value: "NOx" },
-    { label: "PM2.5B", value: "PM2.5B" },
-    { label: "PM2.5T", value: "PM2.5T" },
-  ];
-  const cityName = classificationState.city || classificationState.cityInput;
-  const fuelType = ConsumptionAndEmissionState.FuelType || "";
+
+  const cityName     = classificationState.city || classificationState.cityInput;
+  const fuelType     = ConsumptionAndEmissionState.FuelType || "";
   const emissionType = ConsumptionAndEmissionState.EmissionType || "";
-  const chartMode = dailyAnnualSelection === "DAILY" ? "R1" : "R2";
+  const chartMode    = dailyAnnualSelection === "DAILY" ? "R1" : "R2";
+  const showVehicle  = resultsSelection === "VEHICLE";
+  const showGrid     = resultsSelection === "GRID";
+
   return (
-    <div className="flex flex-col gap-6">
-      {/* Control Panel - All dropdowns in one row */}
-      <div className="flex flex-row gap-4 justify-center items-end">
-        <div className="flex flex-col gap-[2px]">
-          <label className="text-xs font-medium text-gray-600">
-            Vehicle / Grid
-          </label>
+    <div className="flex flex-col gap-3 w-full max-w-6xl mx-auto h-full">
+
+      {/* ── CONTROL ROW ─────────────────────────────────────────────── */}
+      <div className="flex flex-row items-end gap-4 flex-wrap">
+
+        <div className="flex flex-col gap-1">
+          <label className="text-sm font-medium text-gray-600">Vehicle / Grid</label>
           <select
             value={resultsSelection}
-            onChange={(e) => {
-              setResultsSelection(e.target.value);
-            }}
-            className="border rounded px-2 py-1 w-48"
+            onChange={(e) => setResultsSelection(e.target.value)}
+            className="border rounded px-3 py-2 w-44 text-sm"
           >
             <option value="">Select Vehicle/Grid</option>
             <option value="VEHICLE">Vehicle</option>
@@ -47,102 +118,101 @@ const FinalResultsPage = ({ resultsSelection, setResultsSelection }) => {
           </select>
         </div>
 
-        {resultsSelection !== "GRID" && (
-          <div className="flex flex-col gap-[2px]">
-            <label className="text-xs font-medium text-gray-600">
-              Daily / Annual
-            </label>
+        {showVehicle && (
+          <div className="flex flex-col gap-1">
+            <label className="text-sm font-medium text-gray-600">Daily / Annual</label>
             <select
               value={dailyAnnualSelection}
-              onChange={(e) => {
-                setDailyAnnualSelection(e.target.value);
-              }}
-              className="border rounded px-2 py-1 w-48"
+              onChange={(e) => setDailyAnnualSelection(e.target.value)}
+              className="border rounded px-3 py-2 w-40 text-sm"
             >
-              <option value="">Select Daily/Annual</option>
               <option value="DAILY">Daily</option>
               <option value="ANNUAL">Annual</option>
             </select>
           </div>
         )}
 
-        {resultsSelection === "VEHICLE" && (
-          <>
-            <div className="flex flex-col gap-[2px]">
-              <label className="text-xs font-medium text-gray-600">
-                Fuel Type
-              </label>
-              <select
-                value={fuelType}
-                onChange={(e) => {
-                  setConsumptionAndEmissionState({ FuelType: e.target.value });
-                }}
-                className="border rounded px-2 py-1 w-48"
-              >
-                <option value="">Select Fuel Type</option>
-                {FUEL_TYPES.map((ft) => (
-                  <option key={ft} value={ft}>
-                    {ft}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div className="flex flex-col gap-[2px]">
-              <label className="text-xs font-medium text-gray-600">
-                Emission Type
-              </label>
-              <select
-                value={emissionType}
-                onChange={(e) => {
-                  setConsumptionAndEmissionState({
-                    EmissionType: e.target.value,
-                  });
-                }}
-                className="border rounded px-2 py-1 w-48"
-              >
-                <option value="">Select Emission Type</option>
-                {EMISSION_TYPES.map((et) => (
-                  <option
-                    key={et.label}
-                    value={et.value}
-                    dangerouslySetInnerHTML={{ __html: et.label }}
-                  />
-                ))}
-              </select>
-            </div>
-
-            <div className="flex flex-col gap-[2px]">
-              <label className="text-xs font-medium text-gray-600">City</label>
-              <select
-                disabled
-                className={`border rounded px-2 py-1 w-48 bg-gray-300 cursor-not-allowed ${
-                  theme === "dark"
-                    ? "bg-[#18181b] text-white border-gray-700"
-                    : "text-gray-700 border-gray-400"
-                }`}
-              >
-                <option>{classificationState.city || "City"}</option>
-              </select>
-            </div>
-          </>
+        {showVehicle && (
+          <div className="flex flex-col gap-1">
+            <label className="text-sm font-medium text-gray-600">Fuel Type</label>
+            <select
+              value={fuelType}
+              onChange={(e) => setConsumptionAndEmission({ FuelType: e.target.value })}
+              className="border rounded px-3 py-2 w-44 text-sm"
+            >
+              <option value="">Select Fuel Type</option>
+              {FUEL_TYPES.map(f => <option key={f} value={f}>{f}</option>)}
+            </select>
+          </div>
         )}
 
+        {showVehicle && (
+          <div className="flex flex-col gap-1">
+            <label className="text-sm font-medium text-gray-600">Emission Type</label>
+            <select
+              value={emissionType}
+              onChange={(e) => setConsumptionAndEmission({ EmissionType: e.target.value })}
+              className="border rounded px-3 py-2 w-48 text-sm"
+            >
+              <option value="">Select Emission Type</option>
+              {EMISSION_TYPES.map(e => (
+                <option
+                  key={e.value}
+                  value={e.value}
+                  dangerouslySetInnerHTML={{ __html: e.label }}
+                />
+              ))}
+            </select>
+          </div>
+        )}
+
+        {/* City dropdown — disabled, from main (theme-aware) */}
+        {showVehicle && (
+          <div className="flex flex-col gap-1">
+            <label className="text-sm font-medium text-gray-600">City</label>
+            <select
+              disabled
+              className={`border rounded px-3 py-2 w-40 text-sm bg-gray-300 cursor-not-allowed ${
+                theme === "dark"
+                  ? "bg-[#18181b] text-white border-gray-700"
+                  : "text-gray-700 border-gray-400"
+              }`}
+            >
+              <option>{cityName || "City"}</option>
+            </select>
+          </div>
+        )}
+
+        {/* CSV Download button (user's addition) */}
+        {showVehicle && (
+          <div className="flex flex-col justify-end">
+            <button
+              type="button"
+              onClick={() => downloadCsv(cityName, chartMode)}
+              className="flex items-center gap-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded px-5 py-2 text-sm font-semibold transition-colors"
+            >
+              DOWNLOAD
+            </button>
+          </div>
+        )}
       </div>
 
-      {/* Content Area - Charts and Map */}
-      <div className="flex flex-row gap-6 items-center">
-        {resultsSelection === "VEHICLE" && (
-          <>
-            <div className="flex flex-col gap-8 flex-1">
-              {/* Fuel Chart */}
+      {/* ── CHARTS + LEGEND ─────────────────────────────────────────── */}
+      <div className="flex flex-row gap-4 flex-1 min-h-0">
+
+        {/* Charts — left, takes remaining width */}
+        <div className="flex-1 min-w-0 flex flex-col gap-8 overflow-auto">
+
+          {showVehicle && (
+            <>
               {fuelType && (
                 <div className="w-full border border-gray-200 rounded-lg bg-white shadow-sm p-3">
                   <div className="text-xs font-semibold text-gray-500 mb-1">{fuelType} Consumption</div>
-                  <VehicleChartR1R2 metric={fuelType} cityName={cityName} mode={chartMode} />
+                  <div style={{ height: 220 }}>
+                    <VehicleChartR1R2 metric={fuelType} cityName={cityName} mode={chartMode} />
+                  </div>
                 </div>
               )}
-              {/* Emission Chart */}
               {emissionType && (
                 <div className="w-full border border-gray-200 rounded-lg bg-white shadow-sm p-3">
                   <div className="text-xs font-semibold text-gray-500 mb-1"
@@ -150,58 +220,105 @@ const FinalResultsPage = ({ resultsSelection, setResultsSelection }) => {
                       __html: `${emissionType.replace("CO2","CO<sub>2</sub>").replace("NOx","NO<sub>x</sub>")} Emission`,
                     }}
                   />
-                  <VehicleChartR1R2 metric={emissionType} cityName={cityName} mode={chartMode} />
+                  <div style={{ height: 220 }}>
+                    <VehicleChartR1R2 metric={emissionType} cityName={cityName} mode={chartMode} />
+                  </div>
                 </div>
               )}
-            </div>
-            <div className="flex flex-col gap-4 flex-shrink-0 ml-4">
-              {/* Census Tract Legend */}
-              <div
-                style={{
-                  minWidth: 200,
-                  padding: 12,
-                  border: "1px solid rgba(0,0,0,0.2)",
-                  borderRadius: 8,
-                  background: "rgba(255,255,255,0.88)",
-                  boxShadow: "0 4px 12px rgba(0,0,0,0.08)",
-                  fontSize: 12,
-                  color: "#555",
-                }}
-              >
-                <div style={{ fontWeight: "bold", marginBottom: 6, fontSize: 13 }}>
-                  About the chart
+              {!fuelType && !emissionType && (
+                <div className="flex items-center justify-center h-40 text-gray-400 text-sm">
+                  Select a Fuel Type or Emission Type to view the chart.
                 </div>
-                <p>Each line represents one <strong>census tract</strong> — a geographic sub-area of the selected city.</p>
-                <p style={{ marginTop: 8 }}>Hover to inspect individual tract values. Scroll to zoom, drag to pan.</p>
-                <p style={{ marginTop: 8, color: "#888" }}>
-                  {dailyAnnualSelection === "DAILY"
-                    ? "R1 — Daily emissions by hour of day"
-                    : "R2 — Annual emissions by year (2024–2030)"}
-                </p>
-              </div>
-            </div>
-          </>
-        )}
+              )}
+            </>
+          )}
 
-        {resultsSelection === "GRID" && (
-          <div className="flex flex-col gap-6 w-full max-w-4xl mx-auto">
-            {/* CO2 Grid Chart */}
-            <div className="p-3 rounded-lg bg-gray-50 border border-gray-200">
-              <div className="text-xs font-semibold text-gray-500 mb-2">CO₂</div>
-              <GridChartR3 emissionType="CO2" cityName={cityName} />
+          {showGrid && (
+            <div className="flex flex-col gap-8">
+              {[
+                { type: "CO2", title: "CO\u2082" },
+                { type: "CH4", title: "CH\u2084" },
+                { type: "N2O", title: "N\u2082O" },
+              ].map((e) => (
+                <div key={e.type} className="p-3 rounded-lg bg-gray-50 border border-gray-200">
+                  <div className="text-xs font-semibold text-gray-500 mb-2">{e.title}</div>
+                  <div style={{ height: 220 }}>
+                    <GridChartR3 emissionType={e.type} cityName={cityName} showLegend={false} />
+                  </div>
+                </div>
+              ))}
             </div>
-            {/* CH4 Grid Chart */}
-            <div className="p-3 rounded-lg bg-gray-50 border border-gray-200">
-              <div className="text-xs font-semibold text-gray-500 mb-2">CH₄</div>
-              <GridChartR3 emissionType="CH4" cityName={cityName} />
+          )}
+
+          {!resultsSelection && (
+            <div className="flex flex-col items-center justify-center flex-1 min-h-[400px] border-2 border-dashed border-gray-200 rounded-xl bg-gray-50">
+              <svg className="w-16 h-16 text-gray-300 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+              </svg>
+              <span className="text-gray-400 text-base font-medium">Select Vehicle or Grid above to view results.</span>
             </div>
-            {/* N2O Grid Chart */}
-            <div className="p-3 rounded-lg bg-gray-50 border border-gray-200">
-              <div className="text-xs font-semibold text-gray-500 mb-2">N₂O</div>
-              <GridChartR3 emissionType="N2O" cityName={cityName} />
+          )}
+        </div>
+
+        {/* ── RIGHT LEGEND PANEL ──────────────────────────────────────── */}
+
+        {/* Vehicle: info panel + Vehicle Types legend */}
+        {showVehicle && (
+          <div className="flex flex-col gap-3 flex-shrink-0 w-60 self-start">
+            {/* Info panel (from main) */}
+            <div
+              style={{
+                padding: 12,
+                border: "1px solid rgba(0,0,0,0.2)",
+                borderRadius: 8,
+                background: "rgba(255,255,255,0.88)",
+                boxShadow: "0 4px 12px rgba(0,0,0,0.08)",
+                fontSize: 12,
+                color: "#555",
+              }}
+            >
+              <div style={{ fontWeight: "bold", marginBottom: 6, fontSize: 13 }}>
+                About the chart
+              </div>
+              <p>Each line represents one <strong>census tract</strong> — a geographic sub-area of the selected city.</p>
+              <p style={{ marginTop: 8 }}>Hover to inspect individual tract values. Scroll to zoom, drag to pan.</p>
+              <p style={{ marginTop: 8, color: "#888" }}>
+                {dailyAnnualSelection === "DAILY"
+                  ? "R1 — Daily emissions by hour of day"
+                  : "R2 — Annual emissions by year (2024\u20132030)"}
+              </p>
+            </div>
+
+            {/* Vehicle Types legend (user's addition) */}
+            <div className="border border-gray-500 rounded-xl bg-white p-3 shadow-md overflow-y-auto">
+              <div className="text-sm font-bold text-gray-800 mb-2">Vehicle Types</div>
+              {VEHICLE_TYPES.map((name, idx) => (
+                <div key={name} className="flex items-center gap-2 py-0.5">
+                  <svg width="28" height="10" style={{ flexShrink: 0 }}>
+                    <line x1="0" y1="5" x2="28" y2="5" stroke={VEHICLE_TYPE_COLORS[idx % VEHICLE_TYPE_COLORS.length]} strokeWidth="1.5" strokeLinecap="round" />
+                  </svg>
+                  <span className="text-[11px] text-gray-700">{name}</span>
+                </div>
+              ))}
             </div>
           </div>
         )}
+
+        {/* Grid legend: scenarios — shared across all 3 charts (user's addition) */}
+        {showGrid && SCENARIO_NAMES.length > 0 && (
+          <div className="flex-shrink-0 w-56 border border-gray-500 rounded-xl bg-white p-3 shadow-md self-start">
+            <div className="text-sm font-bold text-gray-800 mb-2">Scenarios</div>
+            {SCENARIO_NAMES.map((name, idx) => (
+              <div key={name} className="flex items-center gap-2 py-0.5">
+                <svg width="28" height="10" style={{ flexShrink: 0 }}>
+                  <line x1="0" y1="5" x2="28" y2="5" stroke={SCENARIO_COLORS[idx % SCENARIO_COLORS.length]} strokeWidth="1.5" strokeLinecap="round" />
+                </svg>
+                <span className="text-[11px] text-gray-700">{name}</span>
+              </div>
+            ))}
+          </div>
+        )}
+
       </div>
     </div>
   );

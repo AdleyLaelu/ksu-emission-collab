@@ -29,7 +29,7 @@ const CITY_TO_STATE = {
   Atlanta: "GA", "Los Angeles": "CA", LosAngeles: "CA", NewYork: "NY", Seattle: "WA",
 };
 
-const TRACT_COLORS = [
+export const TRACT_COLORS = [
   "#1f77b4","#aec7e8","#ff7f0e","#ffbb78","#2ca02c",
   "#98df8a","#d62728","#ff9896","#9467bd","#c5b0d5",
   "#8c564b","#c49c94","#e377c2","#f7b6d2","#7f7f7f",
@@ -37,6 +37,28 @@ const TRACT_COLORS = [
   "#393b79","#637939","#8c6d31","#843c39","#7b4173",
   "#5254a3","#8ca252","#bd9e39","#ad494a","#a55194",
 ];
+
+const FUEL_METRICS = new Set(["CNG", "Diesel", "Electricity", "Ethanol", "Gasoline"]);
+
+/** Pick a "nice" y-axis step so the chart gets ~5-8 evenly-spaced grid lines. */
+function niceStepSize(maxVal) {
+  if (!maxVal || maxVal <= 0) return undefined;
+  const rough = maxVal / 6;
+  const mag   = Math.pow(10, Math.floor(Math.log10(rough)));
+  const residual = rough / mag;
+  let nice;
+  if (residual <= 1)        nice = 1;
+  else if (residual <= 2)   nice = 2;
+  else if (residual <= 5)   nice = 5;
+  else                      nice = 10;
+  return nice * mag;
+}
+
+// Fixed step sizes per mode; others use dynamic calculation
+const STEP_OVERRIDES = {
+  R1: { CNG: 0.2, Electricity: 0.01, Gasoline: 75, CO2: 0.75, "PM2.5T": 3 },
+  R2: { Gasoline: 1500, "PM2.5T": 75 },
+};
 
 function hexToRgba(hex, alpha) {
   const r = parseInt(hex.slice(1, 3), 16);
@@ -220,6 +242,18 @@ export default function VehicleChartR1R2({ metric, cityName, mode }) {
   const datasets = [...tractDatasets, avgDataset];
   const xLabel = mode === "R1" ? "Hour of Day" : "Year";
 
+  // Compute y-axis step size
+  const isFuel = FUEL_METRICS.has(metric);
+  const modeOverrides = STEP_OVERRIDES[mode] || {};
+  let yStepSize;
+  if (modeOverrides[metric] != null) {
+    yStepSize = modeOverrides[metric];
+  } else if (mode === "R2" || isFuel) {
+    let dataMax = 0;
+    tractIds.forEach(id => tracts[id].forEach(v => { if (v > dataMax) dataMax = v; }));
+    yStepSize = niceStepSize(dataMax);
+  }
+
   const handleSelectIdx = (idx) => {
     const newIdx = selectedIdxRef.current === idx ? null : idx;
     selectedIdxRef.current = newIdx;
@@ -235,7 +269,7 @@ export default function VehicleChartR1R2({ metric, cityName, mode }) {
     responsive: true,
     maintainAspectRatio: false,
     animation: false,
-    layout: { padding: { top: 4, right: 4, bottom: 4, left: 4 } },
+    layout: { padding: { top: 22, right: 24, bottom: 0, left: 0 } },
     hover: { mode: "nearest", intersect: false },
 
     onHover: (_evt, activeElements, chart) => {
@@ -297,12 +331,19 @@ export default function VehicleChartR1R2({ metric, cityName, mode }) {
           borderDash: [3, 2],
         },
         ticks: {
-          maxTicksLimit: mode === "R2" ? 7 : 12,
+          maxTicksLimit: mode === "R2" ? 7 : 24,
           maxRotation: 45,
-          font: { size: 10 },
+          font: { size: 11 },
           color: "#444",
+          padding: 4,
         },
-        title: { display: true, text: xLabel, font: { size: 11 }, color: "#333" },
+        title: { display: true, text: xLabel, font: { size: 11 }, color: "#333", padding: { top: 0, bottom: 0 } },
+      },
+      xTop: {
+        position: "top",
+        border: { display: true, color: "#444", width: 1 },
+        grid: { drawOnChartArea: false, drawTicks: false },
+        ticks: { display: false },
       },
       y: {
         border: { display: true, color: "#444", width: 1 },
@@ -312,8 +353,17 @@ export default function VehicleChartR1R2({ metric, cityName, mode }) {
           lineWidth: 0.8,
           borderDash: [3, 2],
         },
-        ticks: { font: { size: 10 }, color: "#444" },
-        title: { display: true, text: unit, font: { size: 11 }, color: "#333" },
+        ticks: {
+          font: { size: 11 }, color: "#444", padding: 4,
+          ...(yStepSize ? { stepSize: yStepSize } : { maxTicksLimit: 8 }),
+        },
+        title: { display: true, text: unit, font: { size: 11 }, color: "#333", padding: { top: 0, bottom: 0 } },
+      },
+      yRight: {
+        position: "right",
+        border: { display: true, color: "#444", width: 1 },
+        grid: { drawOnChartArea: false, drawTicks: false },
+        ticks: { display: false },
       },
     },
   };

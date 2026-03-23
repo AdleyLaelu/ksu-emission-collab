@@ -6,7 +6,7 @@ import Seattle from "../assets/Seattle.svg";
 import NewYork from "../assets/NewYork.svg";
 import gridDataImg from "../assets/griddata1.png";
 import VehicleStepper from "./VerticalStepper";
-import AnalysisImage from "./AnalysisImage";
+import GridChartR3, { SCENARIO_COLORS } from "./GridChartR3";
 import {
   getAnalysisImgUrl,
   buildAnalysisFileName,
@@ -59,12 +59,11 @@ const GridEmissionRates = ({ activeStep, isResults }) => {
   const statesList = ["", "Atlanta", "Los Angeles", "Seattle", "NewYork"];
   const cityImages = { Atlanta, LosAngeles, Seattle, NewYork };
 
-
   const scenarios = [
     {
       title: "Mid-case Scenario",
       description:
-        "This scenario represents central estimates for fundamental inputs, including moderate renewable energy and battery technology costs (NREL, 2024), EIA AEO2023 Reference natural gas prices (U.S. EIA, 2023), and an average electricity demand growth of 1.8% per year from 2024 to 2050, reaching 6,509 TWh/year by 2050.",
+        "This scenario represents central estimates for fundamental inputs, including moderate renewable energy and battery technology costs (NREL, 2024), EIA AEO2023 Reference natural gas prices (U.S. EIA, 2023), and an average electricity demand growth of 1.8% per year from 2024 to 2050, reaching 6,509 TWh/year by 2050.",
     },
     {
       title: "Low Renewable Energy and Battery Costs",
@@ -79,7 +78,7 @@ const GridEmissionRates = ({ activeStep, isResults }) => {
     {
       title: "High Demand Growth",
       description:
-        "This scenario also uses the Mid-case base assumptions but anticipates 2.8% annual demand growth from 2024 to 2050, reaching 8,354 TWh/year by 2050, contrasting with 1.8% in the base assumptions.",
+        "This scenario also uses the Mid-case base assumptions but anticipates 2.8% annual demand growth from 2024 to 2050, reaching 8,354 TWh/year by 2050, contrasting with 1.8% in the base assumptions.",
     },
     {
       title: "Low Natural Gas Prices",
@@ -102,6 +101,8 @@ const GridEmissionRates = ({ activeStep, isResults }) => {
         "This scenario also builds on the same base assumptions as the first scenario but combines higher renewable energy and battery costs based on conservative ATB projections NREL, 2024), including a $200/kW capital cost adder for wind through 2050, with low natural gas prices, projected to reach around $2.50/MMBtu by 2035. This combination reduces the competitiveness of renewables and results in a slower decarbonization trajectory.",
     },
   ];
+
+  const SCENARIO_NAMES = scenarios.map((s) => s.title);
 
   const GridEmissionState = useAppStore((state) => state.GridEmission);
   const setGridEmissionState = useAppStore((state) => state.setGridEmission);
@@ -127,7 +128,6 @@ const GridEmissionRates = ({ activeStep, isResults }) => {
         const urlObj = URL.createObjectURL(svg);
         const img = new window.Image();
         img.onload = function () {
-          // Try to extract width/height from SVG if possible
           let width = img.width;
           let height = img.height;
           if ((!width || !height) && svgText) {
@@ -160,7 +160,6 @@ const GridEmissionRates = ({ activeStep, isResults }) => {
       }
     }
 
-    // Download logic: if SVG, convert to PNG, else download as is
     const downloadImage = async (url, filename) => {
       if (url.endsWith('.svg')) {
         await downloadAsPng(url, filename);
@@ -176,21 +175,18 @@ const GridEmissionRates = ({ activeStep, isResults }) => {
 
     await downloadImage(url, filename);
 
-    // Use global notification system instead of toast
     if (typeof useAppStore.getState().addNotification === 'function') {
       useAppStore.getState().addNotification("Download started");
     }
   };
 
-  // --- Zoom State for AnalysisImage ---
+  // --- Zoom State for reference image (from main) ---
   const [imageZoom, setImageZoom] = useState(1);
-
-  // Zoom Handlers (same as VehicleTrafficVolume)
-  const handleZoomIn = () => setImageZoom((prev) => Math.min(prev + 0.25, 3.5)); // Max zoom 3.5x
-  const handleZoomOut = () => setImageZoom((prev) => Math.max(prev - 0.25, 1)); // Min zoom 1x
+  const handleZoomIn = () => setImageZoom((prev) => Math.min(prev + 0.25, 3.5));
+  const handleZoomOut = () => setImageZoom((prev) => Math.max(prev - 0.25, 1));
   const handleResetZoom = () => setImageZoom(1);
 
-  // Reset zoom when emission type or city changes
+  // Reset zoom when emission type or city changes (from main)
   useEffect(() => {
     setImageZoom(1);
   }, [GridEmissionState.EmissionType, classificationState.cityInput]);
@@ -205,7 +201,7 @@ const GridEmissionRates = ({ activeStep, isResults }) => {
           style={{ width: "160px", height: "auto" }}
         />
       </div>
-      {/* Left panel: form + table */}
+      {/* Left panel: form + chart + legend */}
       <div className="flex flex-col gap-6">
         <Card variant="outlined" sx={{ backgroundColor: "#fafafa", mb: 4, maxWidth: 1200, px: 2, py: 1 }}>
           <CardContent>
@@ -274,60 +270,62 @@ const GridEmissionRates = ({ activeStep, isResults }) => {
             </Button>
           </div>
         </form>
-        
+
+        {/* Interactive GridChartR3 (user) + scenario legend + reference image (main) */}
         <div className="flex flex-row items-start gap-8 w-full">
-          <div className="flex-1 relative">
-            {classificationState.cityInput && GridEmissionState.EmissionType ? (
-              <div className="relative w-full max-w-[600px]">
-                <div className="w-full h-[220px] border border-gray-200 rounded-lg overflow-hidden bg-white shadow-sm group">
-                  <div className="w-full h-full overflow-auto" style={{overflow: 'auto', position: 'relative'}}>
-                    <img
-                      src={getAnalysisImgUrl(GridEmissionState.EmissionType, classificationState.cityInput)}
-                      alt="Grid Emission Plot"
-                      className="transition-all duration-200 ease-out origin-top-left max-w-none object-contain rounded"
-                      style={{
-                        width: `${imageZoom * 100}%`,
-                        height: 'auto',
-                        display: 'block',
-                      }}
-                      onError={e => { e.target.style.display = 'none'; }}
-                    />
-                  </div>
-                  <ZoomToolbar
-                    onZoomIn={handleZoomIn}
-                    onZoomOut={handleZoomOut}
-                    onReset={handleResetZoom}
-                  />
-                </div>
-              </div>
-            ) : null}
+          {/* Live chart (user's addition — replaces static image) */}
+          <div className="flex-1 max-w-3xl">
+            <GridChartR3
+              emissionType={GridEmissionState.EmissionType}
+              cityName={classificationState.cityInput}
+              showLegend={false}
+            />
           </div>
-          <img
-            src={gridDataImg}
-            alt="Grid Data"
-            className="h-[280px] object-contain rounded border border-gray-100"
-            style={{ maxWidth: '99%', marginTop: '-56px', minHeight: '320px' }}
-          />
+
+          {/* Scenario legend with color swatches (user's addition) */}
+          <div className="flex-shrink-0 border border-gray-500 rounded-xl bg-white p-3 shadow-md">
+            {SCENARIO_NAMES.map((name, idx) => (
+              <div key={name} className="flex items-center gap-2 py-0.5">
+                <svg width="28" height="10" style={{ flexShrink: 0 }}>
+                  <line x1="0" y1="5" x2="28" y2="5" stroke={SCENARIO_COLORS[idx]} strokeWidth="1.5" strokeLinecap="round" />
+                </svg>
+                <span className="text-sm text-gray-700">{name}</span>
+              </div>
+            ))}
+          </div>
+
+          {/* Reference image (from main) */}
+          <div className="flex-shrink-0 relative">
+            <div className="border border-gray-100 rounded overflow-hidden" style={{ maxHeight: '320px', overflow: 'auto' }}>
+              <img
+                src={gridDataImg}
+                alt="Grid Data Reference"
+                className="object-contain rounded transition-all duration-200 ease-out origin-top-left"
+                style={{
+                  width: `${imageZoom * 100}%`,
+                  height: 'auto',
+                  maxWidth: 'none',
+                  minHeight: '280px',
+                }}
+              />
+            </div>
+            <ZoomToolbar
+              onZoomIn={handleZoomIn}
+              onZoomOut={handleZoomOut}
+              onReset={handleResetZoom}
+            />
+          </div>
         </div>
 
       </div>
 
       <div className="flex flex-col gap-6">
         <div className="ml-4 flex items-center gap-4">
-          <VehicleStepper activeStep={isResults ? 1 : (typeof activeStep === 'number' ? activeStep : 0)}  />
+          <VehicleStepper activeStep={isResults ? 1 : (typeof activeStep === 'number' ? activeStep : 0)} />
         </div>
         {classificationState.city && cityImages[classificationState.city] && (
-           <div className="flex flex-row gap-6 items-start">
-             
-           
- </div>
-//           <div className="flex flex-row gap-6 items-start">
-//   <img
-//     src={cityImages[classificationState.city]}
-//     alt={classificationState.city}
-//     className="h-[50px] md:h-[50px] lg:h-[50px] w-auto object-contain rounded"
-//   />
-// </div>
+          <div className="flex flex-row gap-6 items-start">
+          </div>
         )}
       </div>
     </div>
