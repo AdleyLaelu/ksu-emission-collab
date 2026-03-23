@@ -90,7 +90,6 @@ const FinalResultsPage = ({ resultsSelection, setResultsSelection }) => {
   const ConsumptionAndEmissionState = useAppStore((s) => s.ConsumptionAndEmission);
   const setConsumptionAndEmission = useAppStore((s) => s.setConsumptionAndEmission);
   const classificationState = useAppStore((s) => s.classificationState);
-  const setClassificationState = useAppStore((s) => s.setClassificationState);
   const theme = useAppStore((s) => s.theme);
 
   const cityName     = classificationState.city || classificationState.cityInput;

@@ -38,7 +38,7 @@ const CITY_TO_STATE = {
   Atlanta: "GA", "Los Angeles": "CA", LosAngeles: "CA", NewYork: "NY", Seattle: "WA",
 };
 
-const SCENARIO_COLORS = [
+export const SCENARIO_COLORS = [
   "#1f77b4", "#ff7f0e", "#2ca02c", "#d62728",
   "#9467bd", "#8c564b", "#e377c2", "#17becf",
 ];
