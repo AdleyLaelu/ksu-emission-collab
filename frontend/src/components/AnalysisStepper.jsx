@@ -47,7 +47,7 @@ function AnalysisStepper({ finalNext, activeStep, setActiveStep }) {
   };
 
   return (
-    <div className="flex flex-col items-center gap-5 pl-6 pt-4">
+    <div className="flex flex-col gap-5 pt-4 w-full">
       {/* Step-wise content only, stepper UI removed */}
       <div className="w-full">
         {activeStep === 0 && (
