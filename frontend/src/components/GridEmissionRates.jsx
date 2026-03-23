@@ -232,9 +232,9 @@ const GridEmissionRates = ({ activeStep, isResults }) => {
         </form>
 
         {/* Interactive GridChartR3 (user) + scenario legend + reference image (main) */}
-        <div className="flex flex-row items-start gap-8 w-full">
+        <div className="flex flex-row items-center gap-8 w-full">
           {/* Live chart (user's addition — replaces static image) */}
-          <div className="flex-1 max-w-3xl">
+          <div className="flex-1 max-w-3xl border border-gray-200 rounded-lg bg-white shadow-sm p-3">
             <GridChartR3
               emissionType={GridEmissionState.EmissionType}
               cityName={classificationState.cityInput}
@@ -243,13 +243,13 @@ const GridEmissionRates = ({ activeStep, isResults }) => {
           </div>
 
           {/* Scenario legend with color swatches (user's addition) */}
-          <div className="flex-shrink-0 border border-gray-500 rounded-xl bg-white p-3 shadow-md">
+          <div className="flex-shrink-0 border border-gray-500 rounded-xl bg-white p-2 shadow-md">
             {SCENARIO_NAMES.map((name, idx) => (
-              <div key={name} className="flex items-center gap-2 py-0.5">
-                <svg width="28" height="10" style={{ flexShrink: 0 }}>
-                  <line x1="0" y1="5" x2="28" y2="5" stroke={SCENARIO_COLORS[idx]} strokeWidth="1.5" strokeLinecap="round" />
+              <div key={name} className="flex items-center gap-1.5 py-0.5">
+                <svg width="22" height="8" style={{ flexShrink: 0 }}>
+                  <line x1="0" y1="4" x2="22" y2="4" stroke={SCENARIO_COLORS[idx]} strokeWidth="1.5" strokeLinecap="round" />
                 </svg>
-                <span className="text-sm text-gray-700">{name}</span>
+                <span className="text-xs font-bold text-gray-700">{name}</span>
               </div>
             ))}
           </div>

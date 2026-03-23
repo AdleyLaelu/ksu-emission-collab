@@ -290,9 +290,9 @@ export default function VehicleChartR1R2({
     scales: {
       x: {
         border: { display: true, color: "#444", width: 1 },
-        grid: { display: true, color: "rgba(169,169,169,0.15)", lineWidth: 0.8, drawTicks: false },
-        ticks: { maxTicksLimit: mode === "R2" ? 7 : 24, maxRotation: 45, font: { size: 11 }, color: "#444", padding: 4 },
-        title: { display: true, text: xLabel, font: { size: 11 }, color: "#333", padding: { top: 0, bottom: 0 } },
+        grid: { display: true, color: "rgba(169,169,169,0.15)", lineWidth: 0.8, drawTicks: mode === "R1", tickColor: "#444" },
+        ticks: { maxTicksLimit: mode === "R2" ? 7 : 24, maxRotation: mode === "R1" ? 90 : 0, minRotation: mode === "R1" ? 90 : 0, font: { size: 14, weight: "540" }, color: "#444", padding: mode === "R1" ? 2 : 4 },
+        title: { display: true, text: xLabel, font: { size: 14, weight: "540" }, color: "#333", padding: { top: 8, bottom: 0 } },
       },
       xTop: {
         position: "top",
@@ -304,10 +304,10 @@ export default function VehicleChartR1R2({
         border: { display: true, color: "#444", width: 1 },
         grid: { display: true, color: "rgba(169,169,169,0.15)", lineWidth: 0.8, drawTicks: false },
         ticks: {
-          font: { size: 11 }, color: "#444", padding: 4,
+          font: { size: 14, weight: "540" }, color: "#444", padding: 4,
           ...(yStepSize ? { stepSize: yStepSize } : { maxTicksLimit: 8 }),
         },
-        title: { display: true, text: unit, font: { size: 11 }, color: "#333", padding: { top: 0, bottom: 0 } },
+        title: { display: true, text: unit, font: { size: 14, weight: "540" }, color: "#333", padding: { top: 0, bottom: 0 } },
       },
       yRight: {
         position: "right",
@@ -321,7 +321,7 @@ export default function VehicleChartR1R2({
   return (
     <div className="w-full h-full flex flex-col">
       {/* Chart — fills all remaining height */}
-      <div className="relative w-full flex-1 min-h-0 border border-gray-400 rounded bg-white">
+      <div className="relative w-full flex-1 min-h-0 bg-white">
         <Line ref={chartRef} data={{ labels, datasets }} options={options} plugins={[chartBgPlugin]} />
         <ZoomToolbar chartRef={chartRef} />
       </div>

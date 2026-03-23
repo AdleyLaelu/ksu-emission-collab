@@ -269,7 +269,7 @@ export default function GridChartR3({ emissionType, cityName, showLegend = true 
           drawTicks: false,
         },
         ticks: {
-          font: { size: 11 },
+          font: { size: 14, weight: "540" },
           color: "#444",
           maxRotation: 0,
           padding: 4,
@@ -283,7 +283,7 @@ export default function GridChartR3({ emissionType, cityName, showLegend = true 
             return month === "01" ? year : "";
           },
         },
-        title: { display: true, text: "Year", font: { size: 11 }, color: "#333", padding: { top: 0, bottom: 0 } },
+        title: { display: true, text: "Year", font: { size: 14, weight: "540" }, color: "#333", padding: { top: 0, bottom: 0 } },
       },
       y: {
         border: { display: true, color: "#444", width: 1 },
@@ -294,10 +294,10 @@ export default function GridChartR3({ emissionType, cityName, showLegend = true 
           drawTicks: false,
         },
         ticks: {
-          font: { size: 11 }, color: "#444", padding: 4,
+          font: { size: 14, weight: "540" }, color: "#444", padding: 4,
           ...(emissionType === "CH4" ? { stepSize: 20 } : { maxTicksLimit: 6 }),
         },
-        title: { display: true, text: yLabel, font: { size: 11 }, color: "#333", padding: { top: 0, bottom: 0 } },
+        title: { display: true, text: yLabel, font: { size: 14, weight: "540" }, color: "#333", padding: { top: 0, bottom: 0 } },
       },
       xTop: {
         position: "top",
@@ -317,7 +317,7 @@ export default function GridChartR3({ emissionType, cityName, showLegend = true 
   return (
     <div ref={containerRef} className="w-full h-full flex flex-col">
       {/* Chart — fills parent height, fallback 200px when no parent height set */}
-      <div className="relative w-full flex-1 border border-gray-400 rounded bg-white" style={{ minHeight: 200 }}>
+      <div className="relative w-full flex-1 bg-white" style={{ minHeight: 200 }}>
         <Line ref={chartRef} data={{ labels, datasets }} options={options} plugins={[chartBgPlugin]} />
         <ZoomToolbar chartRef={chartRef} />
       </div>

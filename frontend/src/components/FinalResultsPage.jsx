@@ -207,7 +207,6 @@ const FinalResultsPage = ({ resultsSelection, setResultsSelection }) => {
             <>
               {fuelType && (
                 <div className="w-full border border-gray-200 rounded-lg bg-white shadow-sm p-3">
-                  <div className="text-xs font-semibold text-gray-500 mb-1">{fuelType} Consumption</div>
                   <div style={{ height: 220 }}>
                     <VehicleChartR1R2 metric={fuelType} cityName={cityName} mode={chartMode} />
                   </div>
@@ -215,11 +214,6 @@ const FinalResultsPage = ({ resultsSelection, setResultsSelection }) => {
               )}
               {emissionType && (
                 <div className="w-full border border-gray-200 rounded-lg bg-white shadow-sm p-3">
-                  <div className="text-xs font-semibold text-gray-500 mb-1"
-                    dangerouslySetInnerHTML={{
-                      __html: `${emissionType.replace("CO2","CO<sub>2</sub>").replace("NOx","NO<sub>x</sub>")} Emission`,
-                    }}
-                  />
                   <div style={{ height: 220 }}>
                     <VehicleChartR1R2 metric={emissionType} cityName={cityName} mode={chartMode} />
                   </div>
@@ -241,7 +235,6 @@ const FinalResultsPage = ({ resultsSelection, setResultsSelection }) => {
                 { type: "N2O", title: "N\u2082O" },
               ].map((e) => (
                 <div key={e.type} className="p-3 rounded-lg bg-gray-50 border border-gray-200">
-                  <div className="text-xs font-semibold text-gray-500 mb-2">{e.title}</div>
                   <div style={{ height: 220 }}>
                     <GridChartR3 emissionType={e.type} cityName={cityName} showLegend={false} />
                   </div>
@@ -264,7 +257,7 @@ const FinalResultsPage = ({ resultsSelection, setResultsSelection }) => {
 
         {/* Vehicle: info panel + Vehicle Types legend */}
         {showVehicle && (
-          <div className="flex flex-col gap-3 flex-shrink-0 w-60 self-start">
+          <div className="flex flex-col gap-3 flex-shrink-0 w-60 self-center">
             {/* Vehicle Types legend (user's addition) */}
             <div className="border border-gray-500 rounded-xl bg-white p-3 shadow-md overflow-y-auto">
               <div className="text-sm font-bold text-gray-800 mb-2">Vehicle Types</div>
@@ -273,7 +266,7 @@ const FinalResultsPage = ({ resultsSelection, setResultsSelection }) => {
                   <svg width="28" height="10" style={{ flexShrink: 0 }}>
                     <line x1="0" y1="5" x2="28" y2="5" stroke={VEHICLE_TYPE_COLORS[idx % VEHICLE_TYPE_COLORS.length]} strokeWidth="1.5" strokeLinecap="round" />
                   </svg>
-                  <span className="text-[11px] text-gray-700">{name}</span>
+                  <span className="text-[11px] font-bold text-gray-700">{name}</span>
                 </div>
               ))}
             </div>
@@ -282,14 +275,14 @@ const FinalResultsPage = ({ resultsSelection, setResultsSelection }) => {
 
         {/* Grid legend: scenarios — shared across all 3 charts (user's addition) */}
         {showGrid && SCENARIO_NAMES.length > 0 && (
-          <div className="flex-shrink-0 w-56 border border-gray-500 rounded-xl bg-white p-3 shadow-md self-start">
+          <div className="flex-shrink-0 w-56 border border-gray-500 rounded-xl bg-white p-3 shadow-md self-center">
             <div className="text-sm font-bold text-gray-800 mb-2">Scenarios</div>
             {SCENARIO_NAMES.map((name, idx) => (
               <div key={name} className="flex items-center gap-2 py-0.5">
                 <svg width="28" height="10" style={{ flexShrink: 0 }}>
                   <line x1="0" y1="5" x2="28" y2="5" stroke={SCENARIO_COLORS[idx % SCENARIO_COLORS.length]} strokeWidth="1.5" strokeLinecap="round" />
                 </svg>
-                <span className="text-[11px] text-gray-700">{name}</span>
+                <span className="text-[11px] font-bold text-gray-700">{name}</span>
               </div>
             ))}
           </div>
