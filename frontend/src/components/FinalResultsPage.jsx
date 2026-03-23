@@ -265,30 +265,6 @@ const FinalResultsPage = ({ resultsSelection, setResultsSelection }) => {
         {/* Vehicle: info panel + Vehicle Types legend */}
         {showVehicle && (
           <div className="flex flex-col gap-3 flex-shrink-0 w-60 self-start">
-            {/* Info panel (from main) */}
-            <div
-              style={{
-                padding: 12,
-                border: "1px solid rgba(0,0,0,0.2)",
-                borderRadius: 8,
-                background: "rgba(255,255,255,0.88)",
-                boxShadow: "0 4px 12px rgba(0,0,0,0.08)",
-                fontSize: 12,
-                color: "#555",
-              }}
-            >
-              <div style={{ fontWeight: "bold", marginBottom: 6, fontSize: 13 }}>
-                About the chart
-              </div>
-              <p>Each line represents one <strong>census tract</strong> — a geographic sub-area of the selected city.</p>
-              <p style={{ marginTop: 8 }}>Hover to inspect individual tract values. Scroll to zoom, drag to pan.</p>
-              <p style={{ marginTop: 8, color: "#888" }}>
-                {dailyAnnualSelection === "DAILY"
-                  ? "R1 — Daily emissions by hour of day"
-                  : "R2 — Annual emissions by year (2024\u20132030)"}
-              </p>
-            </div>
-
             {/* Vehicle Types legend (user's addition) */}
             <div className="border border-gray-500 rounded-xl bg-white p-3 shadow-md overflow-y-auto">
               <div className="text-sm font-bold text-gray-800 mb-2">Vehicle Types</div>

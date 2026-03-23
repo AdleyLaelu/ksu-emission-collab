@@ -38,9 +38,15 @@ const CITY_TO_STATE = {
   Atlanta: "GA", "Los Angeles": "CA", LosAngeles: "CA", NewYork: "NY", Seattle: "WA",
 };
 
-export const SCENARIO_COLORS = [
-  "#1f77b4", "#ff7f0e", "#2ca02c", "#d62728",
-  "#9467bd", "#8c564b", "#e377c2", "#17becf",
+const SCENARIO_COLORS = [
+  "gold",           // Scenario 1 — Mid-case
+  "darkorange",     // Scenario 2 — Low Renewable Energy
+  "mediumseagreen", // Scenario 3 — High Renewable Energy
+  "steelblue",      // Scenario 4 — High Demand Growth
+  "orchid",         // Scenario 5 — Low Natural Gas Prices
+  "slateblue",      // Scenario 6 — High Natural Gas Prices
+  "firebrick",      // Scenario 7 — 95% Decarbonization
+  "teal",           // Scenario 8 — 100% Decarbonization
 ];
 
 const EMISSION_LABELS = {
@@ -49,10 +55,15 @@ const EMISSION_LABELS = {
   N2O: "N₂O (lb/MWh)",
 };
 
-function hexToRgba(hex, alpha) {
-  const r = parseInt(hex.slice(1, 3), 16);
-  const g = parseInt(hex.slice(3, 5), 16);
-  const b = parseInt(hex.slice(5, 7), 16);
+// Resolve any CSS color (named or hex) to rgba via a temporary canvas
+const _colorCanvas = document.createElement("canvas");
+_colorCanvas.width = _colorCanvas.height = 1;
+const _colorCtx = _colorCanvas.getContext("2d");
+function toRgba(color, alpha) {
+  _colorCtx.clearRect(0, 0, 1, 1);
+  _colorCtx.fillStyle = color;
+  _colorCtx.fillRect(0, 0, 1, 1);
+  const [r, g, b] = _colorCtx.getImageData(0, 0, 1, 1).data;
   return `rgba(${r},${g},${b},${alpha})`;
 }
 
@@ -69,7 +80,7 @@ const chartBgPlugin = {
 };
 
 const ZoomToolbar = ({ chartRef }) => (
-  <div className="absolute bottom-2 right-2 z-10 flex bg-white rounded border border-gray-300 shadow-sm overflow-hidden select-none">
+  <div className="absolute top-2 right-2 z-10 flex bg-white rounded border border-gray-300 shadow-sm overflow-hidden select-none">
     <button type="button" onClick={() => chartRef.current?.zoom(1.2)}
       className="px-2 py-0.5 text-blue-600 hover:bg-gray-50 border-r border-gray-200 text-sm font-bold leading-none" title="Zoom In">+</button>
     <button type="button" onClick={() => chartRef.current?.zoom(0.8)}
@@ -79,7 +90,9 @@ const ZoomToolbar = ({ chartRef }) => (
   </div>
 );
 
-export default function GridChartR3({ emissionType, cityName }) {
+export { SCENARIO_COLORS };
+
+export default function GridChartR3({ emissionType, cityName, showLegend = true }) {
   const chartRef = useRef(null);
   const containerRef = useRef(null);
   const [selectedIdx, setSelectedIdx] = useState(null);
@@ -117,11 +130,6 @@ export default function GridChartR3({ emissionType, cityName }) {
   const scenarioNames = Object.keys(scenarios);
   const labels = (scenarios[scenarioNames[0]] || []).map((p) => p.date);
 
-  // Hollow circle markers at yearly intervals
-  const ptRadiusDefault = labels.map((_, i) => (i % 12 === 0 ? 4 : 0));
-  const ptBorderDefault = labels.map((_, i) => (i % 12 === 0 ? 1.5 : 0));
-  const ptRadiusNone = labels.map(() => 0);
-
   // ── Imperative hover helpers ──────────────────────────────────────────────
 
   const applyHover = (chart, hoverIdx) => {
@@ -130,13 +138,9 @@ export default function GridChartR3({ emissionType, cityName }) {
       if (i === hoverIdx) {
         ds.borderColor = base;
         ds.borderWidth = 2.5;
-        ds.pointRadius = ptRadiusDefault;
-        ds.pointBorderWidth = ptBorderDefault;
       } else {
-        ds.borderColor = hexToRgba(base, 0.1);
+        ds.borderColor = toRgba(base, 0.1);
         ds.borderWidth = 1;
-        ds.pointRadius = ptRadiusNone;
-        ds.pointBorderWidth = ptRadiusNone;
       }
     });
     chart.update("none");
@@ -150,19 +154,13 @@ export default function GridChartR3({ emissionType, cityName }) {
         if (i === sel) {
           ds.borderColor = base;
           ds.borderWidth = 3;
-          ds.pointRadius = ptRadiusDefault;
-          ds.pointBorderWidth = ptBorderDefault;
         } else {
-          ds.borderColor = hexToRgba(base, 0.6);
+          ds.borderColor = toRgba(base, 0.6);
           ds.borderWidth = 1;
-          ds.pointRadius = ptRadiusNone;
-          ds.pointBorderWidth = ptRadiusNone;
         }
       } else {
-        ds.borderColor = hexToRgba(base, 0.7);
+        ds.borderColor = toRgba(base, 0.7);
         ds.borderWidth = 1.5;
-        ds.pointRadius = ptRadiusDefault;
-        ds.pointBorderWidth = ptBorderDefault;
       }
     });
     chart.update("none");
@@ -177,18 +175,12 @@ export default function GridChartR3({ emissionType, cityName }) {
     if (selectedIdx === idx) {
       borderColor = color;
       borderWidth = 3;
-      pointRadius = ptRadiusDefault;
-      pointBorderWidth = ptBorderDefault;
     } else if (selectedIdx !== null) {
-      borderColor = hexToRgba(color, 0.6);
+      borderColor = toRgba(color, 0.6);
       borderWidth = 1;
-      pointRadius = ptRadiusNone;
-      pointBorderWidth = ptRadiusNone;
     } else {
-      borderColor = hexToRgba(color, 0.7);
+      borderColor = toRgba(color, 0.7);
       borderWidth = 1.5;
-      pointRadius = ptRadiusDefault;
-      pointBorderWidth = ptBorderDefault;
     }
 
     return {
@@ -197,12 +189,7 @@ export default function GridChartR3({ emissionType, cityName }) {
       borderColor,
       backgroundColor: "rgba(0,0,0,0)",
       borderWidth,
-      pointStyle: "circle",
-      pointRadius,
-      pointHoverRadius: 6,
-      pointBackgroundColor: "#ffffff",
-      pointBorderColor: color,
-      pointBorderWidth,
+      pointRadius: 0,
       tension: 0.4,
       _baseColor: color,
     };
@@ -277,9 +264,9 @@ export default function GridChartR3({ emissionType, cityName }) {
         border: { display: true, color: "#444", width: 1 },
         grid: {
           display: true,
-          color: "rgba(169,169,169,0.45)",
+          color: "rgba(169,169,169,0.15)",
           lineWidth: 0.8,
-          borderDash: [3, 2],
+          drawTicks: false,
         },
         ticks: {
           font: { size: 11 },
@@ -289,32 +276,34 @@ export default function GridChartR3({ emissionType, cityName }) {
           callback: (_, index) => {
             const label = labels[index];
             if (!label) return "";
+            // label format: "2025-01-01 00:00:00"
             const year = label.substring(0, 4);
             const month = label.substring(5, 7);
+            // Show year label only on January of each year
             return month === "01" ? year : "";
           },
         },
         title: { display: true, text: "Year", font: { size: 11 }, color: "#333", padding: { top: 0, bottom: 0 } },
       },
-      xTop: {
-        position: "top",
-        border: { display: true, color: "#444", width: 1 },
-        grid: { drawOnChartArea: false, drawTicks: false },
-        ticks: { display: false },
-      },
       y: {
         border: { display: true, color: "#444", width: 1 },
         grid: {
           display: true,
-          color: "rgba(169,169,169,0.45)",
+          color: "rgba(169,169,169,0.15)",
           lineWidth: 0.8,
-          borderDash: [3, 2],
+          drawTicks: false,
         },
         ticks: {
           font: { size: 11 }, color: "#444", padding: 4,
           ...(emissionType === "CH4" ? { stepSize: 20 } : { maxTicksLimit: 6 }),
         },
         title: { display: true, text: yLabel, font: { size: 11 }, color: "#333", padding: { top: 0, bottom: 0 } },
+      },
+      xTop: {
+        position: "top",
+        border: { display: true, color: "#444", width: 1 },
+        grid: { drawOnChartArea: false, drawTicks: false },
+        ticks: { display: false },
       },
       yRight: {
         position: "right",
@@ -326,58 +315,48 @@ export default function GridChartR3({ emissionType, cityName }) {
   };
 
   return (
-    <div ref={containerRef} className="w-full">
-      <div className="flex gap-2">
-        {/* Chart */}
-        <div className="relative flex-1 h-[240px] border border-gray-400 rounded bg-white">
-          <Line ref={chartRef} data={{ labels, datasets }} options={options} plugins={[chartBgPlugin]} />
-          <ZoomToolbar chartRef={chartRef} />
-        </div>
-
-        {/* Clickable scenario legend */}
-        <div className="flex-shrink-0 border border-gray-200 rounded bg-white p-1.5" style={{ width: 200 }}>
-          <div className="flex items-center justify-between mb-1.5">
-            <span className="text-[10px] font-semibold text-gray-500 uppercase tracking-wide">Scenarios</span>
-            {selectedIdx !== null && (
-              <button
-                type="button"
-                onClick={handleReset}
-                className="text-[9px] text-blue-500 hover:text-blue-700 font-semibold"
-              >
-                Clear
-              </button>
-            )}
-          </div>
-          <div className="flex flex-col gap-1">
-            {scenarioNames.map((name, idx) => {
-              const color = SCENARIO_COLORS[idx % SCENARIO_COLORS.length];
-              const isSelected = selectedIdx === idx;
-              const isFaded = selectedIdx !== null && !isSelected;
-              return (
-                <button
-                  key={name}
-                  type="button"
-                  onClick={() => handleSelectIdx(idx)}
-                  className="flex items-center gap-1.5 min-w-0 px-1 py-0.5 rounded text-left hover:bg-gray-50 transition-colors"
-                  style={{ opacity: isFaded ? 0.28 : 1 }}
-                  title={name}
-                >
-                  <svg width="30" height="12" style={{ flexShrink: 0 }}>
-                    <line x1="0" y1="6" x2="30" y2="6" stroke={color}
-                      strokeWidth={isSelected ? 2.5 : 1.5} strokeLinecap="round" />
-                    <circle cx="15" cy="6" r="3.5" fill="white" stroke={color}
-                      strokeWidth={isSelected ? 2 : 1.5} />
-                  </svg>
-                  <span className={`text-[10px] truncate ${isSelected ? "font-bold text-gray-900" : "text-gray-600"}`}>
-                    {name}
-                  </span>
-                </button>
-              );
-            })}
-          </div>
-          <p className="text-[8.5px] text-gray-400 mt-2 italic">click to select · click again to clear</p>
-        </div>
+    <div ref={containerRef} className="w-full h-full flex flex-col">
+      {/* Chart — fills parent height, fallback 200px when no parent height set */}
+      <div className="relative w-full flex-1 border border-gray-400 rounded bg-white" style={{ minHeight: 200 }}>
+        <Line ref={chartRef} data={{ labels, datasets }} options={options} plugins={[chartBgPlugin]} />
+        <ZoomToolbar chartRef={chartRef} />
       </div>
+
+      {/* Legend — horizontal wrap row below chart */}
+      {showLegend && <div className="flex flex-wrap items-center gap-x-4 gap-y-1 px-1">
+        {selectedIdx !== null && (
+          <button
+            type="button"
+            onClick={handleReset}
+            className="text-[9px] text-blue-500 hover:text-blue-700 font-semibold"
+          >
+            Clear
+          </button>
+        )}
+        {scenarioNames.map((name, idx) => {
+          const color = SCENARIO_COLORS[idx % SCENARIO_COLORS.length];
+          const isSelected = selectedIdx === idx;
+          const isFaded = selectedIdx !== null && !isSelected;
+          return (
+            <button
+              key={name}
+              type="button"
+              onClick={() => handleSelectIdx(idx)}
+              className="flex items-center gap-1 hover:opacity-80 transition-opacity"
+              style={{ opacity: isFaded ? 0.28 : 1 }}
+              title={name}
+            >
+              <svg width="24" height="10" style={{ flexShrink: 0 }}>
+                <line x1="0" y1="5" x2="24" y2="5" stroke={color}
+                  strokeWidth={isSelected ? 2.5 : 1.5} strokeLinecap="round" />
+              </svg>
+              <span className={`text-[9px] ${isSelected ? "font-bold text-gray-900" : "text-gray-500"}`}>
+                {name}
+              </span>
+            </button>
+          );
+        })}
+      </div>}
     </div>
   );
 }

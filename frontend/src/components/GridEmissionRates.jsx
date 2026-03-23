@@ -1,10 +1,9 @@
-import React, { useState, useEffect } from "react";
+import React from "react";
 import useAppStore from "../useAppStore";
 import Atlanta from "../assets/Georgia.svg";
 import LosAngeles from "../assets/California.svg";
 import Seattle from "../assets/Seattle.svg";
 import NewYork from "../assets/NewYork.svg";
-import gridDataImg from "../assets/griddata1.png";
 import VehicleStepper from "./VerticalStepper";
 import GridChartR3, { SCENARIO_COLORS } from "./GridChartR3";
 import {
@@ -23,35 +22,6 @@ import {
 import Button from "@mui/material/Button";
 import { toast } from "react-toastify";
 
-// --- Reusable Zoom Toolbar Component ---
-const ZoomToolbar = ({ onZoomIn, onZoomOut, onReset }) => (
-  <div className="absolute top-4 right-4 z-10 flex bg-white rounded border border-gray-300 shadow-sm overflow-hidden select-none">
-    <button
-      onClick={onZoomIn}
-      className="px-3 py-1 text-blue-600 hover:bg-gray-50 border-r border-gray-200 text-lg font-bold leading-none transition-colors"
-      title="Zoom In"
-      type="button"
-    >
-      +
-    </button>
-    <button
-      onClick={onZoomOut}
-      className="px-3 py-1 text-blue-600 hover:bg-gray-50 border-r border-gray-200 text-lg font-bold leading-none transition-colors"
-      title="Zoom Out"
-      type="button"
-    >
-      -
-    </button>
-    <button
-      onClick={onReset}
-      className="px-3 py-1 text-xs font-semibold text-blue-600 hover:bg-gray-50 uppercase tracking-wide transition-colors"
-      title="Reset Zoom"
-      type="button"
-    >
-      RESET
-    </button>
-  </div>
-);
 
 const GridEmissionRates = ({ activeStep, isResults }) => {
   const classificationState = useAppStore((state) => state.classificationState);
@@ -180,16 +150,6 @@ const GridEmissionRates = ({ activeStep, isResults }) => {
     }
   };
 
-  // --- Zoom State for reference image (from main) ---
-  const [imageZoom, setImageZoom] = useState(1);
-  const handleZoomIn = () => setImageZoom((prev) => Math.min(prev + 0.25, 3.5));
-  const handleZoomOut = () => setImageZoom((prev) => Math.max(prev - 0.25, 1));
-  const handleResetZoom = () => setImageZoom(1);
-
-  // Reset zoom when emission type or city changes (from main)
-  useEffect(() => {
-    setImageZoom(1);
-  }, [GridEmissionState.EmissionType, classificationState.cityInput]);
 
   return (
     <div className="flex flex-row items-stretch gap-6 pl-6 pt-4">
@@ -294,27 +254,6 @@ const GridEmissionRates = ({ activeStep, isResults }) => {
             ))}
           </div>
 
-          {/* Reference image (from main) */}
-          <div className="flex-shrink-0 relative">
-            <div className="border border-gray-100 rounded overflow-hidden" style={{ maxHeight: '320px', overflow: 'auto' }}>
-              <img
-                src={gridDataImg}
-                alt="Grid Data Reference"
-                className="object-contain rounded transition-all duration-200 ease-out origin-top-left"
-                style={{
-                  width: `${imageZoom * 100}%`,
-                  height: 'auto',
-                  maxWidth: 'none',
-                  minHeight: '280px',
-                }}
-              />
-            </div>
-            <ZoomToolbar
-              onZoomIn={handleZoomIn}
-              onZoomOut={handleZoomOut}
-              onReset={handleResetZoom}
-            />
-          </div>
         </div>
 
       </div>
