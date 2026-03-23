@@ -22,27 +22,10 @@ def generate_plot_image(city_name, year):
             return {"status": "error", "message": f"City '{city_name}' not found in CITY_TO_STATE map."}
 
         base_dir = os.path.dirname(os.path.abspath(__file__))
-        output_dir = os.path.join(base_dir, 'Combined_sheet_output_speed', state)
+        excel_file_path = os.path.join(base_dir, 'Combined_sheet_output_speed', state, f'{state}_{year}.xlsx')
 
-        # Check for ABM files first (prioritize ABM over MFD for Atlanta)
-        abm_direct_file = os.path.join(output_dir, f'{state}_{year}_ABM.xlsx')
-        abm_interpolated_file = os.path.join(output_dir, f'{state}_{year}_ABM_interpolated.xlsx')
-        mfd_file = os.path.join(output_dir, f'{state}_{year}.xlsx')
-
-        # Determine which file to use (ABM > MFD)
-        if os.path.exists(abm_direct_file):
-            excel_file_path = abm_direct_file
-            data_source = "ABM Direct"
-        elif os.path.exists(abm_interpolated_file):
-            excel_file_path = abm_interpolated_file
-            data_source = "ABM Interpolated"
-        elif os.path.exists(mfd_file):
-            excel_file_path = mfd_file
-            data_source = "MFD"
-        else:
-            raise FileNotFoundError(f"No data file found. Run processing first. Checked: {abm_direct_file}, {mfd_file}")
-
-        print(f"[PLOT] Using {data_source} data from: {excel_file_path}")
+        if not os.path.exists(excel_file_path):
+            raise FileNotFoundError(f"Data file not found. Run processing first: {excel_file_path}")
 
         # --- Logic from your notebook starts here ---
         tract_ids = []
@@ -71,9 +54,7 @@ def generate_plot_image(city_name, year):
         colormap = plt.get_cmap('tab20')
         colors = [colormap(i) for i in np.linspace(0, 1, len(tract_ids))]
         fig, ax1 = plt.subplots(figsize=(15, 5))
-        # Include data source in title for transparency
-        title_suffix = f" [{data_source}]" if data_source != "MFD" else ""
-        plt.title(f'Year {year} - {city_name} ({state}){title_suffix}', fontname='Sans Serif', fontsize=19, pad=18)
+        plt.title(f'Year {year} - {city_name} ({state})', fontname='Sans Serif', fontsize=19, pad=18)
         for idx, (time, traffic_volume, speed, tract_id) in enumerate(all_data):
             x = np.arange(len(time))
             # Handle potential NaNs in speed/volume data before interpolation

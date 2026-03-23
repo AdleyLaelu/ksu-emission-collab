@@ -6,20 +6,6 @@ from scipy.interpolate import interp1d  # <-- FIX: Added this import
 import warnings
 from run import CITY_TO_STATE # Import the city mapping from your run.py
 
-# Import ABM data loader for hybrid mode
-try:
-    from abm_data_loader import (
-        is_abm_available,
-        process_abm_data_for_emissions,
-        load_interpolated_data,
-        get_atlanta_tract_ids,
-        AVAILABLE_YEARS as ABM_AVAILABLE_YEARS
-    )
-    ABM_AVAILABLE = True
-except ImportError:
-    ABM_AVAILABLE = False
-    print("[WARNING] ABM data loader not available. Hybrid mode disabled.")
-
 # --- State-Specific Configurations ---
 # We move the hardcoded GA logic here and add the new CA logic
 STATE_CONFIGS = {
@@ -196,14 +182,7 @@ def run_traffic_analysis(params_file_obj, city_name, year):
         # Fix: Use the actual Greek letter lambda for renaming
         parameters_df = parameters_df.rename(columns={
             'λ': 'lam', 'v_f': 'vf', 'Q_m': 'Qm', 'k_j': 'kj', 'w': 'w'
-        })
-        # Zero-pad Tract ID to 11 digits to preserve leading zeros (e.g., CA tracts start with 0)
-        # This handles both string "6037206020" and int 6037206020 from CSV
-        parameters_df['Tract ID'] = parameters_df['Tract ID'].apply(
-            lambda x: str(int(float(x))).zfill(11)
-        )
-        parameters_df = parameters_df.set_index('Tract ID')
-        print(f"[DEBUG] Parameters tract IDs: {list(parameters_df.index[:5])}")
+        }).set_index('Tract ID')
 
         required_parameters = ['lam', 'vf', 'Qm', 'kj', 'w']
 
@@ -218,26 +197,22 @@ def run_traffic_analysis(params_file_obj, city_name, year):
         sheet_names = excel_file.sheet_names
         processed_sheets = {}
 
-        print(f"[DEBUG] Config tract IDs: {tract_ids_to_process[:3]}...")
-        print(f"[DEBUG] Sheet names: {sheet_names[:3]}...")
-
         for sheet_name in sheet_names:
             if 'tract=' in sheet_name:
                 tract_id = sheet_name.split('tract=')[1]
             else:
                 tract_id = sheet_name
             
-            # Check if the tract is in our list AND has parameters (keep as string for leading zeros)
-            if tract_id in tract_ids_to_process and tract_id in parameters_df.index:
+            # Check if the tract is in our list AND has parameters
+            if tract_id in tract_ids_to_process and int(tract_id) in parameters_df.index:
                 print(f"Processing tract: {tract_id}")
                 
-                tract_parameters = parameters_df.loc[tract_id][required_parameters].to_dict()
+                tract_parameters = parameters_df.loc[int(tract_id)][required_parameters].to_dict()
                 Qm = tract_parameters["Qm"]
 
                 traffic_volume_data = pd.read_excel(input_excel_file, sheet_name=sheet_name)
                 traffic_volume_data['Adjusted Traffic Volume'] = traffic_volume_data['Traffic Volume'].copy()
-                # Make writable copy to avoid "assignment destination is read-only" error
-                traffic_volume = traffic_volume_data['Adjusted Traffic Volume'].values.copy()
+                traffic_volume = traffic_volume_data['Adjusted Traffic Volume'].values
 
                 # 5. Get dynamic threshold from config
                 threshold = state_thresholds.get(tract_id, state_thresholds['default'])
@@ -291,11 +266,9 @@ def run_traffic_analysis(params_file_obj, city_name, year):
                         calculated_speed.append(speed)
                         prev_speed, prev_q, prev_k = speed, q, k
                 
-                # Write back modified traffic volume and calculated values
-                traffic_volume_data['Adjusted Traffic Volume'] = traffic_volume
                 traffic_volume_data['Density'] = calculated_density
                 traffic_volume_data['Speed'] = calculated_speed
-
+                
                 processed_sheets[sheet_name] = traffic_volume_data
                 print(f"Completed tract: {tract_id} (Sheet: {sheet_name})")
 
@@ -314,127 +287,3 @@ def run_traffic_analysis(params_file_obj, city_name, year):
     except Exception as e:
         print(f"An error occurred: {e}")
         return {"status": "error", "message": str(e)}
-
-
-# --- Hybrid Mode Functions ---
-
-def run_traffic_analysis_hybrid(params_file_obj, city_name, year, prefer_abm=True):
-    """
-    Run traffic analysis using ABM data if available, otherwise fall back to MFD.
-
-    Args:
-        params_file_obj: The uploaded parameters file object (required for MFD fallback)
-        city_name: The city name (e.g., "Atlanta")
-        year: The year as a string or int
-        prefer_abm: If True, prefer ABM when available; if False, always use MFD
-
-    Returns:
-        Dict with status, message, method_used, and output_file
-    """
-    year_int = int(year)
-
-    # Check if ABM is available and preferred
-    if ABM_AVAILABLE and prefer_abm:
-        if is_abm_available(city_name, year_int):
-            print(f"[HYBRID] Using ABM data for {city_name} ({year})")
-            return _run_abm_analysis(city_name, year_int)
-        elif city_name.lower() == 'atlanta' and min(ABM_AVAILABLE_YEARS) <= year_int <= max(ABM_AVAILABLE_YEARS):
-            print(f"[HYBRID] Using interpolated ABM data for {city_name} ({year})")
-            return _run_abm_analysis(city_name, year_int, interpolate=True)
-
-    # Fall back to MFD
-    print(f"[HYBRID] Using MFD analysis for {city_name} ({year})")
-    result = run_traffic_analysis(params_file_obj, city_name, str(year))
-    result["method_used"] = "mfd"
-    return result
-
-
-def _run_abm_analysis(city_name, year, interpolate=False):
-    """
-    Internal function to run ABM-based traffic analysis.
-
-    Args:
-        city_name: City name (only Atlanta supported)
-        year: Year as integer
-        interpolate: If True, interpolate between available years
-
-    Returns:
-        Dict with status, message, method_used, and output_file
-    """
-    try:
-        base_dir = os.path.dirname(os.path.abspath(__file__))
-        output_dir = os.path.join(base_dir, 'Combined_sheet_output_speed', 'GA')
-        os.makedirs(output_dir, exist_ok=True)
-
-        if interpolate:
-            output_file = os.path.join(output_dir, f'GA_{year}_ABM_interpolated.xlsx')
-            tract_ids = get_atlanta_tract_ids()
-            processed_data = {}
-
-            for tract_id in tract_ids:
-                try:
-                    df = load_interpolated_data(year, tract_id)
-                    df['Density'] = np.where(
-                        df['Traffic Speed'] > 0,
-                        df['Traffic Volume'] / df['Traffic Speed'],
-                        np.nan
-                    )
-                    df['Speed'] = df['Traffic Speed']
-                    df['Adjusted Traffic Volume'] = df['Traffic Volume']
-                    processed_data[tract_id] = df
-                except Exception as e:
-                    print(f"Warning: Could not process tract {tract_id}: {e}")
-
-            method_used = "abm_interpolated"
-        else:
-            output_file = os.path.join(output_dir, f'GA_{year}_ABM.xlsx')
-            processed_data = process_abm_data_for_emissions(year)
-            method_used = "abm_direct"
-
-        # Save to Excel
-        with pd.ExcelWriter(output_file, engine='openpyxl') as writer:
-            for tract_id, df in processed_data.items():
-                sheet_name = f'tract={tract_id}'
-                df.to_excel(writer, sheet_name=sheet_name, index=False)
-
-        result_message = f"ABM processing complete! Output saved to: {output_file}. Total tracts: {len(processed_data)}"
-        print(result_message)
-
-        return {
-            "status": "success",
-            "message": result_message,
-            "method_used": method_used,
-            "output_file": output_file,
-            "tracts_processed": len(processed_data)
-        }
-
-    except Exception as e:
-        print(f"ABM analysis error: {e}")
-        return {"status": "error", "message": str(e), "method_used": "abm_failed"}
-
-
-def get_recommended_method(city_name, year):
-    """
-    Get the recommended processing method for a city/year combination.
-
-    Args:
-        city_name: City name
-        year: Year as int
-
-    Returns:
-        Tuple of (recommended_method, reason)
-    """
-    year_int = int(year)
-
-    if not ABM_AVAILABLE:
-        return ("mfd", "ABM loader not available")
-
-    if city_name.lower() == 'atlanta':
-        if year_int in ABM_AVAILABLE_YEARS:
-            return ("abm", f"Direct ABM data available for {year_int}")
-        elif min(ABM_AVAILABLE_YEARS) <= year_int <= max(ABM_AVAILABLE_YEARS):
-            return ("abm_interpolated", f"ABM can be interpolated for {year_int}")
-        else:
-            return ("mfd", f"Year {year_int} outside ABM range (2020-2050)")
-    else:
-        return ("mfd", f"ABM only available for Atlanta, not {city_name}")

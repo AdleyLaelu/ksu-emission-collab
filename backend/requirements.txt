@@ -1,10 +1,8 @@
 flask
 flask-cors
-gunicorn
 torch
 numpy
 scikit-learn
-scipy
 pandas
 openpyxl
 matplotlib
