@@ -329,7 +329,7 @@ function VehiclePenetration({ activeStep }) {
                   <option value="" disabled>Year</option>
                   {classificationState.baseYear &&
                     Array.from(
-                      { length: 5 },
+                      { length: 30 },
                       (_, i) => parseInt(classificationState.baseYear, 10) + i + 1
                     ).map((year) => (
                       <option key={year} value={year}>
@@ -485,12 +485,12 @@ function VehiclePenetration({ activeStep }) {
       </div>
 
       {/* Right panel: only map image if available */}
-      <div className="flex flex-col gap-6">
+      <div className="flex flex-col gap-4 w-64 shrink-0">
         {classificationState.city && cityImages[classificationState.city] && (
           <img
             src={cityImages[classificationState.city]}
             alt={classificationState.city}
-            className="w-full max-h-[300px] md:max-h-[500px] object-contain rounded"
+            className="w-full max-h-[350px] object-contain rounded"
           />
         )}
       </div>

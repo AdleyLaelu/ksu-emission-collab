@@ -129,7 +129,7 @@ export default function InteractiveTractMap({
   return (
     <div
       ref={containerRef}
-      className="w-full max-h-[300px] md:max-h-[500px] rounded"
+      className="w-full max-h-[350px] rounded"
       onMouseLeave={() => onHoverRef.current?.(null)}
     />
   );

@@ -90,6 +90,7 @@ const useAppStore = create((set, get) => ({
     trafficMFTParametersFile: null,
     trafficMFTParametersData: [],
     trafficMFTParametersHeaders: [],
+    abmFile: null,  // uploaded ABM CSV file
     speedTable: [],
   },
   setTrafficVolumeState: (partial) =>
@@ -128,6 +129,9 @@ const useAppStore = create((set, get) => ({
     projectedTrafficVolumeFile: null,
     projectedTrafficVolumeData: [],
     projectedTrafficVolumeHeaders: [],
+    abmProjectedFile: null,
+    // Cache: { [year]: { file, chartData, methodUsed } }
+    yearCache: {},
   },
   setProjectedDemandState: (partial) =>
     set((state) => ({
