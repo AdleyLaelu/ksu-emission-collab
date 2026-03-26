@@ -53,11 +53,15 @@ const EMISSION_LABELS = {
   N2O: "N₂O (lb/MWh)",
 };
 
-// Resolve any CSS color (named or hex) to rgba via a temporary canvas
-const _colorCanvas = document.createElement("canvas");
-_colorCanvas.width = _colorCanvas.height = 1;
-const _colorCtx = _colorCanvas.getContext("2d");
+// Resolve any CSS color (named or hex) to rgba via a temporary canvas.
+// Lazy-initialized to avoid crashing in SSR/test environments where document is undefined.
+let _colorCtx;
 function toRgba(color, alpha) {
+  if (!_colorCtx) {
+    const c = document.createElement("canvas");
+    c.width = c.height = 1;
+    _colorCtx = c.getContext("2d");
+  }
   _colorCtx.clearRect(0, 0, 1, 1);
   _colorCtx.fillStyle = color;
   _colorCtx.fillRect(0, 0, 1, 1);

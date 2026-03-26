@@ -22,4 +22,4 @@ export const chartBgPlugin = {
 };
 
 /** Common font config used across all chart axes. */
-export const CHART_FONT = { size: 14, weight: "540" };
+export const CHART_FONT = { size: 14, weight: "600" };

@@ -2,10 +2,6 @@ import React from "react";
 import useAppStore from "../useAppStore";
 import VehicleStepper from "./VerticalStepper";
 import GridChartR3, { SCENARIO_COLORS } from "./GridChartR3";
-import {
-  getAnalysisImgUrl,
-  buildAnalysisFileName,
-} from "../utils/analysisAssets";
 
 import {
   Card,
@@ -15,8 +11,6 @@ import {
   ListItem,
   Divider,
 } from "@mui/material";
-import Button from "@mui/material/Button";
-import { toast } from "react-toastify";
 
 
 const GridEmissionRates = ({ activeStep, isResults }) => {
@@ -71,78 +65,8 @@ const GridEmissionRates = ({ activeStep, isResults }) => {
   const GridEmissionState = useAppStore((state) => state.GridEmission);
   const setGridEmissionState = useAppStore((state) => state.setGridEmission);
 
-  const onDownload = async () => {
-    const emission = GridEmissionState.EmissionType;
-    const city = classificationState.cityInput;
-
-    const url = getAnalysisImgUrl(emission, city);
-    if (!url) {
-      toast.error("Image not found for selected emission/city");
-      return;
-    }
-
-    const filename = buildAnalysisFileName(emission, city, url);
-
-    // Helper to download SVG as PNG
-    async function downloadAsPng(url, filename) {
-      try {
-        const res = await fetch(url);
-        const svgText = await res.text();
-        const svg = new Blob([svgText], { type: 'image/svg+xml' });
-        const urlObj = URL.createObjectURL(svg);
-        const img = new window.Image();
-        img.onload = function () {
-          let width = img.width;
-          let height = img.height;
-          if ((!width || !height) && svgText) {
-            const matchW = svgText.match(/width=["'](\d+)["']/);
-            const matchH = svgText.match(/height=["'](\d+)["']/);
-            width = matchW ? parseInt(matchW[1]) : 1200;
-            height = matchH ? parseInt(matchH[1]) : 900;
-          }
-          const canvas = document.createElement('canvas');
-          canvas.width = width || 1200;
-          canvas.height = height || 900;
-          const ctx = canvas.getContext('2d');
-          ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-          canvas.toBlob(blob => {
-            const a = document.createElement('a');
-            a.href = URL.createObjectURL(blob);
-            a.download = filename.replace(/\.svg$/i, '.png');
-            document.body.appendChild(a);
-            a.click();
-            a.remove();
-            URL.revokeObjectURL(urlObj);
-          }, 'image/png');
-        };
-        img.onerror = function () {
-          toast.error('Failed to load SVG for PNG conversion.');
-        };
-        img.src = urlObj;
-      } catch (e) {
-        toast.error('Failed to fetch SVG for PNG conversion.');
-      }
-    }
-
-    const downloadImage = async (url, filename) => {
-      if (url.endsWith('.svg')) {
-        await downloadAsPng(url, filename);
-      } else {
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = filename;
-        document.body.appendChild(a);
-        a.click();
-        a.remove();
-      }
-    };
-
-    await downloadImage(url, filename);
-
-    if (typeof useAppStore.getState().addNotification === 'function') {
-      useAppStore.getState().addNotification("Download started");
-    }
-  };
+  // Download handler removed: static image was replaced by live GridChartR3 chart.
+  // TODO: Re-implement download by exporting the Chart.js canvas as PNG if needed.
 
 
   return (
@@ -212,17 +136,7 @@ const GridEmissionRates = ({ activeStep, isResults }) => {
               ))}
             </select>
           </div>
-          <div className="flex flex-col justify-end h-full">
-            <Button
-              variant="contained"
-              onClick={onDownload}
-              disabled={
-                !GridEmissionState.EmissionType || !classificationState.cityInput
-              }
-            >
-              Download
-            </Button>
-          </div>
+          {/* Download button removed: static image no longer exists */}
         </form>
 
         {/* Interactive GridChartR3 (user) + scenario legend + reference image (main) */}
@@ -241,7 +155,7 @@ const GridEmissionRates = ({ activeStep, isResults }) => {
             {SCENARIO_NAMES.map((name, idx) => (
               <div key={name} className="flex items-center gap-1.5 py-0.5">
                 <svg width="22" height="8" style={{ flexShrink: 0 }}>
-                  <line x1="0" y1="4" x2="22" y2="4" stroke={SCENARIO_COLORS[idx]} strokeWidth="1.5" strokeLinecap="round" />
+                  <line x1="0" y1="4" x2="22" y2="4" stroke={SCENARIO_COLORS[idx % SCENARIO_COLORS.length]} strokeWidth="1.5" strokeLinecap="round" />
                 </svg>
                 <span className="text-xs font-bold text-gray-700">{name}</span>
               </div>

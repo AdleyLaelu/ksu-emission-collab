@@ -152,11 +152,7 @@ const FinalResultsPage = ({ resultsSelection, setResultsSelection }) => {
             >
               <option value="">Select Emission Type</option>
               {EMISSION_TYPES.map(e => (
-                <option
-                  key={e.value}
-                  value={e.value}
-                  dangerouslySetInnerHTML={{ __html: e.label }}
-                />
+                <option key={e.value} value={e.value}>{e.label}</option>
               ))}
             </select>
           </div>
@@ -203,6 +199,7 @@ const FinalResultsPage = ({ resultsSelection, setResultsSelection }) => {
             <>
               {fuelType && (
                 <div className="w-full border border-gray-200 rounded-lg bg-white shadow-sm p-3">
+                  <div className="text-xs font-semibold text-gray-500 mb-1">{fuelType} Consumption</div>
                   <div style={{ height: 220 }}>
                     <VehicleChartR1R2 metric={fuelType} cityName={cityName} mode={chartMode} />
                   </div>
@@ -210,6 +207,9 @@ const FinalResultsPage = ({ resultsSelection, setResultsSelection }) => {
               )}
               {emissionType && (
                 <div className="w-full border border-gray-200 rounded-lg bg-white shadow-sm p-3">
+                  <div className="text-xs font-semibold text-gray-500 mb-1">
+                    {emissionType === "CO2" ? "CO\u2082" : emissionType === "NOx" ? "NO\u2093" : emissionType} Emission
+                  </div>
                   <div style={{ height: 220 }}>
                     <VehicleChartR1R2 metric={emissionType} cityName={cityName} mode={chartMode} />
                   </div>
@@ -231,6 +231,7 @@ const FinalResultsPage = ({ resultsSelection, setResultsSelection }) => {
                 { type: "N2O", title: "N\u2082O" },
               ].map((e) => (
                 <div key={e.type} className="p-3 rounded-lg bg-gray-50 border border-gray-200">
+                  <div className="text-xs font-semibold text-gray-500 mb-1">{e.title}</div>
                   <div style={{ height: 220 }}>
                     <GridChartR3 emissionType={e.type} cityName={cityName} showLegend={false} />
                   </div>
