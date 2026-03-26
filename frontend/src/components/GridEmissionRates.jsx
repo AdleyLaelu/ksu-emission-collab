@@ -1,9 +1,5 @@
 import React from "react";
 import useAppStore from "../useAppStore";
-import Atlanta from "../assets/Georgia.svg";
-import LosAngeles from "../assets/California.svg";
-import Seattle from "../assets/Seattle.svg";
-import NewYork from "../assets/NewYork.svg";
 import VehicleStepper from "./VerticalStepper";
 import GridChartR3, { SCENARIO_COLORS } from "./GridChartR3";
 import {
@@ -25,9 +21,7 @@ import { toast } from "react-toastify";
 
 const GridEmissionRates = ({ activeStep, isResults }) => {
   const classificationState = useAppStore((state) => state.classificationState);
-  const trafficState = useAppStore((s) => s.trafficVolumeState);
   const statesList = ["", "Atlanta", "Los Angeles", "Seattle", "NewYork"];
-  const cityImages = { Atlanta, LosAngeles, Seattle, NewYork };
 
   const scenarios = [
     {
@@ -262,10 +256,6 @@ const GridEmissionRates = ({ activeStep, isResults }) => {
         <div className="ml-4 flex items-center gap-4">
           <VehicleStepper activeStep={isResults ? 1 : (typeof activeStep === 'number' ? activeStep : 0)} />
         </div>
-        {classificationState.city && cityImages[classificationState.city] && (
-          <div className="flex flex-row gap-6 items-start">
-          </div>
-        )}
       </div>
     </div>
   );

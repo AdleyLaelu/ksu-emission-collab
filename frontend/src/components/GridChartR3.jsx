@@ -11,6 +11,7 @@ import {
   Legend,
 } from "chart.js";
 import zoomPlugin from "chartjs-plugin-zoom";
+import { CITY_TO_STATE, chartBgPlugin, CHART_FONT } from "../utils/chartConstants";
 
 import GA_CO2 from "../assets/r3data/GA_CO2.json";
 import GA_CH4 from "../assets/r3data/GA_CH4.json";
@@ -34,9 +35,6 @@ const DATA_MAP = {
   WA_CO2, WA_CH4, WA_N2O,
 };
 
-const CITY_TO_STATE = {
-  Atlanta: "GA", "Los Angeles": "CA", LosAngeles: "CA", NewYork: "NY", Seattle: "WA",
-};
 
 const SCENARIO_COLORS = [
   "gold",           // Scenario 1 — Mid-case
@@ -67,17 +65,6 @@ function toRgba(color, alpha) {
   return `rgba(${r},${g},${b},${alpha})`;
 }
 
-const chartBgPlugin = {
-  id: "chartBg",
-  beforeDraw(chart) {
-    const { ctx, chartArea } = chart;
-    if (!chartArea) return;
-    ctx.save();
-    ctx.fillStyle = "#ffffff";
-    ctx.fillRect(chartArea.left, chartArea.top, chartArea.width, chartArea.height);
-    ctx.restore();
-  },
-};
 
 const ZoomToolbar = ({ chartRef }) => (
   <div className="absolute top-2 right-2 z-10 flex bg-white rounded border border-gray-300 shadow-sm overflow-hidden select-none">
@@ -170,7 +157,7 @@ export default function GridChartR3({ emissionType, cityName, showLegend = true 
 
   const datasets = scenarioNames.map((name, idx) => {
     const color = SCENARIO_COLORS[idx % SCENARIO_COLORS.length];
-    let borderColor, borderWidth, pointRadius, pointBorderWidth;
+    let borderColor, borderWidth;
 
     if (selectedIdx === idx) {
       borderColor = color;
@@ -269,7 +256,7 @@ export default function GridChartR3({ emissionType, cityName, showLegend = true 
           drawTicks: false,
         },
         ticks: {
-          font: { size: 14, weight: "540" },
+          font: CHART_FONT,
           color: "#444",
           maxRotation: 0,
           padding: 4,
@@ -283,7 +270,7 @@ export default function GridChartR3({ emissionType, cityName, showLegend = true 
             return month === "01" ? year : "";
           },
         },
-        title: { display: true, text: "Year", font: { size: 14, weight: "540" }, color: "#333", padding: { top: 0, bottom: 0 } },
+        title: { display: true, text: "Year", font: CHART_FONT, color: "#333", padding: { top: 0, bottom: 0 } },
       },
       y: {
         border: { display: true, color: "#444", width: 1 },
@@ -294,10 +281,10 @@ export default function GridChartR3({ emissionType, cityName, showLegend = true 
           drawTicks: false,
         },
         ticks: {
-          font: { size: 14, weight: "540" }, color: "#444", padding: 4,
+          font: CHART_FONT, color: "#444", padding: 4,
           ...(emissionType === "CH4" ? { stepSize: 20 } : { maxTicksLimit: 6 }),
         },
-        title: { display: true, text: yLabel, font: { size: 14, weight: "540" }, color: "#333", padding: { top: 0, bottom: 0 } },
+        title: { display: true, text: yLabel, font: CHART_FONT, color: "#333", padding: { top: 0, bottom: 0 } },
       },
       xTop: {
         position: "top",

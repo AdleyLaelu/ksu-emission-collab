@@ -11,6 +11,7 @@ import {
   Legend,
 } from "chart.js";
 import zoomPlugin from "chartjs-plugin-zoom";
+import { CITY_TO_STATE, chartBgPlugin, CHART_FONT } from "../utils/chartConstants";
 
 import GA_R1 from "../assets/r1r2data/GA_R1.json";
 import GA_R2 from "../assets/r1r2data/GA_R2.json";
@@ -24,10 +25,6 @@ import WA_R2 from "../assets/r1r2data/WA_R2.json";
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend, zoomPlugin);
 
 const DATA_MAP = { GA_R1, GA_R2, CA_R1, CA_R2, NY_R1, NY_R2, WA_R1, WA_R2 };
-
-const CITY_TO_STATE = {
-  Atlanta: "GA", "Los Angeles": "CA", LosAngeles: "CA", NewYork: "NY", Seattle: "WA",
-};
 
 export const TRACT_COLORS = [
   "#1f77b4","#aec7e8","#ff7f0e","#ffbb78","#2ca02c",
@@ -44,18 +41,6 @@ function hexToRgba(hex, alpha) {
   const b = parseInt(hex.slice(5, 7), 16);
   return `rgba(${r},${g},${b},${alpha})`;
 }
-
-const chartBgPlugin = {
-  id: "chartBg",
-  beforeDraw(chart) {
-    const { ctx, chartArea } = chart;
-    if (!chartArea) return;
-    ctx.save();
-    ctx.fillStyle = "#ffffff";
-    ctx.fillRect(chartArea.left, chartArea.top, chartArea.width, chartArea.height);
-    ctx.restore();
-  },
-};
 
 const ZoomToolbar = ({ chartRef }) => {
   const handleReset = () => {
@@ -94,7 +79,8 @@ function niceStepSize(maxVal) {
   return nice * mag;
 }
 
-// Fixed step sizes per mode; others use dynamic calculation
+// Manual step-size overrides where niceStepSize() produces sub-optimal y-axis intervals.
+// Keyed by mode → metric. Metrics not listed here fall through to niceStepSize().
 const STEP_OVERRIDES = {
   R1: { CNG: 0.2, Electricity: 0.01, Gasoline: 75, CO2: 0.75, "PM2.5T": 3 },
   R2: { Gasoline: 1500, "PM2.5T": 75 },
@@ -110,11 +96,9 @@ export default function VehicleChartR1R2({
   const [internalSelectedIdx, setInternalSelectedIdx] = useState(null);
   const internalSelectedIdxRef = useRef(null);
 
-  // Refs so imperative callbacks always see the latest prop values
+  // Ref so imperative callbacks always see the latest prop value
   const selectedTractIdRef = useRef(selectedTractId);
-  const hoveredTractIdRef  = useRef(hoveredTractId);
   useEffect(() => { selectedTractIdRef.current = selectedTractId; }, [selectedTractId]);
-  useEffect(() => { hoveredTractIdRef.current  = hoveredTractId;  }, [hoveredTractId]);
 
   const state    = CITY_TO_STATE[cityName] || CITY_TO_STATE[cityName?.replace(/\s/g, "")] || null;
   const fileKey  = state && mode ? `${state}_${mode}` : null;
@@ -291,8 +275,8 @@ export default function VehicleChartR1R2({
       x: {
         border: { display: true, color: "#444", width: 1 },
         grid: { display: true, color: "rgba(169,169,169,0.15)", lineWidth: 0.8, drawTicks: mode === "R1", tickColor: "#444" },
-        ticks: { maxTicksLimit: mode === "R2" ? 7 : 24, maxRotation: mode === "R1" ? 90 : 0, minRotation: mode === "R1" ? 90 : 0, font: { size: 14, weight: "540" }, color: "#444", padding: mode === "R1" ? 2 : 4 },
-        title: { display: true, text: xLabel, font: { size: 14, weight: "540" }, color: "#333", padding: { top: 8, bottom: 0 } },
+        ticks: { maxTicksLimit: mode === "R2" ? 7 : 24, maxRotation: mode === "R1" ? 90 : 0, minRotation: mode === "R1" ? 90 : 0, font: CHART_FONT, color: "#444", padding: mode === "R1" ? 2 : 4 },
+        title: { display: true, text: xLabel, font: CHART_FONT, color: "#333", padding: { top: 8, bottom: 0 } },
       },
       xTop: {
         position: "top",
@@ -304,10 +288,10 @@ export default function VehicleChartR1R2({
         border: { display: true, color: "#444", width: 1 },
         grid: { display: true, color: "rgba(169,169,169,0.15)", lineWidth: 0.8, drawTicks: false },
         ticks: {
-          font: { size: 14, weight: "540" }, color: "#444", padding: 4,
+          font: CHART_FONT, color: "#444", padding: 4,
           ...(yStepSize ? { stepSize: yStepSize } : { maxTicksLimit: 8 }),
         },
-        title: { display: true, text: unit, font: { size: 14, weight: "540" }, color: "#333", padding: { top: 0, bottom: 0 } },
+        title: { display: true, text: unit, font: CHART_FONT, color: "#333", padding: { top: 0, bottom: 0 } },
       },
       yRight: {
         position: "right",

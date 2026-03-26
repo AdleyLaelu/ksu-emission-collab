@@ -1,7 +1,8 @@
 import useAppStore from "../useAppStore";
 import { useState } from "react";
 import GridChartR3, { SCENARIO_COLORS } from "./GridChartR3";
-import VehicleChartR1R2, { TRACT_COLORS } from "./VehicleChartR1R2";
+import VehicleChartR1R2 from "./VehicleChartR1R2";
+import { CITY_TO_STATE } from "../utils/chartConstants";
 
 const FUEL_TYPES = ["CNG", "Diesel", "Electricity", "Ethanol", "Gasoline"];
 
@@ -16,11 +17,6 @@ import WA_R2 from "../assets/r1r2data/WA_R2.json";
 import GA_CO2 from "../assets/r3data/GA_CO2.json";
 
 const DATA_MAP = { GA_R1, GA_R2, CA_R1, CA_R2, NY_R1, NY_R2, WA_R1, WA_R2 };
-const CITY_TO_STATE = {
-  Atlanta: "GA", "Los Angeles": "CA", LosAngeles: "CA", NewYork: "NY", Seattle: "WA",
-};
-
-const CITY_OPTIONS = ["Atlanta", "Los Angeles", "New York", "Seattle"];
 
 const VEHICLE_TYPES = [
   "Combination Long-haul Truck",
