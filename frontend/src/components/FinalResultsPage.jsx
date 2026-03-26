@@ -1,7 +1,8 @@
 import useAppStore from "../useAppStore";
 import { useState } from "react";
 import GridChartR3, { SCENARIO_COLORS } from "./GridChartR3";
-import VehicleChartR1R2, { TRACT_COLORS } from "./VehicleChartR1R2";
+import VehicleChartR1R2 from "./VehicleChartR1R2";
+import { CITY_TO_STATE } from "../utils/chartConstants";
 
 const FUEL_TYPES = ["CNG", "Diesel", "Electricity", "Ethanol", "Gasoline"];
 
@@ -16,11 +17,6 @@ import WA_R2 from "../assets/r1r2data/WA_R2.json";
 import GA_CO2 from "../assets/r3data/GA_CO2.json";
 
 const DATA_MAP = { GA_R1, GA_R2, CA_R1, CA_R2, NY_R1, NY_R2, WA_R1, WA_R2 };
-const CITY_TO_STATE = {
-  Atlanta: "GA", "Los Angeles": "CA", LosAngeles: "CA", NewYork: "NY", Seattle: "WA",
-};
-
-const CITY_OPTIONS = ["Atlanta", "Los Angeles", "New York", "Seattle"];
 
 const VEHICLE_TYPES = [
   "Combination Long-haul Truck",
@@ -156,11 +152,7 @@ const FinalResultsPage = ({ resultsSelection, setResultsSelection }) => {
             >
               <option value="">Select Emission Type</option>
               {EMISSION_TYPES.map(e => (
-                <option
-                  key={e.value}
-                  value={e.value}
-                  dangerouslySetInnerHTML={{ __html: e.label }}
-                />
+                <option key={e.value} value={e.value}>{e.label}</option>
               ))}
             </select>
           </div>
@@ -215,11 +207,9 @@ const FinalResultsPage = ({ resultsSelection, setResultsSelection }) => {
               )}
               {emissionType && (
                 <div className="w-full border border-gray-200 rounded-lg bg-white shadow-sm p-3">
-                  <div className="text-xs font-semibold text-gray-500 mb-1"
-                    dangerouslySetInnerHTML={{
-                      __html: `${emissionType.replace("CO2","CO<sub>2</sub>").replace("NOx","NO<sub>x</sub>")} Emission`,
-                    }}
-                  />
+                  <div className="text-xs font-semibold text-gray-500 mb-1">
+                    {emissionType === "CO2" ? "CO\u2082" : emissionType === "NOx" ? "NO\u2093" : emissionType} Emission
+                  </div>
                   <div style={{ height: 220 }}>
                     <VehicleChartR1R2 metric={emissionType} cityName={cityName} mode={chartMode} />
                   </div>
@@ -241,7 +231,7 @@ const FinalResultsPage = ({ resultsSelection, setResultsSelection }) => {
                 { type: "N2O", title: "N\u2082O" },
               ].map((e) => (
                 <div key={e.type} className="p-3 rounded-lg bg-gray-50 border border-gray-200">
-                  <div className="text-xs font-semibold text-gray-500 mb-2">{e.title}</div>
+                  <div className="text-xs font-semibold text-gray-500 mb-1">{e.title}</div>
                   <div style={{ height: 220 }}>
                     <GridChartR3 emissionType={e.type} cityName={cityName} showLegend={false} />
                   </div>
@@ -264,31 +254,7 @@ const FinalResultsPage = ({ resultsSelection, setResultsSelection }) => {
 
         {/* Vehicle: info panel + Vehicle Types legend */}
         {showVehicle && (
-          <div className="flex flex-col gap-3 flex-shrink-0 w-60 self-start">
-            {/* Info panel (from main) */}
-            <div
-              style={{
-                padding: 12,
-                border: "1px solid rgba(0,0,0,0.2)",
-                borderRadius: 8,
-                background: "rgba(255,255,255,0.88)",
-                boxShadow: "0 4px 12px rgba(0,0,0,0.08)",
-                fontSize: 12,
-                color: "#555",
-              }}
-            >
-              <div style={{ fontWeight: "bold", marginBottom: 6, fontSize: 13 }}>
-                About the chart
-              </div>
-              <p>Each line represents one <strong>census tract</strong> — a geographic sub-area of the selected city.</p>
-              <p style={{ marginTop: 8 }}>Hover to inspect individual tract values. Scroll to zoom, drag to pan.</p>
-              <p style={{ marginTop: 8, color: "#888" }}>
-                {dailyAnnualSelection === "DAILY"
-                  ? "R1 — Daily emissions by hour of day"
-                  : "R2 — Annual emissions by year (2024\u20132030)"}
-              </p>
-            </div>
-
+          <div className="flex flex-col gap-3 flex-shrink-0 w-60 self-center">
             {/* Vehicle Types legend (user's addition) */}
             <div className="border border-gray-500 rounded-xl bg-white p-3 shadow-md overflow-y-auto">
               <div className="text-sm font-bold text-gray-800 mb-2">Vehicle Types</div>
@@ -297,7 +263,7 @@ const FinalResultsPage = ({ resultsSelection, setResultsSelection }) => {
                   <svg width="28" height="10" style={{ flexShrink: 0 }}>
                     <line x1="0" y1="5" x2="28" y2="5" stroke={VEHICLE_TYPE_COLORS[idx % VEHICLE_TYPE_COLORS.length]} strokeWidth="1.5" strokeLinecap="round" />
                   </svg>
-                  <span className="text-[11px] text-gray-700">{name}</span>
+                  <span className="text-[11px] font-bold text-gray-700">{name}</span>
                 </div>
               ))}
             </div>
@@ -306,14 +272,14 @@ const FinalResultsPage = ({ resultsSelection, setResultsSelection }) => {
 
         {/* Grid legend: scenarios — shared across all 3 charts (user's addition) */}
         {showGrid && SCENARIO_NAMES.length > 0 && (
-          <div className="flex-shrink-0 w-56 border border-gray-500 rounded-xl bg-white p-3 shadow-md self-start">
+          <div className="flex-shrink-0 w-56 border border-gray-500 rounded-xl bg-white p-3 shadow-md self-center">
             <div className="text-sm font-bold text-gray-800 mb-2">Scenarios</div>
             {SCENARIO_NAMES.map((name, idx) => (
               <div key={name} className="flex items-center gap-2 py-0.5">
                 <svg width="28" height="10" style={{ flexShrink: 0 }}>
                   <line x1="0" y1="5" x2="28" y2="5" stroke={SCENARIO_COLORS[idx % SCENARIO_COLORS.length]} strokeWidth="1.5" strokeLinecap="round" />
                 </svg>
-                <span className="text-[11px] text-gray-700">{name}</span>
+                <span className="text-[11px] font-bold text-gray-700">{name}</span>
               </div>
             ))}
           </div>

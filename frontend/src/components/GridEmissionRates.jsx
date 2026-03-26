@@ -1,16 +1,7 @@
-import React, { useState, useEffect } from "react";
+import React from "react";
 import useAppStore from "../useAppStore";
-import Atlanta from "../assets/Georgia.svg";
-import LosAngeles from "../assets/California.svg";
-import Seattle from "../assets/Seattle.svg";
-import NewYork from "../assets/NewYork.svg";
-import gridDataImg from "../assets/griddata1.png";
 import VehicleStepper from "./VerticalStepper";
 import GridChartR3, { SCENARIO_COLORS } from "./GridChartR3";
-import {
-  getAnalysisImgUrl,
-  buildAnalysisFileName,
-} from "../utils/analysisAssets";
 
 import {
   Card,
@@ -20,44 +11,11 @@ import {
   ListItem,
   Divider,
 } from "@mui/material";
-import Button from "@mui/material/Button";
-import { toast } from "react-toastify";
 
-// --- Reusable Zoom Toolbar Component ---
-const ZoomToolbar = ({ onZoomIn, onZoomOut, onReset }) => (
-  <div className="absolute top-4 right-4 z-10 flex bg-white rounded border border-gray-300 shadow-sm overflow-hidden select-none">
-    <button
-      onClick={onZoomIn}
-      className="px-3 py-1 text-blue-600 hover:bg-gray-50 border-r border-gray-200 text-lg font-bold leading-none transition-colors"
-      title="Zoom In"
-      type="button"
-    >
-      +
-    </button>
-    <button
-      onClick={onZoomOut}
-      className="px-3 py-1 text-blue-600 hover:bg-gray-50 border-r border-gray-200 text-lg font-bold leading-none transition-colors"
-      title="Zoom Out"
-      type="button"
-    >
-      -
-    </button>
-    <button
-      onClick={onReset}
-      className="px-3 py-1 text-xs font-semibold text-blue-600 hover:bg-gray-50 uppercase tracking-wide transition-colors"
-      title="Reset Zoom"
-      type="button"
-    >
-      RESET
-    </button>
-  </div>
-);
 
 const GridEmissionRates = ({ activeStep, isResults }) => {
   const classificationState = useAppStore((state) => state.classificationState);
-  const trafficState = useAppStore((s) => s.trafficVolumeState);
   const statesList = ["", "Atlanta", "Los Angeles", "Seattle", "NewYork"];
-  const cityImages = { Atlanta, LosAngeles, Seattle, NewYork };
 
   const scenarios = [
     {
@@ -107,89 +65,9 @@ const GridEmissionRates = ({ activeStep, isResults }) => {
   const GridEmissionState = useAppStore((state) => state.GridEmission);
   const setGridEmissionState = useAppStore((state) => state.setGridEmission);
 
-  const onDownload = async () => {
-    const emission = GridEmissionState.EmissionType;
-    const city = classificationState.cityInput;
+  // Download handler removed: static image was replaced by live GridChartR3 chart.
+  // TODO: Re-implement download by exporting the Chart.js canvas as PNG if needed.
 
-    const url = getAnalysisImgUrl(emission, city);
-    if (!url) {
-      toast.error("Image not found for selected emission/city");
-      return;
-    }
-
-    const filename = buildAnalysisFileName(emission, city, url);
-
-    // Helper to download SVG as PNG
-    async function downloadAsPng(url, filename) {
-      try {
-        const res = await fetch(url);
-        const svgText = await res.text();
-        const svg = new Blob([svgText], { type: 'image/svg+xml' });
-        const urlObj = URL.createObjectURL(svg);
-        const img = new window.Image();
-        img.onload = function () {
-          let width = img.width;
-          let height = img.height;
-          if ((!width || !height) && svgText) {
-            const matchW = svgText.match(/width=["'](\d+)["']/);
-            const matchH = svgText.match(/height=["'](\d+)["']/);
-            width = matchW ? parseInt(matchW[1]) : 1200;
-            height = matchH ? parseInt(matchH[1]) : 900;
-          }
-          const canvas = document.createElement('canvas');
-          canvas.width = width || 1200;
-          canvas.height = height || 900;
-          const ctx = canvas.getContext('2d');
-          ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-          canvas.toBlob(blob => {
-            const a = document.createElement('a');
-            a.href = URL.createObjectURL(blob);
-            a.download = filename.replace(/\.svg$/i, '.png');
-            document.body.appendChild(a);
-            a.click();
-            a.remove();
-            URL.revokeObjectURL(urlObj);
-          }, 'image/png');
-        };
-        img.onerror = function () {
-          toast.error('Failed to load SVG for PNG conversion.');
-        };
-        img.src = urlObj;
-      } catch (e) {
-        toast.error('Failed to fetch SVG for PNG conversion.');
-      }
-    }
-
-    const downloadImage = async (url, filename) => {
-      if (url.endsWith('.svg')) {
-        await downloadAsPng(url, filename);
-      } else {
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = filename;
-        document.body.appendChild(a);
-        a.click();
-        a.remove();
-      }
-    };
-
-    await downloadImage(url, filename);
-
-    if (typeof useAppStore.getState().addNotification === 'function') {
-      useAppStore.getState().addNotification("Download started");
-    }
-  };
-
-  // --- Zoom State for reference image (from main) ---
-  const [imageZoom, setImageZoom] = useState(1);
-  const handleZoomIn = () => setImageZoom((prev) => Math.min(prev + 0.25, 3.5));
-  const handleZoomOut = () => setImageZoom((prev) => Math.max(prev - 0.25, 1));
-  const handleResetZoom = () => setImageZoom(1);
-
-  // Reset zoom when emission type or city changes (from main)
-  useEffect(() => {
-    setImageZoom(1);
-  }, [GridEmissionState.EmissionType, classificationState.cityInput]);
 
   return (
     <div className="flex flex-row items-stretch gap-6 pl-6 pt-4">
@@ -258,23 +136,13 @@ const GridEmissionRates = ({ activeStep, isResults }) => {
               ))}
             </select>
           </div>
-          <div className="flex flex-col justify-end h-full">
-            <Button
-              variant="contained"
-              onClick={onDownload}
-              disabled={
-                !GridEmissionState.EmissionType || !classificationState.cityInput
-              }
-            >
-              Download
-            </Button>
-          </div>
+          {/* Download button removed: static image no longer exists */}
         </form>
 
         {/* Interactive GridChartR3 (user) + scenario legend + reference image (main) */}
-        <div className="flex flex-row items-start gap-8 w-full">
+        <div className="flex flex-row items-center gap-8 w-full">
           {/* Live chart (user's addition — replaces static image) */}
-          <div className="flex-1 max-w-3xl">
+          <div className="flex-1 max-w-3xl border border-gray-200 rounded-lg bg-white shadow-sm p-3">
             <GridChartR3
               emissionType={GridEmissionState.EmissionType}
               cityName={classificationState.cityInput}
@@ -283,38 +151,17 @@ const GridEmissionRates = ({ activeStep, isResults }) => {
           </div>
 
           {/* Scenario legend with color swatches (user's addition) */}
-          <div className="flex-shrink-0 border border-gray-500 rounded-xl bg-white p-3 shadow-md">
+          <div className="flex-shrink-0 border border-gray-500 rounded-xl bg-white p-2 shadow-md">
             {SCENARIO_NAMES.map((name, idx) => (
-              <div key={name} className="flex items-center gap-2 py-0.5">
-                <svg width="28" height="10" style={{ flexShrink: 0 }}>
-                  <line x1="0" y1="5" x2="28" y2="5" stroke={SCENARIO_COLORS[idx]} strokeWidth="1.5" strokeLinecap="round" />
+              <div key={name} className="flex items-center gap-1.5 py-0.5">
+                <svg width="22" height="8" style={{ flexShrink: 0 }}>
+                  <line x1="0" y1="4" x2="22" y2="4" stroke={SCENARIO_COLORS[idx % SCENARIO_COLORS.length]} strokeWidth="1.5" strokeLinecap="round" />
                 </svg>
-                <span className="text-sm text-gray-700">{name}</span>
+                <span className="text-xs font-bold text-gray-700">{name}</span>
               </div>
             ))}
           </div>
 
-          {/* Reference image (from main) */}
-          <div className="flex-shrink-0 relative">
-            <div className="border border-gray-100 rounded overflow-hidden" style={{ maxHeight: '320px', overflow: 'auto' }}>
-              <img
-                src={gridDataImg}
-                alt="Grid Data Reference"
-                className="object-contain rounded transition-all duration-200 ease-out origin-top-left"
-                style={{
-                  width: `${imageZoom * 100}%`,
-                  height: 'auto',
-                  maxWidth: 'none',
-                  minHeight: '280px',
-                }}
-              />
-            </div>
-            <ZoomToolbar
-              onZoomIn={handleZoomIn}
-              onZoomOut={handleZoomOut}
-              onReset={handleResetZoom}
-            />
-          </div>
         </div>
 
       </div>
@@ -323,10 +170,6 @@ const GridEmissionRates = ({ activeStep, isResults }) => {
         <div className="ml-4 flex items-center gap-4">
           <VehicleStepper activeStep={isResults ? 1 : (typeof activeStep === 'number' ? activeStep : 0)} />
         </div>
-        {classificationState.city && cityImages[classificationState.city] && (
-          <div className="flex flex-row gap-6 items-start">
-          </div>
-        )}
       </div>
     </div>
   );
