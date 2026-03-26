@@ -10,7 +10,7 @@ import "handsontable/styles/handsontable.css";
 import "handsontable/styles/ht-theme-main.css";
 import "handsontable/styles/ht-theme-horizon.css";
 import TractParametersTable from "./TractParametersTable";
-import { toast } from "react-toastify";
+import { notify } from "../utils/notify";
 import TrafficChart, { TAB20 } from "./TrafficChart";
 import InteractiveTractMap from "./InteractiveTractMap";
 
@@ -176,7 +176,7 @@ function ProjectedDemand() {
     setShowTable(true);
 
     try {
-      toast.info("Processing ABM data for projected year...", { autoClose: 2000 });
+      notify("Processing ABM data for projected year...");
       const formData = new FormData();
       formData.append("file", file);
       formData.append("city_name", mappedCity);
@@ -192,7 +192,7 @@ function ProjectedDemand() {
       }
       const abmData = await abmRes.json();
       setMethodUsed("ABM Upload");
-      toast.success(`Processed ${abmData.tracts_processed} tracts`, { autoClose: 2000 });
+      notify(`Processed ${abmData.tracts_processed} tracts`);
 
       const dataUrl = `${API_URL}/plot/traffic/data/${encodeURIComponent(mappedCity)}/${encodeURIComponent(selectedYear)}?source=abm`;
       const dataRes = await fetch(dataUrl);
@@ -205,7 +205,7 @@ function ProjectedDemand() {
       saveToCache(selectedYear, file, chartJson, "ABM Upload");
     } catch (err) {
       console.error("ABM projected upload error:", err);
-      toast.error(err.message || "Failed to process ABM data");
+      notify(err.message || "Failed to process ABM data");
       setTrafficChartData(null);
     } finally {
       setIsLoading(false);

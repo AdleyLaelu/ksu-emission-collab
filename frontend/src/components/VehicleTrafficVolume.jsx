@@ -9,7 +9,7 @@ import "handsontable/styles/handsontable.css";
 import "handsontable/styles/ht-theme-main.css";
 import "handsontable/styles/ht-theme-horizon.css";
 import TractParametersTable from "./TractParametersTable";
-import { toast } from "react-toastify";
+import { notify } from "../utils/notify";
 import TrafficChart, { TAB20 } from "./TrafficChart";
 import InteractiveTractMap from "./InteractiveTractMap";
 
@@ -110,7 +110,7 @@ function VehicleTrafficVolume() {
     // Auto-process after upload
     (async () => {
       try {
-        toast.info("Processing uploaded ABM data...", { autoClose: 2000 });
+        notify("Processing uploaded ABM data...");
         const formData = new FormData();
         formData.append("file", file);
         formData.append("city_name", city);
@@ -125,7 +125,7 @@ function VehicleTrafficVolume() {
           throw new Error(errData.message || errData.error || "ABM processing failed");
         }
         const abmData = await abmRes.json();
-        toast.success(`Processed ${abmData.tracts_processed} tracts`, { autoClose: 3000 });
+        notify(`Processed ${abmData.tracts_processed} tracts`);
 
         const url = `${API_URL}/plot/traffic/data/${encodeURIComponent(city)}/${encodeURIComponent(year)}?source=abm`;
         const res = await fetch(url);
@@ -138,7 +138,7 @@ function VehicleTrafficVolume() {
       } catch (err) {
         console.error("ABM upload error:", err);
         setTrafficState({ trafficChartData: null });
-        toast.error(err.message || "Failed to process ABM data");
+        notify(err.message || "Failed to process ABM data");
       }
     })();
   };
@@ -175,7 +175,7 @@ function VehicleTrafficVolume() {
           formData.append("year", year);
           formData.append("parameters_file", file);
 
-          toast.info("Processing MFD traffic data...", { autoClose: 2000 });
+          notify("Processing MFD traffic data...");
           const processRes = await fetch(`${API_URL}/process/traffic`, { method: "POST", body: formData });
           if (!processRes.ok) {
             const errBody = await processRes.json().catch(() => ({}));
@@ -195,13 +195,13 @@ function VehicleTrafficVolume() {
             methodUsed: "MFD",
             trafficChartData: chartJson,
           });
-          toast.success("MFD processing complete", { autoClose: 2000 });
+          notify("MFD processing complete");
         } catch (err) {
           console.error("MFD processing failed", err);
           const msg = err.message === "Failed to fetch"
             ? "Cannot reach backend server. Is it running on port 5003?"
             : err.message;
-          toast.error("MFD processing failed: " + msg);
+          notify("MFD processing failed: " + msg);
         }
       }
     };
@@ -492,7 +492,7 @@ VehicleTrafficVolume.handleNext = function (classificationState, trafficState) {
     const mftParametersFile = trafficState.trafficMFTParametersFile || null;
 
     if (!trafficVolumeFile || !mftParametersFile) {
-      toast.error("Please upload both Traffic Volume and MFD Parameters files");
+      notify("Please upload both Traffic Volume and MFD Parameters files");
       return;
     }
 
@@ -512,10 +512,10 @@ VehicleTrafficVolume.handleNext = function (classificationState, trafficState) {
       }
       const data = await res.json();
       if (data.transaction_id) localStorage.setItem("transaction_id", data.transaction_id);
-      toast.success("Traffic data uploaded successfully!");
+      notify("Traffic data uploaded successfully!");
     } catch (err) {
       console.error("Upload error:", err);
-      toast.error("Upload failed: " + err.message);
+      notify("Upload failed: " + err.message);
     }
   })();
 };
