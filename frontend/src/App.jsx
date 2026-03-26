@@ -1,6 +1,8 @@
 import { BrowserRouter, Routes, Route } from "react-router-dom";
-import { ToastContainer } from "react-toastify";
-import "react-toastify/dist/ReactToastify.css";
+// NOTE: Toaster hidden per lab request. All notifications go to the inbox dropdown.
+// To restore, uncomment the ToastContainer below and its imports.
+// import { ToastContainer } from "react-toastify";
+// import "react-toastify/dist/ReactToastify.css";
 import { useEffect } from "react";
 // import SignIn from "./components/SignIn";
 // import SignUp from "./components/SignUp";
@@ -69,7 +71,7 @@ const App = () => {
         >
           <Footer />
         </div>
-        <ToastContainer />
+        {/* <ToastContainer /> — hidden per lab request, notifications go to inbox dropdown */}
       </div>
     </BrowserRouter>
   );

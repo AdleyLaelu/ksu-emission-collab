@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { CITY_TO_MODELS, type City } from '../cityModel';
 import { sendCitySelection } from '../api/prediction';
-import { toast } from 'react-toastify';
+import { notify } from '../utils/notify';
 
 export default function CitySelect() {
   const [selectedCity, setSelectedCity] = useState<City | null>(null);
@@ -45,14 +45,14 @@ export default function CitySelect() {
 
     setLoading(true);
     setError(null);
-    toast.info("Sending prediction request...");
+    notify("Sending prediction request...");
     try {
       const data = await sendCitySelection(selectedCity, models, extraFeatures);
       setResp(data);
-      toast.success("Prediction completed successfully!");
+      notify("Prediction completed successfully!");
     } catch (e: any) {
       setError(e?.message || 'Request failed');
-      toast.error(e?.message || 'Request failed');
+      notify(e?.message || 'Request failed');
     } finally {
       setLoading(false);
     }

@@ -3,7 +3,7 @@ import React, { useState } from "react";
 import InputStepper from "./InputStepper";
 import AnalysisStepper from "./AnalysisStepper";
 import useAppStore from '../useAppStore';
-import { toast } from "react-toastify";
+import { notify } from "../utils/notify";
 import FinalResultsPage from "./FinalResultsPage";
 
 // Mode is now read from useAppStore.trafficMode
@@ -57,15 +57,15 @@ export default function ArrowStepper() {
 
   const handleNext = () => {
     if (activeStep === 0 && !inputDataComplete) {
-      toast.error('Please upload all required Input Data CSV files before proceeding to Analysis.');
+      notify('Please upload all required Input Data CSV files before proceeding to Analysis.');
       return;
     }
     if (activeStep === 1 && !analysisDataComplete) {
-      toast.error('Please complete all Analysis selections before proceeding to Results.');
+      notify('Please complete all Analysis selections before proceeding to Results.');
       return;
     }
     if (activeStep === 2 && (!resultsSelection || (resultsSelection !== 'VEHICLE' && resultsSelection !== 'GRID'))) {
-      toast.error('Please select either Vehicle or Grid before proceeding.');
+      notify('Please select either Vehicle or Grid before proceeding.');
       return;
     }
     setActiveStep((s) => (s < steps.length - 1 ? s + 1 : s));
