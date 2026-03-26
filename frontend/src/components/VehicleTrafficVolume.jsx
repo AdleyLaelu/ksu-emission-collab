@@ -177,24 +177,31 @@ function VehicleTrafficVolume() {
 
           toast.info("Processing MFD traffic data...", { autoClose: 2000 });
           const processRes = await fetch(`${API_URL}/process/traffic`, { method: "POST", body: formData });
-          if (processRes.ok) {
-            // Fetch chart data
-            const chartUrl = `${API_URL}/plot/traffic/data/${encodeURIComponent(city)}/${encodeURIComponent(year)}?source=mfd`;
-            const chartRes = await fetch(chartUrl);
-            if (chartRes.ok) {
-              const chartJson = await chartRes.json();
-              setTrafficState({
-                showResults: true,
-                speedEstimated: true,
-                methodUsed: "MFD",
-                trafficChartData: chartJson,
-              });
-              toast.success("MFD processing complete", { autoClose: 2000 });
-            }
+          if (!processRes.ok) {
+            const errBody = await processRes.json().catch(() => ({}));
+            throw new Error(errBody.message || `Server returned ${processRes.status}`);
           }
+          // Fetch chart data
+          const chartUrl = `${API_URL}/plot/traffic/data/${encodeURIComponent(city)}/${encodeURIComponent(year)}?source=mfd`;
+          const chartRes = await fetch(chartUrl);
+          if (!chartRes.ok) {
+            const errBody = await chartRes.json().catch(() => ({}));
+            throw new Error(errBody.message || `Chart data fetch failed (${chartRes.status})`);
+          }
+          const chartJson = await chartRes.json();
+          setTrafficState({
+            showResults: true,
+            speedEstimated: true,
+            methodUsed: "MFD",
+            trafficChartData: chartJson,
+          });
+          toast.success("MFD processing complete", { autoClose: 2000 });
         } catch (err) {
           console.error("MFD processing failed", err);
-          toast.error("MFD processing failed: " + err.message);
+          const msg = err.message === "Failed to fetch"
+            ? "Cannot reach backend server. Is it running on port 5003?"
+            : err.message;
+          toast.error("MFD processing failed: " + msg);
         }
       }
     };
