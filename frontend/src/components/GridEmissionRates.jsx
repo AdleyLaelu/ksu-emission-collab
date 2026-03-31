@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import useAppStore from "../useAppStore";
 import VehicleStepper from "./VerticalStepper";
 import GridChartR3, { SCENARIO_COLORS } from "./GridChartR3";
@@ -14,6 +14,7 @@ import {
 
 
 const GridEmissionRates = ({ activeStep, isResults }) => {
+  const [selectedScenarioIdx, setSelectedScenarioIdx] = useState(null);
   const classificationState = useAppStore((state) => state.classificationState);
   const statesList = ["", "Atlanta", "Los Angeles", "Seattle", "NewYork"];
 
@@ -142,24 +143,36 @@ const GridEmissionRates = ({ activeStep, isResults }) => {
         {/* Interactive GridChartR3 (user) + scenario legend + reference image (main) */}
         <div className="flex flex-row items-center gap-8 w-full">
           {/* Live chart (user's addition — replaces static image) */}
-          <div className="flex-1 max-w-3xl border border-gray-200 rounded-lg bg-white shadow-sm p-3">
+          <div className="flex-1 max-w-3xl rounded-lg bg-white shadow-sm p-3">
             <GridChartR3
               emissionType={GridEmissionState.EmissionType}
               cityName={classificationState.cityInput}
               showLegend={false}
+              controlledIdx={selectedScenarioIdx}
+              onSelect={setSelectedScenarioIdx}
             />
           </div>
 
           {/* Scenario legend with color swatches (user's addition) */}
           <div className="flex-shrink-0 border border-gray-500 rounded-xl bg-white p-2 shadow-md">
-            {SCENARIO_NAMES.map((name, idx) => (
-              <div key={name} className="flex items-center gap-1.5 py-0.5">
-                <svg width="22" height="8" style={{ flexShrink: 0 }}>
-                  <line x1="0" y1="4" x2="22" y2="4" stroke={SCENARIO_COLORS[idx % SCENARIO_COLORS.length]} strokeWidth="1.5" strokeLinecap="round" />
-                </svg>
-                <span className="text-xs font-bold text-gray-700">{name}</span>
-              </div>
-            ))}
+            {selectedScenarioIdx !== null && (
+              <button type="button" onClick={() => setSelectedScenarioIdx(null)} className="text-[9px] text-blue-500 hover:text-blue-700 font-semibold mb-1">Clear</button>
+            )}
+            {SCENARIO_NAMES.map((name, idx) => {
+              const isSelected = selectedScenarioIdx === idx;
+              const isFaded = selectedScenarioIdx !== null && !isSelected;
+              return (
+                <button key={name} type="button"
+                  onClick={() => setSelectedScenarioIdx(selectedScenarioIdx === idx ? null : idx)}
+                  className="flex items-center gap-1.5 py-0.5 w-full hover:opacity-80 transition-opacity"
+                  style={{ opacity: isFaded ? 0.28 : 1 }}>
+                  <svg width="22" height="8" style={{ flexShrink: 0 }}>
+                    <line x1="0" y1="4" x2="22" y2="4" stroke={SCENARIO_COLORS[idx % SCENARIO_COLORS.length]} strokeWidth={isSelected ? 2.5 : 1.5} strokeLinecap="round" />
+                  </svg>
+                  <span className={`text-xs text-left ${isSelected ? "font-bold text-gray-900" : "font-bold text-gray-700"}`}>{name}</span>
+                </button>
+              );
+            })}
           </div>
 
         </div>

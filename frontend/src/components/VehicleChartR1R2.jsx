@@ -11,7 +11,7 @@ import {
   Legend,
 } from "chart.js";
 import zoomPlugin from "chartjs-plugin-zoom";
-import { CITY_TO_STATE, chartBgPlugin, CHART_FONT } from "../utils/chartConstants";
+import { CITY_TO_STATE, chartBgPlugin, CHART_FONT, subGridPlugin } from "../utils/chartConstants";
 
 import GA_R1 from "../assets/r1r2data/GA_R1.json";
 import GA_R2 from "../assets/r1r2data/GA_R2.json";
@@ -91,7 +91,10 @@ export default function VehicleChartR1R2({
   selectedTractId = null,   // locked selection — from parent
   hoveredTractId = null,    // temporary hover — from parent (map swatches)
   onTractSelect = () => {}, // (tractId | null) => void
+  controlledIdx = undefined,  // external index-based selection from legend
+  onSelectIdx,                // (idx | null) => void
 }) {
+  const isControlled = controlledIdx !== undefined;
   const chartRef = useRef(null);
   const [internalSelectedIdx, setInternalSelectedIdx] = useState(null);
   const internalSelectedIdxRef = useRef(null);
@@ -99,6 +102,9 @@ export default function VehicleChartR1R2({
   // Ref so imperative callbacks always see the latest prop value
   const selectedTractIdRef = useRef(selectedTractId);
   useEffect(() => { selectedTractIdRef.current = selectedTractId; }, [selectedTractId]);
+
+  const controlledIdxRef = useRef(controlledIdx);
+  useEffect(() => { controlledIdxRef.current = controlledIdx; }, [controlledIdx]);
 
   const state    = CITY_TO_STATE[cityName] || CITY_TO_STATE[cityName?.replace(/\s/g, "")] || null;
   const fileKey  = state && mode ? `${state}_${mode}` : null;
@@ -122,16 +128,17 @@ export default function VehicleChartR1R2({
     return vals.length ? vals.reduce((s, v) => s + v, 0) / vals.length : null;
   });
 
-  // Resolve which tract index is "active" (internal > external locked > hovered)
+  // Resolve which tract index is "active" (controlled > internal > external locked > hovered)
   const extActiveTractId = selectedTractId || hoveredTractId;
   const extActiveIdx     = extActiveTractId ? tractIds.indexOf(extActiveTractId) : -1;
-  const activeIdx        = internalSelectedIdx !== null ? internalSelectedIdx : extActiveIdx;
-  const isLocked         = internalSelectedIdx !== null || selectedTractId !== null;
+  const activeIdx        = isControlled ? (controlledIdx !== null ? controlledIdx : -1)
+                         : internalSelectedIdx !== null ? internalSelectedIdx : extActiveIdx;
+  const isLocked         = isControlled ? controlledIdx !== null : internalSelectedIdx !== null || selectedTractId !== null;
 
   // ── Imperative helpers (chart-line hover only) ────────────────────────────
 
   const applyChartHover = (chart, hoverIdx) => {
-    if (internalSelectedIdxRef.current !== null) return;
+    if (isControlled ? controlledIdxRef.current !== null : internalSelectedIdxRef.current !== null) return;
     chart.data.datasets.forEach((ds, i) => {
       if (ds._isAvg) return;
       const base = ds._baseColor;
@@ -148,7 +155,7 @@ export default function VehicleChartR1R2({
   };
 
   const clearChartHover = (chart) => {
-    const sel = internalSelectedIdxRef.current;
+    const sel = isControlled ? controlledIdxRef.current : internalSelectedIdxRef.current;
     chart.data.datasets.forEach((ds, i) => {
       if (ds._isAvg) return;
       const base = ds._baseColor;
@@ -240,16 +247,24 @@ export default function VehicleChartR1R2({
         const dsIdx = activeElements[0].datasetIndex;
         const ds = datasets[dsIdx];
         if (!ds?._isAvg) {
-          const newIdx = internalSelectedIdxRef.current === dsIdx ? null : dsIdx;
-          internalSelectedIdxRef.current = newIdx;
-          setInternalSelectedIdx(newIdx);
-          const tractId = tractIds[dsIdx];
-          onTractSelect(selectedTractIdRef.current === tractId ? null : tractId);
+          if (isControlled) {
+            onSelectIdx?.(controlledIdx === dsIdx ? null : dsIdx);
+          } else {
+            const newIdx = internalSelectedIdxRef.current === dsIdx ? null : dsIdx;
+            internalSelectedIdxRef.current = newIdx;
+            setInternalSelectedIdx(newIdx);
+            const tractId = tractIds[dsIdx];
+            onTractSelect(selectedTractIdRef.current === tractId ? null : tractId);
+          }
         }
       } else {
-        internalSelectedIdxRef.current = null;
-        setInternalSelectedIdx(null);
-        onTractSelect(null);
+        if (isControlled) {
+          onSelectIdx?.(null);
+        } else {
+          internalSelectedIdxRef.current = null;
+          setInternalSelectedIdx(null);
+          onTractSelect(null);
+        }
       }
     },
 
@@ -262,7 +277,7 @@ export default function VehicleChartR1R2({
         callbacks: {
           title: (items) => items[0]?.label || "",
           label: (item) => ` ${item.dataset.label}: ${item.parsed.y?.toFixed(4)} ${unit}`,
-          labelColor: (item) => ({ borderColor: item.dataset._baseColor || "#1a1a1a", backgroundColor: "#ffffff" }),
+          labelColor: (item) => ({ borderColor: item.dataset._baseColor || "#1a1a1a", backgroundColor: item.dataset._baseColor || "#1a1a1a" }),
           labelTextColor: () => "#222",
         },
       },
@@ -275,8 +290,8 @@ export default function VehicleChartR1R2({
       x: {
         border: { display: true, color: "#444", width: 1 },
         grid: { display: true, color: "rgba(169,169,169,0.15)", lineWidth: 0.8, drawTicks: mode === "R1", tickColor: "#444" },
-        ticks: { maxTicksLimit: mode === "R2" ? 7 : 24, maxRotation: mode === "R1" ? 90 : 0, minRotation: mode === "R1" ? 90 : 0, font: CHART_FONT, color: "#444", padding: mode === "R1" ? 2 : 4 },
-        title: { display: true, text: xLabel, font: CHART_FONT, color: "#333", padding: { top: 8, bottom: 0 } },
+        ticks: { maxTicksLimit: mode === "R2" ? 7 : 24, maxRotation: mode === "R1" ? 90 : 0, minRotation: mode === "R1" ? 90 : 0, font: CHART_FONT, color: "#222", padding: mode === "R1" ? 2 : 4 },
+        title: { display: true, text: xLabel, font: CHART_FONT, color: "#222", padding: { top: 8, bottom: 0 } },
       },
       xTop: {
         position: "top",
@@ -288,10 +303,10 @@ export default function VehicleChartR1R2({
         border: { display: true, color: "#444", width: 1 },
         grid: { display: true, color: "rgba(169,169,169,0.15)", lineWidth: 0.8, drawTicks: false },
         ticks: {
-          font: CHART_FONT, color: "#444", padding: 4,
+          font: CHART_FONT, color: "#222", padding: 4,
           ...(yStepSize ? { stepSize: yStepSize } : { maxTicksLimit: 8 }),
         },
-        title: { display: true, text: unit, font: CHART_FONT, color: "#333", padding: { top: 0, bottom: 0 } },
+        title: { display: true, text: unit, font: CHART_FONT, color: "#222", padding: { top: 0, bottom: 0 } },
       },
       yRight: {
         position: "right",
@@ -306,7 +321,36 @@ export default function VehicleChartR1R2({
     <div className="w-full h-full flex flex-col">
       {/* Chart — fills all remaining height */}
       <div className="relative w-full flex-1 min-h-0 bg-white">
-        <Line ref={chartRef} data={{ labels, datasets }} options={options} plugins={[chartBgPlugin]} />
+        <Line ref={chartRef} data={{ labels, datasets }} options={options} plugins={[chartBgPlugin, mode === "R2" ? {
+          id: "r2SubGrid",
+          afterDraw(chart) {
+            const { ctx, chartArea, scales: { x, y } } = chart;
+            if (!chartArea) return;
+            ctx.save();
+            ctx.strokeStyle = "rgba(169,169,169,0.15)";
+            ctx.lineWidth = 0.8;
+            if (y && y.ticks.length >= 2) {
+              for (let i = 0; i < y.ticks.length - 1; i++) {
+                const py1 = y.getPixelForTick(i);
+                const py2 = y.getPixelForTick(i + 1);
+                for (let s = 1; s < 3; s++) {
+                  const pos = py1 + (py2 - py1) * (s / 3);
+                  ctx.beginPath(); ctx.moveTo(chartArea.left, pos); ctx.lineTo(chartArea.right, pos); ctx.stroke();
+                }
+              }
+            }
+            if (x && x.ticks.length >= 2) {
+              const gap = Math.abs(x.getPixelForTick(1) - x.getPixelForTick(0));
+              if (gap > 20) {
+                for (let i = 0; i < x.ticks.length - 1; i++) {
+                  const mid = (x.getPixelForTick(i) + x.getPixelForTick(i + 1)) / 2;
+                  ctx.beginPath(); ctx.moveTo(mid, chartArea.top); ctx.lineTo(mid, chartArea.bottom); ctx.stroke();
+                }
+              }
+            }
+            ctx.restore();
+          },
+        } : subGridPlugin]} />
         <ZoomToolbar chartRef={chartRef} />
       </div>
     </div>
