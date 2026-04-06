@@ -11,6 +11,7 @@ import {
   Tooltip,
 } from "chart.js";
 import zoomPlugin from "chartjs-plugin-zoom";
+import { chartBgPlugin, subGridThirdsXPlugin } from "../utils/chartConstants";
 
 ChartJS.register(LinearScale, PointElement, LineElement, Title, Tooltip, zoomPlugin);
 
@@ -132,6 +133,8 @@ export default function EnergyConsumptionAndEmissionRates() {
   // Interactive legend state
   const [hoveredVehicle, setHoveredVehicle] = useState(null);
   const [pinnedVehicle, setPinnedVehicle] = useState(null);
+  const pinnedVehicleRef = useRef(null);
+  useEffect(() => { pinnedVehicleRef.current = pinnedVehicle; }, [pinnedVehicle]);
   const activeVehicle = hoveredVehicle || pinnedVehicle;
 
   // Loading progress
@@ -284,7 +287,7 @@ export default function EnergyConsumptionAndEmissionRates() {
       const baseColor = colorMap[vehicleType] || "#000";
       const isActive = activeVehicle === vehicleType;
       const isDimmed = activeVehicle && !isActive;
-      const color = isDimmed ? baseColor + "30" : baseColor;
+      const color = isDimmed ? baseColor + "99" : baseColor;
 
       if (key.endsWith("_Consumption")) {
         if (!data.results?.length) return;
@@ -311,6 +314,7 @@ export default function EnergyConsumptionAndEmissionRates() {
           parsing: { xAxisKey: "x", yAxisKey: "y" },
           order: isActive ? 0 : 1,
           vehicleType,
+          _baseColor: baseColor,
         });
       } else {
         let actual = data;
@@ -333,6 +337,7 @@ export default function EnergyConsumptionAndEmissionRates() {
           parsing: { xAxisKey: "x", yAxisKey: "y" },
           order: isActive ? 0 : 1,
           vehicleType,
+          _baseColor: baseColor,
         });
       }
     });
@@ -358,23 +363,51 @@ export default function EnergyConsumptionAndEmissionRates() {
   const consumptionYAxisText = `${fuelType || consumptionYAxisLabel} (${consumptionUnit})`;
   const emissionYAxisText = `${emissionType || "Selected Emission Type"} (${emissionUnit})`;
 
-  // Chart hover handler — syncs both charts via shared activeVehicle
+  // Imperative chart hover — highlights hovered line, fades others (like R1/R2/R3)
   const handleChartHover = useCallback((_event, elements, chart) => {
+    if (pinnedVehicleRef.current) return; // don't override pinned selection
+    if (elements.length > 0) {
+      const hoverIdx = elements[0].datasetIndex;
+      chart.canvas.style.cursor = "pointer";
+      chart.data.datasets.forEach((ds, i) => {
+        const base = ds._baseColor;
+        if (i === hoverIdx) {
+          ds.borderColor = base;
+          ds.borderWidth = 2.5;
+        } else {
+          ds.borderColor = base + "99"; // ~60% opacity
+          ds.borderWidth = 1;
+        }
+      });
+      chart.update("none");
+    } else {
+      chart.canvas.style.cursor = "default";
+      chart.data.datasets.forEach((ds) => {
+        const base = ds._baseColor;
+        ds.borderColor = base + "B3"; // ~70% opacity
+        ds.borderWidth = 1.5;
+      });
+      chart.update("none");
+    }
+  }, []);
+
+  const handleChartClick = useCallback((_event, elements, chart) => {
     if (elements.length > 0) {
       const ds = chart.data.datasets[elements[0].datasetIndex];
-      setHoveredVehicle(ds?.vehicleType || null);
+      const vt = ds?.vehicleType;
+      if (vt) setPinnedVehicle((prev) => (prev === vt ? null : vt));
     } else {
-      setHoveredVehicle(null);
+      setPinnedVehicle(null);
     }
   }, []);
 
   // Chart options builder with dynamic y-axis step sizing (niceStepSize / square grid)
   const buildOptions = useCallback(
-    (yAxisText, xMax, yMax) => {
+    (yAxisText, xMax, yMax, aspectOverride) => {
       const xRange = xMax || 70;
-      const xStep = 2;
+      const xStep = 10;
       const xCells = xRange / xStep;
-      const aspectFactor = 1.3;
+      const aspectFactor = aspectOverride || 1.3;
       const effectiveYMax = yMax || 60;
       const targetCells = Math.round(xCells * aspectFactor);
       const rawYStep = effectiveYMax / targetCells;
@@ -384,11 +417,11 @@ export default function EnergyConsumptionAndEmissionRates() {
 
       return {
         responsive: true,
-        maintainAspectRatio: true,
-        aspectRatio: 1.2,
+        maintainAspectRatio: false,
         animation: false,
         interaction: { mode: "nearest", intersect: false, axis: "xy" },
         onHover: handleChartHover,
+        onClick: handleChartClick,
         plugins: {
           legend: { display: false },
           tooltip: {
@@ -430,34 +463,48 @@ export default function EnergyConsumptionAndEmissionRates() {
             ticks: {
               stepSize: xStep,
               callback: (value) => (value % 10 === 0 ? value : ""),
-              font: { size: 11 },
+              font: { size: 13 },
+              color: "#222",
               autoSkip: false,
             },
-            title: { display: true, text: "Speed (mph)", font: { size: 13 } },
+            title: { display: true, text: "Speed (mph)", font: { size: 15 }, color: "#222" },
             grid: { color: "rgba(0,0,0,0.06)", lineWidth: 0.5 },
-            border: { color: "rgba(0,0,0,0.15)" },
+            border: { color: "#444" },
           },
           y: {
             type: "linear",
             position: "left",
             min: 0,
-            title: { display: true, text: yAxisText, font: { size: 12 } },
+            title: { display: true, text: yAxisText, font: { size: 14 }, color: "#222" },
             ticks: {
               stepSize: yStep,
-              font: { size: 10 },
+              font: { size: 12 },
+              color: "#222",
               maxTicksLimit: 12,
             },
             grid: { color: "rgba(0,0,0,0.06)", lineWidth: 0.5 },
-            border: { color: "rgba(0,0,0,0.15)" },
+            border: { color: "#444" },
+          },
+          xTop: {
+            position: "top",
+            border: { display: true, color: "#444", width: 1 },
+            grid: { drawOnChartArea: false, drawTicks: false },
+            ticks: { display: false },
+          },
+          yRight: {
+            position: "right",
+            border: { display: true, color: "#444", width: 1 },
+            grid: { drawOnChartArea: false, drawTicks: false },
+            ticks: { display: false },
           },
         },
       };
     },
-    [handleChartHover]
+    [handleChartHover, handleChartClick]
   );
 
   const consumptionOptions = useMemo(() => buildOptions(consumptionYAxisText, undefined, consumptionYMax), [buildOptions, consumptionYAxisText, consumptionYMax]);
-  const emissionOptions = useMemo(() => buildOptions(emissionYAxisText, 70, emissionYMax), [buildOptions, emissionYAxisText, emissionYMax]);
+  const emissionOptions = useMemo(() => buildOptions(emissionYAxisText, undefined, emissionYMax, 1.0), [buildOptions, emissionYAxisText, emissionYMax]);
 
   const hasData = consumptionChartData.datasets.length > 0 || emissionChartData.datasets.length > 0;
   const allParamsSet = !!(fuelType && emissionType && vehicleAge);
@@ -556,8 +603,8 @@ export default function EnergyConsumptionAndEmissionRates() {
                 <ZoomToolbar chartRef={consumptionChartRef} />
               </div>
             </div>
-            <div className="flex-1 min-h-0 px-2 pb-2">
-              <Line key={`c-${chartKey}`} ref={consumptionChartRef} data={consumptionChartData} options={consumptionOptions} />
+            <div className="px-2 pb-2" style={{ height: 280 }}>
+              <Line key={`c-${chartKey}`} ref={consumptionChartRef} data={consumptionChartData} options={consumptionOptions} plugins={[chartBgPlugin, subGridThirdsXPlugin]} />
             </div>
           </div>
 
@@ -575,45 +622,40 @@ export default function EnergyConsumptionAndEmissionRates() {
                 <ZoomToolbar chartRef={emissionChartRef} />
               </div>
             </div>
-            <div className="flex-1 min-h-0 px-2 pb-2">
-              <Line key={`e-${chartKey}`} ref={emissionChartRef} data={emissionChartData} options={emissionOptions} />
+            <div className="px-2 pb-2" style={{ height: 280 }}>
+              <Line key={`e-${chartKey}`} ref={emissionChartRef} data={emissionChartData} options={emissionOptions} plugins={[chartBgPlugin, subGridThirdsXPlugin]} />
             </div>
           </div>
 
           {/* Interactive legend — col-span-2, click to pin-highlight, hover to preview */}
           <div
-            className="col-span-2 flex flex-col gap-0.5 px-3 py-2 border border-gray-200 rounded-lg bg-white overflow-hidden min-w-0"
-            onMouseLeave={() => setHoveredVehicle(null)}
+            className="col-span-2 flex flex-col gap-0.5 px-3 py-2 border border-gray-500 rounded-xl bg-white overflow-hidden min-w-0 shadow-md self-center"
           >
-            <span className="text-xs font-semibold text-gray-500 mb-1">Vehicle Types</span>
+            <div className="flex items-center gap-2 mb-1">
+              <span className="text-sm font-bold text-gray-800">Vehicle Types</span>
+              {pinnedVehicle && (
+                <button type="button" onClick={() => setPinnedVehicle(null)} className="text-[9px] text-blue-500 hover:text-blue-700 font-semibold">Clear</button>
+              )}
+            </div>
             {VEHICLE_TYPES.map((type, idx) => {
               const color = VEHICLE_COLORS[idx % VEHICLE_COLORS.length];
               const isPinned = pinnedVehicle === type;
-              const isDimmed = activeVehicle && activeVehicle !== type;
+              const isFaded = pinnedVehicle && !isPinned;
               return (
                 <button
                   key={type}
                   type="button"
-                  className={`flex items-center gap-1.5 px-2 py-0.5 rounded text-xs transition-all cursor-pointer select-none min-w-0
-                    ${isPinned ? "bg-blue-50 ring-1 ring-blue-300" : "hover:bg-gray-50"}
-                    ${isDimmed ? "opacity-30" : "opacity-100"}`}
-                  onMouseEnter={() => setHoveredVehicle(type)}
+                  className="flex items-center gap-1.5 px-2 py-0.5 rounded text-xs cursor-pointer select-none min-w-0 w-full hover:opacity-80 transition-opacity"
+                  style={{ opacity: isFaded ? 0.28 : 1 }}
                   onClick={() => setPinnedVehicle((prev) => (prev === type ? null : type))}
                 >
-                  <span className="inline-block w-4 h-0.5 rounded-full shrink-0" style={{ backgroundColor: color }} />
-                  <span className="font-medium text-gray-700 truncate">{type}</span>
+                  <svg width="24" height="10" style={{ flexShrink: 0 }}>
+                    <line x1="0" y1="5" x2="24" y2="5" stroke={color} strokeWidth={isPinned ? 2.5 : 1.5} strokeLinecap="round" />
+                  </svg>
+                  <span className={`truncate text-[11px] text-left ${isPinned ? "font-bold text-gray-900" : "font-bold text-gray-700"}`}>{type}</span>
                 </button>
               );
             })}
-            {pinnedVehicle && (
-              <button
-                type="button"
-                onClick={() => setPinnedVehicle(null)}
-                className="text-xs text-blue-500 hover:text-blue-700 font-medium mt-1"
-              >
-                Clear
-              </button>
-            )}
           </div>
         </div>
       )}

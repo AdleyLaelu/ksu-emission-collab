@@ -11,7 +11,7 @@ import {
   Legend,
 } from "chart.js";
 import zoomPlugin from "chartjs-plugin-zoom";
-import { CITY_TO_STATE, chartBgPlugin, CHART_FONT } from "../utils/chartConstants";
+import { CITY_TO_STATE, chartBgPlugin, CHART_FONT, subGridThirdsYPlugin } from "../utils/chartConstants";
 
 import GA_CO2 from "../assets/r3data/GA_CO2.json";
 import GA_CH4 from "../assets/r3data/GA_CH4.json";
@@ -83,25 +83,30 @@ const ZoomToolbar = ({ chartRef }) => (
 
 export { SCENARIO_COLORS };
 
-export default function GridChartR3({ emissionType, cityName, showLegend = true }) {
+export default function GridChartR3({ emissionType, cityName, showLegend = true, controlledIdx = undefined, onSelect }) {
+  const isControlled = controlledIdx !== undefined;
   const chartRef = useRef(null);
   const containerRef = useRef(null);
-  const [selectedIdx, setSelectedIdx] = useState(null);
-  const selectedIdxRef = useRef(null);
+  const [internalIdx, setInternalIdx] = useState(null);
+  const selectedIdx = isControlled ? controlledIdx : internalIdx;
+  const selectedIdxRef = useRef(selectedIdx);
+
+  // Keep ref in sync
+  useEffect(() => { selectedIdxRef.current = selectedIdx; }, [selectedIdx]);
 
   // Clear selection when clicking outside the chart card
   useEffect(() => {
     const onClickOutside = (e) => {
       if (containerRef.current && !containerRef.current.contains(e.target)) {
         if (selectedIdxRef.current !== null) {
+          if (isControlled) { onSelect?.(null); } else { setInternalIdx(null); }
           selectedIdxRef.current = null;
-          setSelectedIdx(null);
         }
       }
     };
     document.addEventListener("mousedown", onClickOutside);
     return () => document.removeEventListener("mousedown", onClickOutside);
-  }, []);
+  }, [isControlled, onSelect]);
 
   const state = CITY_TO_STATE[cityName] || CITY_TO_STATE[cityName?.replace(/\s/g, "")] || null;
   const key = state && emissionType ? `${state}_${emissionType}` : null;
@@ -188,13 +193,11 @@ export default function GridChartR3({ emissionType, cityName, showLegend = true 
 
   const handleSelectIdx = (idx) => {
     const newIdx = selectedIdxRef.current === idx ? null : idx;
-    selectedIdxRef.current = newIdx;
-    setSelectedIdx(newIdx);
+    if (isControlled) { onSelect?.(newIdx); } else { selectedIdxRef.current = newIdx; setInternalIdx(newIdx); }
   };
 
   const handleReset = () => {
-    selectedIdxRef.current = null;
-    setSelectedIdx(null);
+    if (isControlled) { onSelect?.(null); } else { selectedIdxRef.current = null; setInternalIdx(null); }
   };
 
   const yLabel = EMISSION_LABELS[emissionType] || emissionType;
@@ -240,7 +243,7 @@ export default function GridChartR3({ emissionType, cityName, showLegend = true 
           label: (item) => ` ${item.dataset.label}: ${item.parsed.y?.toFixed(4)}`,
           labelColor: (item) => ({
             borderColor: item.dataset._baseColor,
-            backgroundColor: "#ffffff",
+            backgroundColor: item.dataset._baseColor,
           }),
           labelTextColor: () => "#222",
         },
@@ -261,7 +264,7 @@ export default function GridChartR3({ emissionType, cityName, showLegend = true 
         },
         ticks: {
           font: CHART_FONT,
-          color: "#444",
+          color: "#222",
           maxRotation: 0,
           padding: 4,
           callback: (_, index) => {
@@ -274,7 +277,7 @@ export default function GridChartR3({ emissionType, cityName, showLegend = true 
             return month === "01" ? year : "";
           },
         },
-        title: { display: true, text: "Year", font: CHART_FONT, color: "#333", padding: { top: 0, bottom: 0 } },
+        title: { display: true, text: "Year", font: CHART_FONT, color: "#222", padding: { top: 0, bottom: 0 } },
       },
       y: {
         border: { display: true, color: "#444", width: 1 },
@@ -285,10 +288,10 @@ export default function GridChartR3({ emissionType, cityName, showLegend = true 
           drawTicks: false,
         },
         ticks: {
-          font: CHART_FONT, color: "#444", padding: 4,
+          font: CHART_FONT, color: "#222", padding: 4,
           ...(emissionType === "CH4" ? { stepSize: 20 } : { maxTicksLimit: 6 }),
         },
-        title: { display: true, text: yLabel, font: CHART_FONT, color: "#333", padding: { top: 0, bottom: 0 } },
+        title: { display: true, text: yLabel, font: CHART_FONT, color: "#222", padding: { top: 0, bottom: 0 } },
       },
       xTop: {
         position: "top",
@@ -308,8 +311,8 @@ export default function GridChartR3({ emissionType, cityName, showLegend = true 
   return (
     <div ref={containerRef} className="w-full h-full flex flex-col">
       {/* Chart — fills parent height, fallback 200px when no parent height set */}
-      <div className="relative w-full flex-1 bg-white" style={{ minHeight: 200 }}>
-        <Line ref={chartRef} data={{ labels, datasets }} options={options} plugins={[chartBgPlugin]} />
+      <div className="relative w-full flex-1 bg-white" style={{ minHeight: 280 }}>
+        <Line ref={chartRef} data={{ labels, datasets }} options={options} plugins={[chartBgPlugin, subGridThirdsYPlugin]} />
         <ZoomToolbar chartRef={chartRef} />
       </div>
 

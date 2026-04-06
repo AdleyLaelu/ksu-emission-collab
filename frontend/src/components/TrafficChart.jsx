@@ -9,6 +9,7 @@ import {
   Tooltip,
 } from "chart.js";
 import zoomPlugin from "chartjs-plugin-zoom";
+import { chartBgPlugin, subGridPlugin } from "../utils/chartConstants";
 
 ChartJS.register(LinearScale, PointElement, LineElement, Title, Tooltip, zoomPlugin);
 
@@ -138,8 +139,7 @@ export default function TrafficChart({
   const options = useMemo(
     () => ({
       responsive: true,
-      maintainAspectRatio: true,
-      aspectRatio: 2.4,
+      maintainAspectRatio: false,
       animation: false,
       interaction: {
         mode: "nearest",
@@ -215,12 +215,13 @@ export default function TrafficChart({
             stepSize: 0.5,
             autoSkip: false,
             callback: (value) => (Number.isInteger(value) ? value : ""),
-            font: { size: 12 },
+            font: { size: 13 },
+            color: "#444",
             maxRotation: 0,
           },
-          title: { display: true, text: "Time (hr)", font: { size: 14 } },
+          title: { display: true, text: "Time (hr)", font: { size: 15 }, color: "#444" },
           grid: { color: "rgba(0,0,0,0.05)", lineWidth: 0.5, drawTicks: false },
-          border: { color: "rgba(0,0,0,0.15)" },
+          border: { color: "#444" },
         },
         y: {
           type: "linear",
@@ -230,16 +231,18 @@ export default function TrafficChart({
           title: {
             display: true,
             text: "Traffic Speed (mph)",
-            font: { size: 14 },
+            font: { size: 15 },
+            color: "#444",
           },
           ticks: {
-            stepSize: 2,
+            stepSize: 5,
             autoSkip: false,
             callback: (value) => (value % 10 === 0 ? value : ""),
-            font: { size: 12 },
+            font: { size: 13 },
+            color: "#444",
           },
           grid: { color: "rgba(0,0,0,0.05)", lineWidth: 0.5, drawTicks: false },
-          border: { color: "rgba(0,0,0,0.15)" },
+          border: { color: "#444" },
         },
         y1: {
           type: "linear",
@@ -247,11 +250,18 @@ export default function TrafficChart({
           title: {
             display: true,
             text: "Traffic Volume (veh/hr/ln)",
-            font: { size: 14 },
+            font: { size: 15 },
+            color: "#444",
           },
-          ticks: { font: { size: 12 } },
+          ticks: { font: { size: 13 }, color: "#444" },
           grid: { drawOnChartArea: false },
-          border: { color: "rgba(0,0,0,0.15)" },
+          border: { color: "#444" },
+        },
+        xTop: {
+          position: "top",
+          border: { display: true, color: "#444", width: 1 },
+          grid: { drawOnChartArea: false, drawTicks: false },
+          ticks: { display: false },
         },
       },
     }),
@@ -270,8 +280,8 @@ export default function TrafficChart({
         <div className="text-center text-base font-semibold text-gray-700 pt-3 pb-1">
           Year {year} - {city} [{dataSource}]
         </div>
-        <div style={{ padding: "0 8px 8px" }}>
-          <Line ref={chartRef} data={chartData} options={options} />
+        <div style={{ padding: "0 8px 8px", height: 280 }}>
+          <Line ref={chartRef} data={chartData} options={options} plugins={[chartBgPlugin, subGridPlugin]} />
         </div>
         <ZoomToolbar chartRef={chartRef} />
       </div>

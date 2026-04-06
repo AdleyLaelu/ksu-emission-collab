@@ -511,7 +511,7 @@ function ProjectedDemand() {
             <div className="bg-[#f7f7f9] text-[#222222] text-center font-semibold border border-[#cccccc]">
               <span>Macroscopic Traffic Model Parameters</span>
             </div>
-            <TractParametersTable trafficState={trafficState} alignLeft />
+            <TractParametersTable trafficState={trafficState} />
           </div>
         )}
       </div>
