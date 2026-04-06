@@ -15,31 +15,8 @@ import { API_URL } from "./config";
 const App = () => {
   const theme = useAppStore((s) => s.theme);
 
-  // Clear database on application start
-  useEffect(() => {
-    const clearDatabaseOnStart = async () => {
-      try {
-        console.log("[App] Clearing database on application start...");
-        const response = await fetch(`${API_URL}/admin/clear_db`, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-        });
-
-        if (response.ok) {
-          const result = await response.json();
-          console.log("[App] Database cleared successfully:", result);
-        } else {
-          console.warn("[App] Failed to clear database:", response.status);
-        }
-      } catch (error) {
-        console.error("[App] Error clearing database on start:", error);
-      }
-    };
-
-    clearDatabaseOnStart();
-  }, []); // Empty dependency array means this runs once on mount
+  // DB clearing disabled for production deployment
+  // useEffect(() => { clearDatabaseOnStart(); }, []);
 
   return (
     // App.tsx

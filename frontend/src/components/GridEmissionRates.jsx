@@ -116,7 +116,7 @@ const GridEmissionRates = ({ activeStep, isResults }) => {
       {/* Logo image on the left */}
       <div className="flex flex-col justify-start items-start pt-2 pr-2">
         <img
-          src="src/assets/Logo2.jpg"
+          src={nrelLogo}
           alt="NREL Cambium"
           style={{ width: "160px", height: "auto" }}
         />
