@@ -573,11 +573,16 @@ export default function EnergyConsumptionAndEmissionRates() {
           </select>
         </div>
 
-        {/* Loading progress */}
-        {loading && (
-          <div className="flex items-center gap-2 text-sm text-blue-600 ml-2">
-            <div className="w-4 h-4 border-2 border-blue-600 border-t-transparent rounded-full animate-spin" />
-            <span>Loading {loadedCount}/{totalCount}...</span>
+        {/* Loading progress bar */}
+        {loading && totalCount > 0 && (
+          <div className="flex items-center gap-2 ml-2 min-w-[180px]">
+            <div className="flex-1 h-3 bg-gray-200 rounded-full overflow-hidden">
+              <div
+                className="h-full bg-blue-600 rounded-full transition-all duration-300 ease-out"
+                style={{ width: `${(loadedCount / totalCount) * 100}%` }}
+              />
+            </div>
+            <span className="text-xs text-gray-500 whitespace-nowrap">{loadedCount}/{totalCount}</span>
           </div>
         )}
       </div>

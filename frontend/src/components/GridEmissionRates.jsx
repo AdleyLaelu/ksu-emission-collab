@@ -2,6 +2,47 @@ import React, { useState } from "react";
 import useAppStore from "../useAppStore";
 import VehicleStepper from "./VerticalStepper";
 import GridChartR3, { SCENARIO_COLORS } from "./GridChartR3";
+import { CITY_TO_STATE } from "../utils/chartConstants";
+
+import GA_CO2 from "../assets/r3data/GA_CO2.json";
+import GA_CH4 from "../assets/r3data/GA_CH4.json";
+import GA_N2O from "../assets/r3data/GA_N2O.json";
+import CA_CO2 from "../assets/r3data/CA_CO2.json";
+import CA_CH4 from "../assets/r3data/CA_CH4.json";
+import CA_N2O from "../assets/r3data/CA_N2O.json";
+import NY_CO2 from "../assets/r3data/NY_CO2.json";
+import NY_CH4 from "../assets/r3data/NY_CH4.json";
+import NY_N2O from "../assets/r3data/NY_N2O.json";
+import WA_CO2 from "../assets/r3data/WA_CO2.json";
+import WA_CH4 from "../assets/r3data/WA_CH4.json";
+import WA_N2O from "../assets/r3data/WA_N2O.json";
+
+const R3_DATA_MAP = {
+  GA_CO2, GA_CH4, GA_N2O,
+  CA_CO2, CA_CH4, CA_N2O,
+  NY_CO2, NY_CH4, NY_N2O,
+  WA_CO2, WA_CH4, WA_N2O,
+};
+
+function downloadGridCsv(cityName, emissionType) {
+  const state = CITY_TO_STATE[cityName] || CITY_TO_STATE[cityName?.replace(/\s/g, "")] || null;
+  if (!state || !emissionType) return;
+  const json = R3_DATA_MAP[`${state}_${emissionType}`];
+  if (!json) return;
+  const scenarioNames = Object.keys(json.scenarios);
+  const dates = json.scenarios[scenarioNames[0]].map((p) => p.date.replace(/\s+00:00:00$/, ""));
+  const header = ["Date", ...scenarioNames];
+  const rows = dates.map((date, i) => [
+    date,
+    ...scenarioNames.map((s) => json.scenarios[s]?.[i]?.value ?? ""),
+  ]);
+  const csv = [header, ...rows].map((r) => r.join(",")).join("\n");
+  const blob = new Blob([csv], { type: "text/csv" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url; a.download = `${cityName}_${emissionType}_grid_emissions.csv`; a.click();
+  URL.revokeObjectURL(url);
+}
 
 import {
   Card,
@@ -137,7 +178,15 @@ const GridEmissionRates = ({ activeStep, isResults }) => {
               ))}
             </select>
           </div>
-          {/* Download button removed: static image no longer exists */}
+          <div className="flex flex-col justify-end">
+            <button
+              type="button"
+              onClick={() => downloadGridCsv(classificationState.cityInput, GridEmissionState.EmissionType)}
+              className="flex items-center gap-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded px-5 py-2 text-sm font-semibold transition-colors"
+            >
+              DOWNLOAD
+            </button>
+          </div>
         </form>
 
         {/* Interactive GridChartR3 (user) + scenario legend + reference image (main) */}
