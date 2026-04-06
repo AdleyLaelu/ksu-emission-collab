@@ -29,7 +29,12 @@ if hasattr(torch.serialization, "add_safe_globals"):
 app = Flask(__name__)
 CORS(app)
 
-DB_FILE = "prediction.db"
+DB_FILE = os.environ.get("DB_FILE", "prediction.db")
+
+# ---------- Health Check ----------
+@app.route("/health", methods=["GET"])
+def health_check():
+    return jsonify({"status": "healthy"}), 200
 
 # ---------- Global Transaction ID ----------
 # Use a single consistent transaction ID for all operations

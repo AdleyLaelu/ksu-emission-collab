@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import useAppStore from "../useAppStore";
 import VehicleStepper from "./VerticalStepper";
 import GridChartR3, { SCENARIO_COLORS } from "./GridChartR3";
+import nrelLogo from "../assets/Logo2.jpg";
 
 import {
   Card,
@@ -75,7 +76,7 @@ const GridEmissionRates = ({ activeStep, isResults }) => {
       {/* Logo image on the left */}
       <div className="flex flex-col justify-start items-start pt-2 pr-2">
         <img
-          src="src/assets/Logo2.jpg"
+          src={nrelLogo}
           alt="NREL Cambium"
           style={{ width: "160px", height: "auto" }}
         />
