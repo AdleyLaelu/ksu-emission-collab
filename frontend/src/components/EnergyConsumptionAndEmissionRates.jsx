@@ -11,40 +11,9 @@ import {
   Tooltip,
 } from "chart.js";
 import zoomPlugin from "chartjs-plugin-zoom";
-import { chartBgPlugin } from "../utils/chartConstants";
+import { chartBgPlugin, subGridThirdsXPlugin } from "../utils/chartConstants";
 
 ChartJS.register(LinearScale, PointElement, LineElement, Title, Tooltip, zoomPlugin);
-
-const vecSubGrid = {
-  id: "vecSubGrid",
-  afterDraw(chart) {
-    const { ctx, chartArea, scales: { x, y } } = chart;
-    if (!chartArea) return;
-    ctx.save();
-    ctx.strokeStyle = "rgba(169,169,169,0.15)";
-    ctx.lineWidth = 0.8;
-    if (y && y.ticks.length >= 2) {
-      const gap = Math.abs(y.getPixelForTick(1) - y.getPixelForTick(0));
-      if (gap > 20) {
-        for (let i = 0; i < y.ticks.length - 1; i++) {
-          const mid = (y.getPixelForTick(i) + y.getPixelForTick(i + 1)) / 2;
-          ctx.beginPath(); ctx.moveTo(chartArea.left, mid); ctx.lineTo(chartArea.right, mid); ctx.stroke();
-        }
-      }
-    }
-    if (x && x.ticks.length >= 2) {
-      for (let i = 0; i < x.ticks.length - 1; i++) {
-        const px1 = x.getPixelForTick(i);
-        const px2 = x.getPixelForTick(i + 1);
-        for (let s = 1; s < 3; s++) {
-          const pos = px1 + (px2 - px1) * (s / 3);
-          ctx.beginPath(); ctx.moveTo(pos, chartArea.top); ctx.lineTo(pos, chartArea.bottom); ctx.stroke();
-        }
-      }
-    }
-    ctx.restore();
-  },
-};
 
 const VEHICLE_TYPES = [
   "Combination Long-haul Truck",
@@ -635,7 +604,7 @@ export default function EnergyConsumptionAndEmissionRates() {
               </div>
             </div>
             <div className="px-2 pb-2" style={{ height: 280 }}>
-              <Line key={`c-${chartKey}`} ref={consumptionChartRef} data={consumptionChartData} options={consumptionOptions} plugins={[chartBgPlugin, vecSubGrid]} />
+              <Line key={`c-${chartKey}`} ref={consumptionChartRef} data={consumptionChartData} options={consumptionOptions} plugins={[chartBgPlugin, subGridThirdsXPlugin]} />
             </div>
           </div>
 
@@ -654,7 +623,7 @@ export default function EnergyConsumptionAndEmissionRates() {
               </div>
             </div>
             <div className="px-2 pb-2" style={{ height: 280 }}>
-              <Line key={`e-${chartKey}`} ref={emissionChartRef} data={emissionChartData} options={emissionOptions} plugins={[chartBgPlugin, vecSubGrid]} />
+              <Line key={`e-${chartKey}`} ref={emissionChartRef} data={emissionChartData} options={emissionOptions} plugins={[chartBgPlugin, subGridThirdsXPlugin]} />
             </div>
           </div>
 

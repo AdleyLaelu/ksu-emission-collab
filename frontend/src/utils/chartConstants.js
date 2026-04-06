@@ -24,63 +24,53 @@ export const chartBgPlugin = {
 /** Common font config used across all chart axes. */
 export const CHART_FONT = { size: 14 };
 
-/** Like subGridPlugin but only draws horizontal mid-lines (y-axis only). */
-export const subGridYPlugin = {
-  id: "subGridY",
-  afterDraw(chart) {
-    const { ctx, chartArea, scales: { y } } = chart;
-    if (!chartArea || !y || y.ticks.length < 2) return;
-    const gap = Math.abs(y.getPixelForTick(1) - y.getPixelForTick(0));
-    if (gap <= 20) return;
-    ctx.save();
-    ctx.strokeStyle = "rgba(169,169,169,0.15)";
-    ctx.lineWidth = 0.8;
-    for (let i = 0; i < y.ticks.length - 1; i++) {
-      const mid = (y.getPixelForTick(i) + y.getPixelForTick(i + 1)) / 2;
+/** Draws evenly spaced subdivision lines between major ticks on one axis. */
+function drawSubLines(ctx, chartArea, scale, isVertical, divisions, minGap) {
+  if (!scale || scale.ticks.length < 2 || divisions < 1) return;
+  const gap = Math.abs(scale.getPixelForTick(1) - scale.getPixelForTick(0));
+  if (gap <= minGap) return;
+  const slots = divisions + 1;
+  for (let i = 0; i < scale.ticks.length - 1; i++) {
+    const p1 = scale.getPixelForTick(i);
+    const p2 = scale.getPixelForTick(i + 1);
+    for (let s = 1; s <= divisions; s++) {
+      const pos = p1 + (p2 - p1) * (s / slots);
       ctx.beginPath();
-      ctx.moveTo(chartArea.left, mid);
-      ctx.lineTo(chartArea.right, mid);
+      if (isVertical) {
+        ctx.moveTo(pos, chartArea.top);
+        ctx.lineTo(pos, chartArea.bottom);
+      } else {
+        ctx.moveTo(chartArea.left, pos);
+        ctx.lineTo(chartArea.right, pos);
+      }
       ctx.stroke();
     }
-    ctx.restore();
-  },
-};
+  }
+}
 
-/** Draws extra lines between ticks to create square-ish grid cells.
- *  Only subdivides an axis when the pixel gap between ticks is large enough (> 20px). */
-export const subGridPlugin = {
-  id: "subGrid",
-  afterDraw(chart) {
-    const { ctx, chartArea, scales: { x, y } } = chart;
-    if (!chartArea) return;
-    ctx.save();
-    ctx.strokeStyle = "rgba(169,169,169,0.15)";
-    ctx.lineWidth = 0.8;
-    const MIN_GAP = 20;
-    if (y && y.ticks.length >= 2) {
-      const gap = Math.abs(y.getPixelForTick(1) - y.getPixelForTick(0));
-      if (gap > MIN_GAP) {
-        for (let i = 0; i < y.ticks.length - 1; i++) {
-          const mid = (y.getPixelForTick(i) + y.getPixelForTick(i + 1)) / 2;
-          ctx.beginPath();
-          ctx.moveTo(chartArea.left, mid);
-          ctx.lineTo(chartArea.right, mid);
-          ctx.stroke();
-        }
-      }
-    }
-    if (x && x.ticks.length >= 2) {
-      const gap = Math.abs(x.getPixelForTick(1) - x.getPixelForTick(0));
-      if (gap > MIN_GAP) {
-        for (let i = 0; i < x.ticks.length - 1; i++) {
-          const mid = (x.getPixelForTick(i) + x.getPixelForTick(i + 1)) / 2;
-          ctx.beginPath();
-          ctx.moveTo(mid, chartArea.top);
-          ctx.lineTo(mid, chartArea.bottom);
-          ctx.stroke();
-        }
-      }
-    }
-    ctx.restore();
-  },
-};
+/** Creates a Chart.js plugin that draws sub-grid lines between major ticks.
+ *  xDiv/yDiv = extra lines per gap (1 = midpoint, 2 = thirds, 0 = none). */
+export function makeSubGridPlugin(id, { xDiv = 0, yDiv = 0, minGap = 20 } = {}) {
+  return {
+    id,
+    afterDraw(chart) {
+      const { ctx, chartArea, scales: { x, y } } = chart;
+      if (!chartArea) return;
+      ctx.save();
+      ctx.strokeStyle = "rgba(169,169,169,0.15)";
+      ctx.lineWidth = 0.8;
+      drawSubLines(ctx, chartArea, y, false, yDiv, minGap);
+      drawSubLines(ctx, chartArea, x, true, xDiv, minGap);
+      ctx.restore();
+    },
+  };
+}
+
+/** Midpoint on both axes (TrafficChart, VehicleChartR1R2 R1 mode). */
+export const subGridPlugin = makeSubGridPlugin("subGrid", { xDiv: 1, yDiv: 1 });
+
+/** Thirds on Y, midpoint on X (GridChartR3, VehicleChartR1R2 R2 mode). */
+export const subGridThirdsYPlugin = makeSubGridPlugin("subGridThirdsY", { xDiv: 1, yDiv: 2 });
+
+/** Midpoint on Y, thirds on X (VEC consumption/emission charts). */
+export const subGridThirdsXPlugin = makeSubGridPlugin("subGridThirdsX", { xDiv: 2, yDiv: 1 });

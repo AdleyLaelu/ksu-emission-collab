@@ -11,7 +11,7 @@ import {
   Legend,
 } from "chart.js";
 import zoomPlugin from "chartjs-plugin-zoom";
-import { CITY_TO_STATE, chartBgPlugin, CHART_FONT, subGridPlugin } from "../utils/chartConstants";
+import { CITY_TO_STATE, chartBgPlugin, CHART_FONT, subGridThirdsYPlugin } from "../utils/chartConstants";
 
 import GA_CO2 from "../assets/r3data/GA_CO2.json";
 import GA_CH4 from "../assets/r3data/GA_CH4.json";
@@ -312,36 +312,7 @@ export default function GridChartR3({ emissionType, cityName, showLegend = true,
     <div ref={containerRef} className="w-full h-full flex flex-col">
       {/* Chart — fills parent height, fallback 200px when no parent height set */}
       <div className="relative w-full flex-1 bg-white" style={{ minHeight: 280 }}>
-        <Line ref={chartRef} data={{ labels, datasets }} options={options} plugins={[chartBgPlugin, {
-          id: "r3SubGrid",
-          afterDraw(chart) {
-            const { ctx, chartArea, scales: { x, y } } = chart;
-            if (!chartArea) return;
-            ctx.save();
-            ctx.strokeStyle = "rgba(169,169,169,0.15)";
-            ctx.lineWidth = 0.8;
-            if (y && y.ticks.length >= 2) {
-              for (let i = 0; i < y.ticks.length - 1; i++) {
-                const py1 = y.getPixelForTick(i);
-                const py2 = y.getPixelForTick(i + 1);
-                for (let s = 1; s < 3; s++) {
-                  const pos = py1 + (py2 - py1) * (s / 3);
-                  ctx.beginPath(); ctx.moveTo(chartArea.left, pos); ctx.lineTo(chartArea.right, pos); ctx.stroke();
-                }
-              }
-            }
-            if (x && x.ticks.length >= 2) {
-              const gap = Math.abs(x.getPixelForTick(1) - x.getPixelForTick(0));
-              if (gap > 20) {
-                for (let i = 0; i < x.ticks.length - 1; i++) {
-                  const mid = (x.getPixelForTick(i) + x.getPixelForTick(i + 1)) / 2;
-                  ctx.beginPath(); ctx.moveTo(mid, chartArea.top); ctx.lineTo(mid, chartArea.bottom); ctx.stroke();
-                }
-              }
-            }
-            ctx.restore();
-          },
-        }]} />
+        <Line ref={chartRef} data={{ labels, datasets }} options={options} plugins={[chartBgPlugin, subGridThirdsYPlugin]} />
         <ZoomToolbar chartRef={chartRef} />
       </div>
 
