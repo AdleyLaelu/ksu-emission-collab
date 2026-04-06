@@ -1,6 +1,6 @@
 __pycache__
 *.pyc
 .DS_Store
-prediction.db
 *.postman_collection.json
 Combined_sheet_output_speed
+.venv
