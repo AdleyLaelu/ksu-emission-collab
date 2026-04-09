@@ -14,7 +14,7 @@ import NY_R1 from "../assets/r1r2data/NY_R1.json";
 import NY_R2 from "../assets/r1r2data/NY_R2.json";
 import WA_R1 from "../assets/r1r2data/WA_R1.json";
 import WA_R2 from "../assets/r1r2data/WA_R2.json";
-import { downloadR3CsvAll } from "../utils/r3DataUtils";
+import { downloadR3CsvAll, R3_DATA_MAP } from "../utils/r3DataUtils";
 
 const DATA_MAP = { GA_R1, GA_R2, CA_R1, CA_R2, NY_R1, NY_R2, WA_R1, WA_R2 };
 
@@ -58,7 +58,7 @@ const EMISSION_TYPES = [
 ];
 
 // Scenario names from R3 data (same for all states/gases)
-const SCENARIO_NAMES = Object.keys(GA_CO2.scenarios || {});
+const SCENARIO_NAMES = Object.keys(R3_DATA_MAP.GA_CO2.scenarios || {});
 
 function downloadCsv(cityName, chartMode) {
   const state = CITY_TO_STATE[cityName] || CITY_TO_STATE[cityName?.replace(/\s/g, "")] || null;
