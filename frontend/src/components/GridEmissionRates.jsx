@@ -3,6 +3,7 @@ import useAppStore from "../useAppStore";
 import VehicleStepper from "./VerticalStepper";
 import GridChartR3, { SCENARIO_COLORS } from "./GridChartR3";
 import nrelLogo from "../assets/Logo2.jpg";
+import { downloadR3CsvSingle } from "../utils/r3DataUtils";
 
 import {
   Card,
@@ -138,7 +139,15 @@ const GridEmissionRates = ({ activeStep, isResults }) => {
               ))}
             </select>
           </div>
-          {/* Download button removed: static image no longer exists */}
+          <div className="flex flex-col justify-end">
+            <button
+              type="button"
+              onClick={() => downloadR3CsvSingle(classificationState.cityInput, GridEmissionState.EmissionType)}
+              className="flex items-center gap-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded px-5 py-2 text-sm font-semibold transition-colors"
+            >
+              DOWNLOAD
+            </button>
+          </div>
         </form>
 
         {/* Interactive GridChartR3 (user) + scenario legend + reference image (main) */}

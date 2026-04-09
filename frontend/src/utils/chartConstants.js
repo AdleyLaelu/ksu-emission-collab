@@ -4,6 +4,7 @@ export const CITY_TO_STATE = {
   Atlanta: "GA",
   "Los Angeles": "CA",
   LosAngeles: "CA",
+  "New York": "NY",
   NewYork: "NY",
   Seattle: "WA",
 };

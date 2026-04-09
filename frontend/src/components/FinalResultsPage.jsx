@@ -14,7 +14,7 @@ import NY_R1 from "../assets/r1r2data/NY_R1.json";
 import NY_R2 from "../assets/r1r2data/NY_R2.json";
 import WA_R1 from "../assets/r1r2data/WA_R1.json";
 import WA_R2 from "../assets/r1r2data/WA_R2.json";
-import GA_CO2 from "../assets/r3data/GA_CO2.json";
+import { downloadR3CsvAll } from "../utils/r3DataUtils";
 
 const DATA_MAP = { GA_R1, GA_R2, CA_R1, CA_R2, NY_R1, NY_R2, WA_R1, WA_R2 };
 
@@ -76,9 +76,12 @@ function downloadCsv(cityName, chartMode) {
   const blob = new Blob([csv], { type: "text/csv" });
   const url  = URL.createObjectURL(blob);
   const a    = document.createElement("a");
-  a.href = url; a.download = `${cityName}_${chartMode}_emissions.csv`; a.click();
+  a.href = url;
+  a.download = `${cityName}_${chartMode}_emissions.csv`;
+  a.click();
   URL.revokeObjectURL(url);
 }
+
 
 const FinalResultsPage = ({ resultsSelection, setResultsSelection }) => {
   const [dailyAnnualSelection, setDailyAnnualSelection] = useState("DAILY");
@@ -189,6 +192,19 @@ const FinalResultsPage = ({ resultsSelection, setResultsSelection }) => {
             </button>
           </div>
         )}
+
+        {/* CSV Download button for Grid */}
+        {showGrid && (
+          <div className="flex flex-col justify-end">
+            <button
+              type="button"
+              onClick={() => downloadR3CsvAll(cityName)}
+              className="flex items-center gap-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded px-5 py-2 text-sm font-semibold transition-colors"
+            >
+              DOWNLOAD
+            </button>
+          </div>
+        )}
       </div>
 
       {/* ── CHARTS + LEGEND ─────────────────────────────────────────── */}
@@ -232,11 +248,38 @@ const FinalResultsPage = ({ resultsSelection, setResultsSelection }) => {
                 { type: "CH4", title: "CH\u2084" },
                 { type: "N2O", title: "N\u2082O" },
               ].map((e) => (
-                <div key={e.type} className="p-3 rounded-lg bg-gray-50">
-                  <div className="text-xs font-semibold text-gray-500 mb-1">{e.title}</div>
-                  <div style={{ height: 280 }}>
-                    <GridChartR3 emissionType={e.type} cityName={cityName} showLegend={false} controlledIdx={selectedScenarioIdx} onSelect={setSelectedScenarioIdx} />
+                <div key={e.type} className="flex flex-row gap-4">
+                  <div className="flex-1 min-w-0 p-3 rounded-lg bg-gray-50">
+                    <div className="text-xs font-semibold text-gray-500 mb-1">{e.title}</div>
+                    <div style={{ height: 280 }}>
+                      <GridChartR3 emissionType={e.type} cityName={cityName} showLegend={false} controlledIdx={selectedScenarioIdx} onSelect={setSelectedScenarioIdx} />
+                    </div>
                   </div>
+                  {SCENARIO_NAMES.length > 0 && (
+                    <div className="flex-shrink-0 w-56 border border-gray-500 rounded-xl bg-white p-3 shadow-md self-center">
+                      <div className="flex items-center gap-2 mb-2">
+                        <span className="text-sm font-bold text-gray-800">Scenarios</span>
+                        {selectedScenarioIdx !== null && (
+                          <button type="button" onClick={() => setSelectedScenarioIdx(null)} className="text-[9px] text-blue-500 hover:text-blue-700 font-semibold">Clear</button>
+                        )}
+                      </div>
+                      {SCENARIO_NAMES.map((name, idx) => {
+                        const isSelected = selectedScenarioIdx === idx;
+                        const isFaded = selectedScenarioIdx !== null && !isSelected;
+                        return (
+                          <button key={name} type="button"
+                            onClick={() => setSelectedScenarioIdx(selectedScenarioIdx === idx ? null : idx)}
+                            className="flex items-center gap-2 py-0.5 w-full hover:opacity-80 transition-opacity"
+                            style={{ opacity: isFaded ? 0.28 : 1 }}>
+                            <svg width="28" height="10" style={{ flexShrink: 0 }}>
+                              <line x1="0" y1="5" x2="28" y2="5" stroke={SCENARIO_COLORS[idx % SCENARIO_COLORS.length]} strokeWidth={isSelected ? 2.5 : 1.5} strokeLinecap="round" />
+                            </svg>
+                            <span className={`text-[11px] text-left ${isSelected ? "font-bold text-gray-900" : "font-bold text-gray-700"}`}>{name}</span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
                 </div>
               ))}
             </div>
@@ -284,32 +327,6 @@ const FinalResultsPage = ({ resultsSelection, setResultsSelection }) => {
           </div>
         )}
 
-        {/* Grid legend: scenarios — shared across all 3 charts (user's addition) */}
-        {showGrid && SCENARIO_NAMES.length > 0 && (
-          <div className="flex-shrink-0 w-56 border border-gray-500 rounded-xl bg-white p-3 shadow-md self-center">
-            <div className="flex items-center gap-2 mb-2">
-              <span className="text-sm font-bold text-gray-800">Scenarios</span>
-              {selectedScenarioIdx !== null && (
-                <button type="button" onClick={() => setSelectedScenarioIdx(null)} className="text-[9px] text-blue-500 hover:text-blue-700 font-semibold">Clear</button>
-              )}
-            </div>
-            {SCENARIO_NAMES.map((name, idx) => {
-              const isSelected = selectedScenarioIdx === idx;
-              const isFaded = selectedScenarioIdx !== null && !isSelected;
-              return (
-                <button key={name} type="button"
-                  onClick={() => setSelectedScenarioIdx(selectedScenarioIdx === idx ? null : idx)}
-                  className="flex items-center gap-2 py-0.5 w-full hover:opacity-80 transition-opacity"
-                  style={{ opacity: isFaded ? 0.28 : 1 }}>
-                  <svg width="28" height="10" style={{ flexShrink: 0 }}>
-                    <line x1="0" y1="5" x2="28" y2="5" stroke={SCENARIO_COLORS[idx % SCENARIO_COLORS.length]} strokeWidth={isSelected ? 2.5 : 1.5} strokeLinecap="round" />
-                  </svg>
-                  <span className={`text-[11px] text-left ${isSelected ? "font-bold text-gray-900" : "font-bold text-gray-700"}`}>{name}</span>
-                </button>
-              );
-            })}
-          </div>
-        )}
 
       </div>
     </div>

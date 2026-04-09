@@ -128,54 +128,49 @@ function InputStepper({ finalNext, activeStep, setActiveStep }) {
       if (mode === "ABM") {
         if (state.speedEstimated) {
           console.log("ABM mode - speed estimated, proceeding to next step");
-          // Lock the mode so user can't switch in later steps
           store.lockTrafficMode();
         } else {
           window.dispatchEvent(
-            new CustomEvent("app-notification", { detail: { text: "Please process ABM data first" } })
+            new CustomEvent("app-notification", { detail: { text: "ABM data not yet processed. You can continue, but results may be incomplete." } })
           );
-          return;
         }
       } else if (mode === "MFD") {
-        if (!state.trafficVolumeFile || !state.trafficMFTParametersFile) {
-          window.dispatchEvent(
-            new CustomEvent("app-notification", { detail: { text: "Please upload both Traffic Volume and MFD Parameters files" } })
-          );
-          return;
-        }
+        if (state.trafficVolumeFile && state.trafficMFTParametersFile) {
+          store.lockTrafficMode();
 
-        // Lock the mode
-        store.lockTrafficMode();
+          const formData = new FormData();
+          formData.append("city_name", classState.city || classState.cityInput || "");
+          formData.append("transaction_id", localStorage.getItem("transaction_id") || "emission-analysis-2025");
+          formData.append("file1", state.trafficVolumeFile);
+          formData.append("file2", state.trafficMFTParametersFile);
 
-        const formData = new FormData();
-        formData.append("city_name", classState.city || classState.cityInput || "");
-        formData.append("transaction_id", localStorage.getItem("transaction_id") || "emission-analysis-2025");
-        formData.append("file1", state.trafficVolumeFile);
-        formData.append("file2", state.trafficMFTParametersFile);
-
-        try {
-          const res = await fetch(`${API_URL}/upload/traffic_volume`, { method: "POST", body: formData });
-          if (!res.ok) {
-            const errorData = await res.json();
-            throw new Error(errorData.error || "Upload failed");
+          try {
+            const res = await fetch(`${API_URL}/upload/traffic_volume`, { method: "POST", body: formData });
+            if (!res.ok) {
+              const errorData = await res.json();
+              throw new Error(errorData.error || "Upload failed");
+            }
+            const data = await res.json();
+            if (data.transaction_id) localStorage.setItem("transaction_id", data.transaction_id);
+            window.dispatchEvent(
+              new CustomEvent("app-notification", { detail: { text: "Traffic data uploaded successfully!" } })
+            );
+          } catch (err) {
+            console.error("Upload error:", err);
+            window.dispatchEvent(
+              new CustomEvent("app-notification", { detail: { text: "Upload failed: " + err.message } })
+            );
+            return;
           }
-          const data = await res.json();
-          if (data.transaction_id) localStorage.setItem("transaction_id", data.transaction_id);
+        } else {
           window.dispatchEvent(
-            new CustomEvent("app-notification", { detail: { text: "Traffic data uploaded successfully!" } })
+            new CustomEvent("app-notification", { detail: { text: "MFD files not uploaded. You can continue, but results may be incomplete." } })
           );
-        } catch (err) {
-          console.error("Upload error:", err);
-          window.dispatchEvent(
-            new CustomEvent("app-notification", { detail: { text: "Upload failed: " + err.message } })
-          );
-          return;
         }
       } else {
         window.dispatchEvent(
-          new CustomEvent("app-notification", { detail: { text: "Please select a traffic method (ABM or MFD)" } })
+          new CustomEvent("app-notification", { detail: { text: "No traffic method selected. You can continue, but results may be incomplete." } })
         );
-        return;
       }
     }
 

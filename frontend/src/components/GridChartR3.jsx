@@ -239,7 +239,14 @@ export default function GridChartR3({ emissionType, cityName, showLegend = true,
         borderWidth: 1,
         displayColors: true,
         callbacks: {
-          title: (items) => items[0]?.label || "",
+          title: (items) => {
+            const raw = (items[0]?.label || "").replace(/\s+00:00:00$/, "");
+            const parts = raw.split("-");
+            if (parts.length < 2) return raw;
+            const months = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+            const monthIdx = parseInt(parts[1], 10) - 1;
+            return `${months[monthIdx] || parts[1]}-${parts[0]}`;
+          },
           label: (item) => ` ${item.dataset.label}: ${item.parsed.y?.toFixed(4)}`,
           labelColor: (item) => ({
             borderColor: item.dataset._baseColor,

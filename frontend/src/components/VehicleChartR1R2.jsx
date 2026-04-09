@@ -119,7 +119,18 @@ export default function VehicleChartR1R2({
     );
   }
 
-  const { labels, unit, tracts } = metricData;
+  const { labels: rawLabels, unit, tracts } = metricData;
+
+  // Convert 24-hour labels to 12-hour format for R1 (Daily)
+  const labels = mode === "R1"
+    ? rawLabels.map((lbl) => {
+        const h = parseInt(lbl, 10);
+        if (isNaN(h)) return lbl;
+        if (h === 0 || h === 24) return "12 AM";
+        if (h === 12) return "12 PM";
+        return h < 12 ? `${h} AM` : `${h - 12} PM`;
+      })
+    : rawLabels;
   const tractIds = Object.keys(tracts);
 
   // City average
@@ -276,7 +287,12 @@ export default function VehicleChartR1R2({
         borderColor: "#ccc", borderWidth: 1, displayColors: true,
         callbacks: {
           title: (items) => items[0]?.label || "",
-          label: (item) => ` ${item.dataset.label}: ${item.parsed.y?.toFixed(4)} ${unit}`,
+          label: (item) => {
+            const match = unit.match(/^(.+?)\s*\((.+)\)$/);
+            const name = match ? match[1] : unit;
+            const uom = match ? match[2] : "";
+            return ` ${item.dataset.label}: ${name} ${item.parsed.y?.toFixed(4)}${uom ? ` (${uom})` : ""}`;
+          },
           labelColor: (item) => ({ borderColor: item.dataset._baseColor || "#1a1a1a", backgroundColor: item.dataset._baseColor || "#1a1a1a" }),
           labelTextColor: () => "#222",
         },
