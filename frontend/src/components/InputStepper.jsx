@@ -129,9 +129,12 @@ function InputStepper({ finalNext, activeStep, setActiveStep }) {
         if (state.speedEstimated) {
           console.log("ABM mode - speed estimated, proceeding to next step");
           store.lockTrafficMode();
+        } else {
+          window.dispatchEvent(
+            new CustomEvent("app-notification", { detail: { text: "ABM data not yet processed. You can continue, but results may be incomplete." } })
+          );
         }
       } else if (mode === "MFD") {
-        // Lock the mode if files are present
         if (state.trafficVolumeFile && state.trafficMFTParametersFile) {
           store.lockTrafficMode();
 
@@ -157,8 +160,17 @@ function InputStepper({ finalNext, activeStep, setActiveStep }) {
             window.dispatchEvent(
               new CustomEvent("app-notification", { detail: { text: "Upload failed: " + err.message } })
             );
+            return;
           }
+        } else {
+          window.dispatchEvent(
+            new CustomEvent("app-notification", { detail: { text: "MFD files not uploaded. You can continue, but results may be incomplete." } })
+          );
         }
+      } else {
+        window.dispatchEvent(
+          new CustomEvent("app-notification", { detail: { text: "No traffic method selected. You can continue, but results may be incomplete." } })
+        );
       }
     }
 
