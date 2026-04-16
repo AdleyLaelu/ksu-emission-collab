@@ -347,14 +347,24 @@ function VehicleTrafficVolume() {
                 <code className="bg-blue-100 px-1 rounded text-xs">k_j</code>,
                 <code className="bg-blue-100 px-1 rounded text-xs">w</code>.
               </p>
-              <a
-                href="/MFD_parameters_template.csv"
-                download="MFD_parameters_template.csv"
-                className="inline-flex items-center gap-1 mt-2 text-blue-600 hover:text-blue-800 font-medium text-xs underline"
-              >
-                <FileSpreadsheet className="w-3 h-3" />
-                Download MFD Parameters template CSV
-              </a>
+              <div className="flex gap-4 mt-2">
+                <a
+                  href="/MFD_traffic_volume_template.xlsx"
+                  download="MFD_traffic_volume_template.xlsx"
+                  className="inline-flex items-center gap-1 text-blue-600 hover:text-blue-800 font-medium text-xs underline"
+                >
+                  <FileSpreadsheet className="w-3 h-3" />
+                  Download Traffic Volume template
+                </a>
+                <a
+                  href="/MFD_parameters_template.csv"
+                  download="MFD_parameters_template.csv"
+                  className="inline-flex items-center gap-1 text-blue-600 hover:text-blue-800 font-medium text-xs underline"
+                >
+                  <FileSpreadsheet className="w-3 h-3" />
+                  Download MFD Parameters template
+                </a>
+              </div>
             </div>
             <form className="flex flex-row flex-nowrap items-end gap-3 p-2 rounded w-full min-w-0">
               {/* File 1: Traffic Volume */}
