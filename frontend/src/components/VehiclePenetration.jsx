@@ -320,7 +320,8 @@ function VehiclePenetration({ activeStep }) {
                   onChange={(e) => {
                     setPenetrationState({ projectedYear: e.target.value });
                   }}
-                  className={`border rounded px-2 py-1 w-full h-[32px] ${
+                  disabled={!penetrationState.penetrationFile}
+                  className={`border rounded px-2 py-1 w-full h-[32px] disabled:opacity-50 disabled:cursor-not-allowed ${
                     theme === "dark"
                       ? "bg-[#18181b] text-white border-gray-700"
                       : ""
@@ -359,8 +360,8 @@ function VehiclePenetration({ activeStep }) {
                   onChange={(e) =>
                     setClassificationState({ vehicleType: e.target.value })
                   }
-                  disabled={classificationState.city === ""}
-                  className={`border rounded px-2 py-1 w-full transition-colors duration-300 ${
+                  disabled={!penetrationState.penetrationFile}
+                  className={`border rounded px-2 py-1 w-full transition-colors duration-300 disabled:opacity-50 disabled:cursor-not-allowed ${
                     theme === "dark"
                       ? "bg-[#18181b] text-white border-gray-700"
                       : "bg-white text-black border-gray-300"
