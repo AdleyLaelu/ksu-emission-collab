@@ -134,7 +134,10 @@ export default function EnergyConsumptionAndEmissionRates() {
   const [hoveredVehicle, setHoveredVehicle] = useState(null);
   const [pinnedVehicle, setPinnedVehicle] = useState(null);
   const pinnedVehicleRef = useRef(null);
-  useEffect(() => { pinnedVehicleRef.current = pinnedVehicle; }, [pinnedVehicle]);
+  useEffect(() => {
+    pinnedVehicleRef.current = pinnedVehicle;
+    console.log("[Pin] pinnedVehicle changed to:", pinnedVehicle);
+  }, [pinnedVehicle]);
   const activeVehicle = hoveredVehicle || pinnedVehicle;
 
   // Loading progress
@@ -202,7 +205,8 @@ export default function EnergyConsumptionAndEmissionRates() {
     prevFuelTypeRef.current = fuelType;
   }, [fuelType, emissionType, setConsumptionAndEmissionState]);
 
-  // Auto-trigger: fetch all vehicle types in parallel when params change
+  // Auto-trigger: fetch vehicle data when params change
+  // If a vehicle is pinned, only fetch that one (2 calls). Otherwise fetch all (26 calls).
   useEffect(() => {
     if (!fuelType || !emissionType || !vehicleAge || !city || !emissionBackend) return;
 
@@ -212,12 +216,7 @@ export default function EnergyConsumptionAndEmissionRates() {
     const ageChanged = vehicleAge !== last.vehicleAge;
     const cityChanged = city !== last.city;
 
-    console.log("[Chart Fetch] Params:", { fuelType, emissionType, vehicleAge, city });
-    console.log("[Chart Fetch] Changed:", { fuelChanged, emissionChanged, ageChanged, cityChanged });
-
     if (!fuelChanged && !emissionChanged && !ageChanged && !cityChanged) return;
-
-    console.log("[Chart Fetch] Triggering fetch for age:", vehicleAge);
 
     const shouldFetchConsumption = fuelChanged || ageChanged || cityChanged;
     const shouldFetchEmissions = emissionChanged || ageChanged || cityChanged || fuelChanged;
@@ -227,30 +226,39 @@ export default function EnergyConsumptionAndEmissionRates() {
     const controller = new AbortController();
     abortRef.current = controller;
 
-    // Clear stale data, preserve what won't be refetched
+    // Determine which vehicles to fetch: only pinned vehicle, or all if none pinned
+    const isInitialLoad = !last.fuelType && !last.emissionType && !last.vehicleAge && !last.city;
+    const currentPinned = pinnedVehicleRef.current;
+    const vehiclesToFetch = (currentPinned && !isInitialLoad) ? [currentPinned] : VEHICLE_TYPES;
+
+    console.log(`[Chart Fetch] Pinned: ${currentPinned || "none"}, Fetching ${vehiclesToFetch.length} vehicle(s)`);
+
+    // Preserve data for vehicles we're not refetching
     setVehicleData((prev) => {
+      if (!prev) return {};
       const preserved = {};
-      if (!shouldFetchConsumption && prev) {
-        Object.entries(prev).forEach(([k, v]) => {
-          if (k.endsWith("_Consumption")) preserved[k] = v;
-        });
-      }
-      if (!shouldFetchEmissions && prev) {
-        Object.entries(prev).forEach(([k, v]) => {
-          if (k.endsWith("_Selected")) preserved[k] = v;
-        });
-      }
+      Object.entries(prev).forEach(([k, v]) => {
+        const vt = k.replace(/_Consumption$|_Selected$/, "");
+        // Keep data for vehicles we're not fetching
+        if (!vehiclesToFetch.includes(vt)) {
+          preserved[k] = v;
+        } else {
+          // For vehicles we ARE fetching, preserve data we won't refetch
+          if (!shouldFetchConsumption && k.endsWith("_Consumption")) preserved[k] = v;
+          if (!shouldFetchEmissions && k.endsWith("_Selected")) preserved[k] = v;
+        }
+      });
       return preserved;
     });
 
-    const total = VEHICLE_TYPES.length * ((shouldFetchConsumption ? 1 : 0) + (shouldFetchEmissions ? 1 : 0));
+    const total = vehiclesToFetch.length * ((shouldFetchConsumption ? 1 : 0) + (shouldFetchEmissions ? 1 : 0));
     setTotalCount(total);
     setLoadedCount(0);
     setLoading(true);
 
-    // Fire ALL requests in parallel — each updates the store on completion (progressive rendering)
+    // Fire requests for selected vehicles
     const promises = [];
-    VEHICLE_TYPES.forEach((vt) => {
+    vehiclesToFetch.forEach((vt) => {
       if (shouldFetchConsumption) {
         promises.push(
           fetchConsumption(vt, fuelType, vehicleAge, city, controller.signal)
