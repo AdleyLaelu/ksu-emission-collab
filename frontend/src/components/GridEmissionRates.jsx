@@ -150,10 +150,10 @@ const GridEmissionRates = ({ activeStep, isResults }) => {
           </div>
         </form>
 
-        {/* Interactive GridChartR3 (user) + scenario legend + reference image (main) */}
-        <div className="flex flex-row items-center gap-8 w-full">
-          {/* Live chart (user's addition — replaces static image) */}
-          <div className="flex-1 max-w-3xl rounded-lg bg-white shadow-sm p-3">
+        {/* Interactive GridChartR3 (user) + scenario legend below */}
+        <div className="flex flex-col gap-4 w-full max-w-3xl">
+          {/* Live chart */}
+          <div className="rounded-lg bg-white shadow-sm p-3">
             <GridChartR3
               emissionType={GridEmissionState.EmissionType}
               cityName={classificationState.cityInput}
@@ -163,8 +163,8 @@ const GridEmissionRates = ({ activeStep, isResults }) => {
             />
           </div>
 
-          {/* Scenario legend with color swatches (user's addition) */}
-          <div className="flex-shrink-0 border border-gray-500 rounded-xl bg-white p-2 shadow-md">
+          {/* Scenario legend — single column */}
+          <div className="border border-gray-500 rounded-xl bg-white p-2 shadow-md w-fit">
             {selectedScenarioIdx !== null && (
               <button type="button" onClick={() => setSelectedScenarioIdx(null)} className="text-[9px] text-blue-500 hover:text-blue-700 font-semibold mb-1">Clear</button>
             )}
@@ -179,12 +179,11 @@ const GridEmissionRates = ({ activeStep, isResults }) => {
                   <svg width="22" height="8" style={{ flexShrink: 0 }}>
                     <line x1="0" y1="4" x2="22" y2="4" stroke={SCENARIO_COLORS[idx % SCENARIO_COLORS.length]} strokeWidth={isSelected ? 2.5 : 1.5} strokeLinecap="round" />
                   </svg>
-                  <span className={`text-xs text-left ${isSelected ? "font-bold text-gray-900" : "font-bold text-gray-700"}`}>{name}</span>
+                  <span className={`text-[11px] text-left whitespace-nowrap ${isSelected ? "font-bold text-gray-900" : "font-bold text-gray-700"}`}>{name}</span>
                 </button>
               );
             })}
           </div>
-
         </div>
 
       </div>

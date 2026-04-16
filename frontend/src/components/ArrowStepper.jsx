@@ -230,7 +230,7 @@ export default function ArrowStepper() {
       `}</style>
 
       {/* Top row: arrow stepper and vertical stepper side by side */}
-      <div className="flex flex-row items-start gap-8 w-full max-w-7xl mx-auto justify-center">
+      <div className="flex flex-row items-start gap-8 w-full max-w-7xl mx-auto justify-between">
         {/* Arrow stepper */}
         <div className="flex items-center gap-4">
           {steps.map((step, index) => (
@@ -283,10 +283,10 @@ export default function ArrowStepper() {
         )}
       </div>
 
-            {/* Unified row: navigation and step content aligned */}
-      <div className="flex flex-col gap-4 w-full">
+            {/* Unified row: navigation and step content centered between edges and radio buttons */}
+      <div className="flex flex-col gap-4 w-full items-center" style={{ paddingRight: activeStep !== -1 ? 280 : 0 }}>
         {/* Step Content (InputStepper, AnalysisStepper, GridEmissionRates) */}
-        <div className="flex-1 max-w-7xl mx-auto w-full">
+        <div className="flex-1 w-full max-w-5xl">
           {activeStep === 0 && (
             <div className="p-4 bg-white">
               <InputStepper

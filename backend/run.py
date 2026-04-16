@@ -561,8 +561,8 @@ def upload_vehicle_data(type):
         # --- Process file2 (mfd_params) ---
         df2 = pd.read_csv(file2) if file2.filename.endswith(".csv") else pd.read_excel(file2)
         print(f"[DEBUG] File2 (MFD) original shape: {df2.shape}")
-        print(f"[DEBUG] File2 (MFD) original columns: {list(df2.columns)}")
-        print(f"[DEBUG] File2 (MFD) sample data:\n{df2.head()}")
+        print(f"[DEBUG] File2 (MFD) original columns: {[str(c).encode('ascii', 'replace').decode() for c in df2.columns]}")
+        print(f"[DEBUG] File2 (MFD) sample data:\n{df2.head().to_string().encode('ascii', 'replace').decode()}")
         
         # The mfd_params table expects: tract, param_key, param_value
         # We need to transform the data to match this schema
