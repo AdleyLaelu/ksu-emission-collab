@@ -332,6 +332,30 @@ function VehicleTrafficVolume() {
         {/* === MFD Mode UI === */}
         {trafficMode === "MFD" && (
           <div className="flex flex-col gap-4">
+            <div className="bg-blue-50 border border-blue-200 rounded-lg px-4 py-3 text-sm text-blue-800">
+              <p className="font-semibold mb-1">Upload MFD Traffic Data</p>
+              <p className="text-blue-700">
+                Upload two files: (1) <strong>Traffic Volume</strong> as an Excel file with one sheet per tract
+                (named <code className="bg-blue-100 px-1 rounded text-xs">tract=XXXXXXXXXXX</code>), each containing
+                <code className="bg-blue-100 px-1 rounded text-xs">Time</code> and
+                <code className="bg-blue-100 px-1 rounded text-xs">Traffic Volume</code> columns.
+                (2) <strong>MFD Parameters</strong> as a CSV with columns:
+                <code className="bg-blue-100 px-1 rounded text-xs">Tract ID</code>,
+                <code className="bg-blue-100 px-1 rounded text-xs">&lambda;</code>,
+                <code className="bg-blue-100 px-1 rounded text-xs">v_f</code>,
+                <code className="bg-blue-100 px-1 rounded text-xs">Q_m</code>,
+                <code className="bg-blue-100 px-1 rounded text-xs">k_j</code>,
+                <code className="bg-blue-100 px-1 rounded text-xs">w</code>.
+              </p>
+              <a
+                href="/MFD_parameters_template.csv"
+                download="MFD_parameters_template.csv"
+                className="inline-flex items-center gap-1 mt-2 text-blue-600 hover:text-blue-800 font-medium text-xs underline"
+              >
+                <FileSpreadsheet className="w-3 h-3" />
+                Download MFD Parameters template CSV
+              </a>
+            </div>
             <form className="flex flex-row flex-nowrap items-end gap-3 p-2 rounded w-full min-w-0">
               {/* File 1: Traffic Volume */}
               <div className="flex flex-col gap-1">

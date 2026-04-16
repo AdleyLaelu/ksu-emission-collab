@@ -397,7 +397,7 @@ function VehiclePenetration({ activeStep }) {
             <div className="flex w-full justify-end mt-2">
               <label
                 className={`flex items-center font-semibold px-3 py-1.5 rounded cursor-pointer h-[36px] text-sm transition-colors duration-300 whitespace-nowrap w-full max-w-[300px]
-                  ${theme === "dark" ? "bg-blue-900 text-white" : "bg-blue-400 text-white"}`}
+                  ${theme === "dark" ? "bg-blue-700 hover:bg-blue-800 text-white" : "bg-blue-600 hover:bg-blue-700 text-white"}`}
                 style={{ minWidth: 0 }}
               >
                 <span className="flex items-center gap-2 w-full justify-center">
