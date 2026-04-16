@@ -312,7 +312,7 @@ function VehicleClassification({ activeStep }) {
                   onChange={(e) =>
                     setClassificationState({ baseYear: e.target.value })
                   }
-                  className={`border rounded px-2 py-1 w-full h-[32px] transition-colors duration-300 ${
+                  className={`border rounded px-2 py-1 w-full h-[32px] transition-colors duration-300 disabled:opacity-50 disabled:cursor-not-allowed ${
                     theme === "dark"
                       ? "bg-[#18181b] text-white border-gray-700"
                       : "bg-white text-black border-gray-300"
@@ -340,7 +340,7 @@ function VehicleClassification({ activeStep }) {
                     setClassificationState({ vehicleType: e.target.value })
                   }
                   disabled={classificationState.city === ""}
-                  className={`border rounded px-2 py-1 w-full transition-colors duration-300 ${
+                  className={`border rounded px-2 py-1 w-full transition-colors duration-300 disabled:opacity-50 disabled:cursor-not-allowed ${
                     theme === "dark"
                       ? "bg-[#18181b] text-white border-gray-700"
                       : "bg-white text-black border-gray-300"
@@ -413,7 +413,8 @@ function VehicleClassification({ activeStep }) {
             {/* Upload Vehicle Classification button below City, right-aligned and smaller */}
             <div className="flex w-full justify-end mt-2">
               <label
-                className={`flex items-center font-semibold px-3 py-1.5 rounded cursor-pointer h-[36px] text-sm transition-colors duration-300 whitespace-nowrap w-full max-w-[300px]
+                className={`flex items-center font-semibold px-3 py-1.5 rounded h-[36px] text-sm transition-colors duration-300 whitespace-nowrap w-full max-w-[300px]
+                  ${classificationState.city === "" ? "opacity-50 cursor-not-allowed" : "cursor-pointer"}
                   ${
                     theme === "dark"
                       ? "bg-blue-900 text-white"
