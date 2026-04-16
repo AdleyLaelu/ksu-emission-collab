@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useMemo, createElement } from "react";
 import { Box } from "@mui/material";
 import { DataGrid, GridColDef } from "@mui/x-data-grid";
 import useAppStore from "../useAppStore";
@@ -28,23 +28,33 @@ function TractParametersTable({ trafficState, alignLeft }: { trafficState: any, 
       disableColumnReorder: true,
     };
     
+    // Map raw CSV header names to styled mathematical notation
+    const mathHeaders: Record<string, { label: string, render: () => any }> = {
+      "λ":   { label: "λ",  render: () => createElement("span", { style: { fontStyle: "italic" } }, "λ") },
+      "v_f": { label: "vf", render: () => createElement("span", { style: { fontStyle: "italic" } }, "v", createElement("sub", null, "f")) },
+      "Q_m": { label: "Qm", render: () => createElement("span", { style: { fontStyle: "italic" } }, "Q", createElement("sub", null, "m")) },
+      "k_j": { label: "kj", render: () => createElement("span", { style: { fontStyle: "italic" } }, "k", createElement("sub", null, "j")) },
+      "w":   { label: "w",  render: () => createElement("span", { style: { fontStyle: "italic" } }, "w") },
+      "m":   { label: "m",  render: () => createElement("span", { style: { fontStyle: "italic" } }, "m") },
+      "R^2": { label: "R²", render: () => createElement("span", { style: { fontStyle: "italic" } }, "R", createElement("sup", null, "2")) },
+    };
+
     const baseColumns = rawHeaders.map((h) => {
       const fieldKey = getSafeField(h);
-      const headerName = h === "R^2" ? "R²" : String(h);
-      const lowerName = headerName.toLowerCase();
+      const math = mathHeaders[h];
+      const headerName = math ? math.label : String(h);
+      const lowerH = h.toLowerCase();
 
       let width: number;
-
-      // Adjusted dynamic width for slightly larger font (7.8px multiplier)
-      if (lowerName.includes('tract id')) {
-        width = 110; 
+      if (lowerH.includes('tract')) {
+        width = 110;
       } else {
-        const tightCalculatedWidth = headerName.length * 7.8 + 15; 
+        const tightCalculatedWidth = headerName.length * 7.8 + 15;
         width = Math.max(90, Math.min(300, tightCalculatedWidth));
       }
 
       const colAlign = align;
-      return {
+      const col: GridColDef = {
         field: fieldKey,
         headerName,
         minWidth: width,
@@ -55,6 +65,10 @@ function TractParametersTable({ trafficState, alignLeft }: { trafficState: any, 
         resizable: false,
         disableColumnReorder: true,
       };
+      if (math) {
+        col.renderHeader = () => createElement("span", { style: { fontWeight: 700 } }, math.render());
+      }
+      return col;
     });
     return [snoCol, ...baseColumns];
   }, [rawHeaders, alignLeft]);
