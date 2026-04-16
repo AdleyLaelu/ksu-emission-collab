@@ -473,18 +473,7 @@ export default function EnergyConsumptionAndEmissionRates() {
             borderWidth: 1,
             displayColors: true,
             callbacks: {
-              title: (items) => {
-                if (!items.length) return "";
-                const chart = items[0].chart;
-                const xScale = chart.scales.x;
-                // Get actual mouse x position and convert to data value
-                const event = chart._lastEvent;
-                if (event && xScale) {
-                  const xValue = xScale.getValueForPixel(event.x);
-                  return `${items[0].dataset?.label || ""} @ ${xValue.toFixed(1)} mph`;
-                }
-                return items[0].dataset?.label || "";
-              },
+              title: (items) => items[0]?.dataset?.label || "",
               label: (item) => {
                 if (!item?.chart) return "";
                 const chart = item.chart;
@@ -493,10 +482,16 @@ export default function EnergyConsumptionAndEmissionRates() {
                 if (event && xScale) {
                   const xValue = xScale.getValueForPixel(event.x);
                   const yValue = interpolateY(item.dataset.data, xValue);
-                  return `Value: ${yValue?.toFixed(4) ?? "\u2014"}`;
+                  return [
+                    `Speed: ${xValue.toFixed(1)} mph`,
+                    `Value: ${yValue?.toFixed(4) ?? "\u2014"}`,
+                  ];
                 }
                 // Fallback to actual data point
-                return `Value: ${item.parsed?.y?.toFixed(4) ?? "\u2014"}`;
+                return [
+                  `Speed: ${item.parsed?.x} mph`,
+                  `Value: ${item.parsed?.y?.toFixed(4) ?? "\u2014"}`,
+                ];
               },
               labelColor: (item) => {
                 const idx = VEHICLE_TYPES.indexOf(item.dataset?.vehicleType);
