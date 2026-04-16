@@ -286,7 +286,7 @@ export default function ArrowStepper() {
             {/* Unified row: navigation and step content centered between edges and radio buttons */}
       <div className="flex flex-col gap-4 w-full items-center" style={{ paddingRight: activeStep !== -1 ? 280 : 0 }}>
         {/* Step Content (InputStepper, AnalysisStepper, GridEmissionRates) */}
-        <div className="flex-1 w-full max-w-5xl">
+        <div className="flex-1 w-full">
           {activeStep === 0 && (
             <div className="p-4 bg-white">
               <InputStepper
