@@ -87,10 +87,7 @@ function VehiclePenetration({ activeStep }) {
     if (numericColIndex < 0) return undefined;
     const headers = penetrationState.penetrationHeaders || [];
     return [
-      ...headers.map((h) => {
-        const isNumeric = /age|count|rate|penetration/i.test(String(h || ""));
-        return isNumeric ? { className: "htCenter" } : {};
-      }),
+      ...headers.map(() => ({ className: "htCenter" })),
       { readOnly: true, className: "htDimmed htCenter" }
     ];
   }, [penetrationState.penetrationHeaders, numericColIndex]);
@@ -448,11 +445,8 @@ function VehiclePenetration({ activeStep }) {
                 theme === "dark" ? "ht-theme-main-dark" : "ht-theme-main"
               }
               afterGetColHeader={(col, TH) => {
-                const header = displayHeaders[col] || "";
-                const isNumeric = /age|count|rate|penetration|%/i.test(String(header));
-                TH.style.textAlign = isNumeric ? 'center' : 'left';
-                TH.style.paddingLeft = isNumeric ? '0' : '5px';
-                TH.style.fontWeight = 'bold';
+                TH.style.textAlign = "center";
+                TH.style.fontWeight = "bold";
               }}
             />
             <div className="flex flex-col sm:flex-row justify-between gap-2 sm:gap-4 mt-4">
