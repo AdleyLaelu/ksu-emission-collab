@@ -67,7 +67,7 @@ function VehicleStepper({ activeStep = 0, steps = [], onStepChange }) {
           {steps.map((label, idx) => {
             const isActive = idx === activeStep;
             return (
-              <div key={`${label}-${theme}`} style={{ position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'flex-end', minHeight: iconSize }}>
+              <Step key={`${label}-${theme}`} sx={{ position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'flex-end', minHeight: iconSize }}>
                 {/* Draw line only between icons, not above first or below last */}
                 {idx < stepCount - 1 && (
                   <div style={{
@@ -123,7 +123,7 @@ function VehicleStepper({ activeStep = 0, steps = [], onStepChange }) {
                     </span>
                   </span>
                 </ThemedStepLabel>
-              </div>
+              </Step>
             );
           })}
         </Stepper>
