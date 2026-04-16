@@ -246,7 +246,7 @@ function InputStepper({ finalNext, activeStep, setActiveStep }) {
   };
 
   return (
-    <div className="flex flex-col items-center gap-5 pt-0 w-full">
+    <div className="flex flex-col gap-5 pt-0 w-full">
       {/* Step-wise content */}
       <div className="w-full">
         {activeStep === 0 && <VehicleClassification activeStep={activeStep} />}
@@ -256,7 +256,7 @@ function InputStepper({ finalNext, activeStep, setActiveStep }) {
       </div>
 
       {/* Navigation Buttons */}
-      <div className="w-full max-w-7xl mx-auto flex flex-row items-center mt-2 justify-between">
+      <div className="w-full flex flex-row items-center mt-2 justify-between">
         {activeStep > 0 ? (
           <button
             className="bg-blue-500 text-white px-4 py-2 rounded"

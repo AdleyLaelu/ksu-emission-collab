@@ -288,13 +288,11 @@ export default function ArrowStepper() {
         {/* Step Content (InputStepper, AnalysisStepper, GridEmissionRates) */}
         <div className="flex-1 w-full">
           {activeStep === 0 && (
-            <div className="p-4 bg-white">
-              <InputStepper
-                finalNext={handleNext}
-                activeStep={inputSubStep}
-                setActiveStep={setInputSubStep}
-              />
-            </div>
+            <InputStepper
+              finalNext={handleNext}
+              activeStep={inputSubStep}
+              setActiveStep={setInputSubStep}
+            />
           )}
           {activeStep === 1 && (
             <div className="p-4 bg-white">
