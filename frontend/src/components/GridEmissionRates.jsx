@@ -53,12 +53,12 @@ const GridEmissionRates = ({ activeStep, isResults }) => {
         "This scenario builds on the same foundational assumptions as the Mid-case but incorporates the AEO2023 Low Oil & Gas Resource/Technology case (U.S. EIA, 2023), which projects substantially higher natural gas prices over time. Prices start at the same level in 2025 but increase more rapidly, reaching over $6.00/MMBtu by 2035, compared to $3.50–$4.00/MMBtu in the Mid-case scenario, thereby enhancing the competitiveness of renewable energy and storage in the generation mix.",
     },
     {
-      title: "Low Renewable Energy and Battery Costs with High Natural Gas Prices",
+      title: "Low RE & Battery Costs + High Gas Prices",
       description:
         " Building on the base assumptions of the Mid-case scenario, this case combines lower renewable energy and battery costs, based on the 2024 ATB advanced projections (NREL, 2024), which include wind adders dropping to $0/kW by 2050, with high natural gas prices, rising above $6.00/MMBtu by 2035. This combination creates one of the most favorable environments for renewable energy deployment among the eight modeled scenarios.",
     },
     {
-      title: "High Renewable Energy and Battery Costs with Low Natural Gas Prices",
+      title: "High RE & Battery Costs + Low Gas Prices",
       description:
         "This scenario also builds on the same base assumptions as the first scenario but combines higher renewable energy and battery costs based on conservative ATB projections NREL, 2024), including a $200/kW capital cost adder for wind through 2050, with low natural gas prices, projected to reach around $2.50/MMBtu by 2035. This combination reduces the competitiveness of renewables and results in a slower decarbonization trajectory.",
     },
@@ -174,26 +174,28 @@ const GridEmissionRates = ({ activeStep, isResults }) => {
             />
           </div>
 
-          {/* Scenario legend — single column */}
-          <div className="border border-gray-500 rounded-xl bg-white p-2 shadow-md w-fit">
+          {/* Scenario legend — 2 columns */}
+          <div className="border border-gray-500 rounded-xl bg-white p-2 shadow-md w-full">
             {selectedScenarioIdx !== null && (
-              <button type="button" onClick={() => setSelectedScenarioIdx(null)} className="text-[9px] text-blue-500 hover:text-blue-700 font-semibold mb-1">Clear</button>
+              <button type="button" onClick={() => setSelectedScenarioIdx(null)} className="text-[9px] text-blue-500 hover:text-blue-700 font-semibold mb-1 col-span-2">Clear</button>
             )}
-            {SCENARIO_NAMES.map((name, idx) => {
-              const isSelected = selectedScenarioIdx === idx;
-              const isFaded = selectedScenarioIdx !== null && !isSelected;
-              return (
-                <button key={name} type="button"
-                  onClick={() => setSelectedScenarioIdx(selectedScenarioIdx === idx ? null : idx)}
-                  className="flex items-center gap-1.5 py-0.5 w-full hover:opacity-80 transition-opacity"
-                  style={{ opacity: isFaded ? 0.28 : 1 }}>
-                  <svg width="22" height="8" style={{ flexShrink: 0 }}>
-                    <line x1="0" y1="4" x2="22" y2="4" stroke={SCENARIO_COLORS[idx % SCENARIO_COLORS.length]} strokeWidth={isSelected ? 2.5 : 1.5} strokeLinecap="round" />
-                  </svg>
-                  <span className={`text-[11px] text-left whitespace-nowrap ${isSelected ? "font-bold text-gray-900" : "font-bold text-gray-700"}`}>{name}</span>
-                </button>
-              );
-            })}
+            <div className="grid grid-cols-2 gap-x-4 gap-y-0.5">
+              {SCENARIO_NAMES.map((name, idx) => {
+                const isSelected = selectedScenarioIdx === idx;
+                const isFaded = selectedScenarioIdx !== null && !isSelected;
+                return (
+                  <button key={name} type="button"
+                    onClick={() => setSelectedScenarioIdx(selectedScenarioIdx === idx ? null : idx)}
+                    className="flex items-center gap-1.5 py-0.5 hover:opacity-80 transition-opacity"
+                    style={{ opacity: isFaded ? 0.28 : 1 }}>
+                    <svg width="22" height="8" style={{ flexShrink: 0 }}>
+                      <line x1="0" y1="4" x2="22" y2="4" stroke={SCENARIO_COLORS[idx % SCENARIO_COLORS.length]} strokeWidth={isSelected ? 2.5 : 1.5} strokeLinecap="round" />
+                    </svg>
+                    <span className={`text-[11px] text-left whitespace-nowrap ${isSelected ? "font-bold text-gray-900" : "font-bold text-gray-700"}`}>{name}</span>
+                  </button>
+                );
+              })}
+            </div>
           </div>
         </div>
 
