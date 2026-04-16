@@ -284,59 +284,53 @@ export default function ArrowStepper() {
       </div>
 
             {/* Unified row: navigation and step content centered between edges and radio buttons */}
-      <div className="flex flex-col gap-4 w-full items-center" style={{ paddingRight: activeStep !== -1 ? 280 : 0 }}>
+      <div className="flex flex-col gap-4 w-full max-w-7xl mx-auto">
         {/* Step Content (InputStepper, AnalysisStepper, GridEmissionRates) */}
-        <div className="flex-1 w-full max-w-5xl">
+        <div className="flex-1 w-full">
           {activeStep === 0 && (
-            <div className="p-4 bg-white">
-              <InputStepper
-                finalNext={handleNext}
-                activeStep={inputSubStep}
-                setActiveStep={setInputSubStep}
-              />
-            </div>
+            <InputStepper
+              finalNext={handleNext}
+              activeStep={inputSubStep}
+              setActiveStep={setInputSubStep}
+            />
           )}
           {activeStep === 1 && (
-            <div className="p-4 bg-white">
-              <AnalysisStepper
-                finalNext={(direction) => {
-                  if (direction === 'back') {
-                    handleBack();
-                  } else {
-                    handleNext();
-                  }
-                }}
-                activeStep={analysisSubStep}
-                setActiveStep={setAnalysisSubStep}
-                hideNavigation={false}
-                customNavButton={({ activeStep: analysisStep, steps: analysisSteps }) =>
-                  analysisStep === analysisSteps.length - 1 ? (
-                    <div className="flex gap-4 justify-center mt-6">
-                      <button
-                        onClick={handleNext}
-                        className="px-6 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition-colors"
-                      >
-                        Go to Results
-                      </button>
-                    </div>
-                  ) : null
+            <AnalysisStepper
+              finalNext={(direction) => {
+                if (direction === 'back') {
+                  handleBack();
+                } else {
+                  handleNext();
                 }
-              />
-            </div>
+              }}
+              activeStep={analysisSubStep}
+              setActiveStep={setAnalysisSubStep}
+              hideNavigation={false}
+              customNavButton={({ activeStep: analysisStep, steps: analysisSteps }) =>
+                analysisStep === analysisSteps.length - 1 ? (
+                  <div className="flex gap-4 justify-center mt-6">
+                    <button
+                      onClick={handleNext}
+                      className="px-6 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 transition-colors"
+                    >
+                      Go to Results
+                    </button>
+                  </div>
+                ) : null
+              }
+            />
           )}
           {activeStep === 2 && (
-            <div className="p-4 bg-white">
-              <FinalResultsPage
-                resultsSelection={resultsSelection}
-                setResultsSelection={setResultsSelection}
-              />
-            </div>
+            <FinalResultsPage
+              resultsSelection={resultsSelection}
+              setResultsSelection={setResultsSelection}
+            />
           )}
         </div>
 
         {/* Navigation Buttons: Back button at the bottom */}
         {activeStep === 2 && (
-          <div className="flex justify-start gap-4 w-full max-w-7xl mx-auto pb-4">
+          <div className="flex justify-start gap-4 w-full pb-4">
             <button
               onClick={handleBack}
               className="px-6 py-2 bg-gray-500 text-white rounded-md hover:bg-gray-600 transition-colors"

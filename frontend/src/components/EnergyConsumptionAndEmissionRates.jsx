@@ -134,7 +134,10 @@ export default function EnergyConsumptionAndEmissionRates() {
   const [hoveredVehicle, setHoveredVehicle] = useState(null);
   const [pinnedVehicle, setPinnedVehicle] = useState(null);
   const pinnedVehicleRef = useRef(null);
-  useEffect(() => { pinnedVehicleRef.current = pinnedVehicle; }, [pinnedVehicle]);
+  useEffect(() => {
+    pinnedVehicleRef.current = pinnedVehicle;
+    console.log("[Pin] pinnedVehicle changed to:", pinnedVehicle);
+  }, [pinnedVehicle]);
   const activeVehicle = hoveredVehicle || pinnedVehicle;
 
   // Loading progress
@@ -145,6 +148,28 @@ export default function EnergyConsumptionAndEmissionRates() {
   // Track last-fetched params to skip redundant requests
   const lastFetchRef = useRef({ fuelType: null, emissionType: null, vehicleAge: null, city: null });
   const abortRef = useRef(null);
+  const autoInitRef = useRef(false);
+
+  // Default filter values used when user hasn't selected (charts render immediately)
+  const DEFAULT_FUEL = "Gasoline";
+  const DEFAULT_EMISSION = "CO₂ Emissions";
+  const DEFAULT_AGE = "1";
+
+  // Auto-trigger initial fetch on mount with defaults
+  useEffect(() => {
+    if (autoInitRef.current) return;
+    autoInitRef.current = true;
+
+    // Set defaults if not already set, triggering the fetch
+    const updates = {};
+    if (!ConsumptionAndEmissionState.FuelType) updates.FuelType = DEFAULT_FUEL;
+    if (!ConsumptionAndEmissionState.EmissionType) updates.EmissionType = DEFAULT_EMISSION;
+    if (!ConsumptionAndEmissionState.VehicleAge) updates.VehicleAge = DEFAULT_AGE;
+
+    if (Object.keys(updates).length > 0) {
+      setConsumptionAndEmissionState(updates);
+    }
+  }, [ConsumptionAndEmissionState, setConsumptionAndEmissionState]);
 
   // Derived params
   const fuelType = ConsumptionAndEmissionState.FuelType || "";
@@ -180,7 +205,8 @@ export default function EnergyConsumptionAndEmissionRates() {
     prevFuelTypeRef.current = fuelType;
   }, [fuelType, emissionType, setConsumptionAndEmissionState]);
 
-  // Auto-trigger: fetch all vehicle types in parallel when params change
+  // Auto-trigger: fetch vehicle data when params change
+  // If a vehicle is pinned, only fetch that one (2 calls). Otherwise fetch all (26 calls).
   useEffect(() => {
     if (!fuelType || !emissionType || !vehicleAge || !city || !emissionBackend) return;
 
@@ -200,30 +226,39 @@ export default function EnergyConsumptionAndEmissionRates() {
     const controller = new AbortController();
     abortRef.current = controller;
 
-    // Clear stale data, preserve what won't be refetched
+    // Determine which vehicles to fetch: only pinned vehicle, or all if none pinned
+    const isInitialLoad = !last.fuelType && !last.emissionType && !last.vehicleAge && !last.city;
+    const currentPinned = pinnedVehicleRef.current;
+    const vehiclesToFetch = (currentPinned && !isInitialLoad) ? [currentPinned] : VEHICLE_TYPES;
+
+    console.log(`[Chart Fetch] Pinned: ${currentPinned || "none"}, Fetching ${vehiclesToFetch.length} vehicle(s)`);
+
+    // Preserve data for vehicles we're not refetching
     setVehicleData((prev) => {
+      if (!prev) return {};
       const preserved = {};
-      if (!shouldFetchConsumption && prev) {
-        Object.entries(prev).forEach(([k, v]) => {
-          if (k.endsWith("_Consumption")) preserved[k] = v;
-        });
-      }
-      if (!shouldFetchEmissions && prev) {
-        Object.entries(prev).forEach(([k, v]) => {
-          if (k.endsWith("_Selected")) preserved[k] = v;
-        });
-      }
+      Object.entries(prev).forEach(([k, v]) => {
+        const vt = k.replace(/_Consumption$|_Selected$/, "");
+        // Keep data for vehicles we're not fetching
+        if (!vehiclesToFetch.includes(vt)) {
+          preserved[k] = v;
+        } else {
+          // For vehicles we ARE fetching, preserve data we won't refetch
+          if (!shouldFetchConsumption && k.endsWith("_Consumption")) preserved[k] = v;
+          if (!shouldFetchEmissions && k.endsWith("_Selected")) preserved[k] = v;
+        }
+      });
       return preserved;
     });
 
-    const total = VEHICLE_TYPES.length * ((shouldFetchConsumption ? 1 : 0) + (shouldFetchEmissions ? 1 : 0));
+    const total = vehiclesToFetch.length * ((shouldFetchConsumption ? 1 : 0) + (shouldFetchEmissions ? 1 : 0));
     setTotalCount(total);
     setLoadedCount(0);
     setLoading(true);
 
-    // Fire ALL requests in parallel — each updates the store on completion (progressive rendering)
+    // Fire requests for selected vehicles
     const promises = [];
-    VEHICLE_TYPES.forEach((vt) => {
+    vehiclesToFetch.forEach((vt) => {
       if (shouldFetchConsumption) {
         promises.push(
           fetchConsumption(vt, fuelType, vehicleAge, city, controller.signal)
@@ -401,6 +436,24 @@ export default function EnergyConsumptionAndEmissionRates() {
     }
   }, []);
 
+  // Linear interpolation helper for continuous tooltip values
+  const interpolateY = useCallback((data, x) => {
+    if (!data || data.length < 2) return null;
+    // Data is sorted by x (speed)
+    for (let i = 0; i < data.length - 1; i++) {
+      if (x >= data[i].x && x <= data[i + 1].x) {
+        const x0 = data[i].x, y0 = data[i].y;
+        const x1 = data[i + 1].x, y1 = data[i + 1].y;
+        if (x1 === x0) return y0;
+        const t = (x - x0) / (x1 - x0);
+        return y0 + t * (y1 - y0);
+      }
+    }
+    // Outside range: return nearest endpoint
+    if (x < data[0].x) return data[0].y;
+    return data[data.length - 1].y;
+  }, []);
+
   // Chart options builder with dynamic y-axis step sizing (niceStepSize / square grid)
   const buildOptions = useCallback(
     (yAxisText, xMax, yMax, aspectOverride) => {
@@ -435,10 +488,22 @@ export default function EnergyConsumptionAndEmissionRates() {
             callbacks: {
               title: (items) => items[0]?.dataset?.label || "",
               label: (item) => {
-                if (!item?.parsed) return "";
+                if (!item?.chart) return "";
+                const chart = item.chart;
+                const xScale = chart.scales.x;
+                const event = chart._lastEvent;
+                if (event && xScale) {
+                  const xValue = xScale.getValueForPixel(event.x);
+                  const yValue = interpolateY(item.dataset.data, xValue);
+                  return [
+                    `Speed: ${xValue.toFixed(1)} mph`,
+                    `Value: ${yValue?.toFixed(4) ?? "\u2014"}`,
+                  ];
+                }
+                // Fallback to actual data point
                 return [
-                  `Speed: ${item.parsed.x} mph`,
-                  `Value: ${item.parsed.y?.toFixed(4) ?? "\u2014"}`,
+                  `Speed: ${item.parsed?.x} mph`,
+                  `Value: ${item.parsed?.y?.toFixed(4) ?? "\u2014"}`,
                 ];
               },
               labelColor: (item) => {
@@ -500,7 +565,7 @@ export default function EnergyConsumptionAndEmissionRates() {
         },
       };
     },
-    [handleChartHover, handleChartClick]
+    [handleChartHover, handleChartClick, interpolateY]
   );
 
   const consumptionOptions = useMemo(() => buildOptions(consumptionYAxisText, undefined, consumptionYMax), [buildOptions, consumptionYAxisText, consumptionYMax]);

@@ -106,12 +106,6 @@ function ProjectedDemand() {
     file.name.endsWith(".csv") ? reader.readAsText(file) : reader.readAsBinaryString(file);
   };
 
-  const cityToFile = {
-    Atlanta: "GA", "Los Angeles": "CA", Seattle: "WA", NewYork: "NY",
-    "New York": "Newyork", LosAngeles: "California", Georgia: "Georgia",
-    California: "California", Washington: "Washington",
-  };
-
   const statesList = ["", "Atlanta", "Los Angeles", "Seattle", "NewYork"];
 
   const cityNameMapping = {
@@ -128,12 +122,6 @@ function ProjectedDemand() {
   // eslint-disable-next-line no-unused-vars
   const abmAvailableForYear = isABMAvailable(mappedCity, year);
 
-  // For non-ABM mode, use static images
-  let projectedImg = null;
-  if (isMFD && mappedCity && year) {
-    const fileCity = cityToFile[mappedCity] || mappedCity;
-    projectedImg = `/projected-demand-images/${fileCity}_${year}.png`;
-  }
 
   const hasChartData = trafficChartData && !isDataStale;
   const yearCache = projectedDemandState.yearCache || {};
@@ -191,7 +179,7 @@ function ProjectedDemand() {
         throw new Error(errData.message || errData.error || "ABM processing failed");
       }
       const abmData = await abmRes.json();
-      setMethodUsed("ABM Upload");
+      setMethodUsed("Import Traffic Data");
       notify(`Processed ${abmData.tracts_processed} tracts`);
 
       const dataUrl = `${API_URL}/plot/traffic/data/${encodeURIComponent(mappedCity)}/${encodeURIComponent(selectedYear)}?source=abm`;
@@ -202,7 +190,7 @@ function ProjectedDemand() {
       setTrafficChartData(chartJson);
       setChartYear(selectedYear);
       setProjectedDemandState({ speedEstimated: true });
-      saveToCache(selectedYear, file, chartJson, "ABM Upload");
+      saveToCache(selectedYear, file, chartJson, "Import Traffic Data");
     } catch (err) {
       console.error("ABM projected upload error:", err);
       notify(err.message || "Failed to process ABM data");
@@ -212,7 +200,8 @@ function ProjectedDemand() {
     }
   };
 
-  // MFD mode: process traffic data and fetch interactive chart when projected year changes
+  // MFD mode: process traffic data and fetch interactive chart when projected volume file is uploaded
+  const projectedVolumeFile = projectedDemandState.projectedTrafficVolumeFile;
   useEffect(() => {
     if (!isMFD) return;
     const selectedYear = penetrationState.projectedYear;
@@ -220,18 +209,17 @@ function ProjectedDemand() {
 
     // Check cache first
     const cached = yearCache[selectedYear];
-    if (cached?.chartData) return; // already restored by the cache useEffect above
+    if (cached?.chartData) return;
     if (chartYear === selectedYear && trafficChartData) return;
 
     const mfdParamsFile = trafficState.trafficMFTParametersFile;
+    if (!mfdParamsFile || !projectedVolumeFile) return;
 
     setTrafficChartData(null);
     setChartYear(null);
     setShowTable(true);
     setProjectedDemandState({ speedEstimated: true });
-    setMethodUsed("MFD");
-
-    if (!mfdParamsFile) return;
+    setMethodUsed("Model Traffic Dynamics");
 
     let cancelled = false;
     const processMFD = async () => {
@@ -239,6 +227,7 @@ function ProjectedDemand() {
       try {
         const formData = new FormData();
         formData.append("parameters_file", mfdParamsFile);
+        formData.append("traffic_volume_file", projectedVolumeFile);
         formData.append("city_name", mappedCity);
         formData.append("year", selectedYear);
 
@@ -247,7 +236,9 @@ function ProjectedDemand() {
           body: formData,
         });
         if (!processRes.ok) {
-          console.error("MFD processing failed for projected year");
+          const errData = await processRes.json().catch(() => ({}));
+          console.error("MFD processing failed for projected year:", errData);
+          notify("Processing failed: " + (errData.error || errData.message || "Unknown error"));
           return;
         }
         if (cancelled) return;
@@ -259,7 +250,7 @@ function ProjectedDemand() {
         if (cancelled) return;
         setTrafficChartData(chartJson);
         setChartYear(selectedYear);
-        saveToCache(selectedYear, mfdParamsFile, chartJson, "MFD");
+        saveToCache(selectedYear, mfdParamsFile, chartJson, "Model Traffic Dynamics");
       } catch (err) {
         if (cancelled) return;
         console.error("MFD projected demand processing error:", err);
@@ -271,11 +262,11 @@ function ProjectedDemand() {
     processMFD();
     return () => { cancelled = true; };
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [penetrationState.projectedYear, mappedCity, isMFD]);
+  }, [penetrationState.projectedYear, mappedCity, isMFD, projectedVolumeFile]);
 
   return (
-    <div className="flex flex-col pt-4 w-full max-w-full items-center">
-      <div className="w-full max-w-7xl mx-auto flex flex-col gap-6">
+    <div className="flex flex-col pt-4 w-full">
+      <div className="w-full flex flex-col gap-6">
 
         {/* Mode indicator (read-only, locked from Step 2) */}
         <div className="flex items-center gap-2">
@@ -287,7 +278,7 @@ function ProjectedDemand() {
           }`}>
             <span className="flex items-center gap-1.5">
               {isABM ? <Zap className="w-3.5 h-3.5" /> : <FileSpreadsheet className="w-3.5 h-3.5" />}
-              {isABM ? "ABM (Activity-Based Model)" : "MFD (Macroscopic Fundamental Diagram)"}
+              {isABM ? "Import Traffic Data" : "Model Traffic Dynamics"}
               <span className="text-xs opacity-60 ml-1">locked from Step 2</span>
             </span>
           </div>
@@ -337,11 +328,11 @@ function ProjectedDemand() {
           {/* Step 2: Show upload button only after year is selected */}
           {penetrationState.projectedYear && isABM && (
             <div className="flex flex-col gap-1">
-              <label className="text-xs font-medium text-gray-600">ABM Data for {penetrationState.projectedYear}</label>
+              <label className="text-xs font-medium text-gray-600">Traffic Data for {penetrationState.projectedYear}</label>
               <label className="flex items-center bg-blue-500 hover:bg-blue-600 text-white font-semibold px-4 rounded cursor-pointer h-10 whitespace-nowrap gap-2 text-sm">
                 {projectedDemandState.abmProjectedFile
                   ? projectedDemandState.abmProjectedFile.name
-                  : `Upload ABM Data (${penetrationState.projectedYear})`}
+                  : `Upload Traffic Data (${penetrationState.projectedYear})`}
                 <CloudUpload className="w-4 h-4" />
                 <input
                   type="file"
@@ -380,7 +371,7 @@ function ProjectedDemand() {
         {/* Prompt to upload when year is selected but no file yet */}
         {penetrationState.projectedYear && isABM && !projectedDemandState.abmProjectedFile && !isLoading && (
           <div className="text-sm text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-4 py-2">
-            Please upload ABM traffic data for year {penetrationState.projectedYear}.{" "}
+            Please upload traffic data for year {penetrationState.projectedYear}.{" "}
             <a href="/ABM_template.csv" download className="underline font-medium hover:text-amber-900">Download template</a>
           </div>
         )}
@@ -404,11 +395,11 @@ function ProjectedDemand() {
           <div className="flex flex-col gap-2 w-full max-w-7xl">
             {methodUsed && !isDataStale && (
               <div className={`flex items-center gap-2 px-3 py-1 rounded text-sm font-medium w-fit ${
-                methodUsed.includes("ABM")
+                methodUsed.includes("Import")
                   ? "bg-green-50 text-green-700 border border-green-200"
                   : "bg-blue-50 text-blue-700 border border-blue-200"
               }`}>
-                {methodUsed.includes("ABM") ? <Zap className="w-3 h-3" /> : <FileSpreadsheet className="w-3 h-3" />}
+                {methodUsed.includes("Import") ? <Zap className="w-3 h-3" /> : <FileSpreadsheet className="w-3 h-3" />}
                 <span>Method: {methodUsed}</span>
               </div>
             )}
@@ -450,35 +441,12 @@ function ProjectedDemand() {
           </div>
         )}
 
-        {/* --- MFD Results: Static Image fallback (only when NO interactive chart and NOT loading) --- */}
-        {isMFD && !hasChartData && !isLoading && projectedDemandState.speedEstimated && projectedImg && mappedCity && (
-          <div className="flex flex-col gap-2 w-full max-w-7xl">
-            {methodUsed && (
-              <div className="flex items-center gap-2 px-3 py-1 rounded text-sm font-medium w-fit bg-blue-50 text-blue-700 border border-blue-200">
-                <FileSpreadsheet className="w-3 h-3" />
-                <span>Method: {methodUsed}</span>
-              </div>
-            )}
-            <div className="relative w-full border border-gray-200 rounded-lg overflow-hidden bg-white shadow-sm">
-              <div className="pt-4 pb-2 text-center">
-                <span className="text-lg font-semibold">Year {year}</span>
-              </div>
-              <div className="w-full h-[360px] overflow-auto">
-                <img
-                  src={projectedImg}
-                  alt={`${mappedCity} ${year} Projected Demand`}
-                  className="max-w-none mx-auto"
-                  style={{ width: "100%", height: "auto", objectFit: "contain" }}
-                />
-              </div>
-            </div>
-          </div>
-        )}
+        {/* Static image fallback removed: interactive chart is now always used */}
 
         {/* MFD: Uploaded data table */}
         {isMFD && showTable && projectedDemandState.speedEstimated && projectedDemandState.projectedTrafficVolumeData?.length > 0 ? (
-          <div className="w-full max-w-7xl bg-[#f7f7f9] text-[#222222] overflow-x-auto">
-            <div className="bg-[#f7f7f9] border border-[#ccc] border-b-0 text-center text-lg text-[#222]">
+          <div className="w-full max-w-7xl bg-[#f7f7f9] text-[#222222] overflow-x-auto border border-[#ccc]">
+            <div className="bg-[#f7f7f9] border-b border-[#ccc] text-center text-lg text-[#222] py-1">
               <span>Projected Increase In Traffic Volumes</span>
             </div>
             <div className="overflow-x-auto">
@@ -495,7 +463,15 @@ function ProjectedDemand() {
                   TH.style.textAlign = "center";
                   TH.style.fontWeight = "bold";
                 }}
-                cells={() => ({ className: "htCenter" })}
+                cells={(_row, col) => {
+                  const headers = projectedDemandState.projectedTrafficVolumeHeaders || [];
+                  const isVolumeCol = headers[col]?.toLowerCase().includes("volume");
+                  return {
+                    className: "htCenter",
+                    type: isVolumeCol ? "numeric" : "text",
+                    numericFormat: isVolumeCol ? { pattern: "0.00" } : undefined,
+                  };
+                }}
               />
             </div>
           </div>
@@ -509,7 +485,7 @@ function ProjectedDemand() {
         {isMFD && (
           <div className="w-full max-w-7xl overflow-x-auto mt-4">
             <div className="bg-[#f7f7f9] text-[#222222] text-center font-semibold border border-[#cccccc]">
-              <span>Macroscopic Traffic Model Parameters</span>
+              <span>Traffic Model Parameters</span>
             </div>
             <TractParametersTable trafficState={trafficState} />
           </div>

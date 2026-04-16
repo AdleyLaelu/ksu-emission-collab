@@ -87,10 +87,7 @@ function VehiclePenetration({ activeStep }) {
     if (numericColIndex < 0) return undefined;
     const headers = penetrationState.penetrationHeaders || [];
     return [
-      ...headers.map((h) => {
-        const isNumeric = /age|count|rate|penetration/i.test(String(h || ""));
-        return isNumeric ? { className: "htCenter" } : {};
-      }),
+      ...headers.map(() => ({ className: "htCenter" })),
       { readOnly: true, className: "htDimmed htCenter" }
     ];
   }, [penetrationState.penetrationHeaders, numericColIndex]);
@@ -306,10 +303,10 @@ function VehiclePenetration({ activeStep }) {
   };
 
   return (
-    <div className="flex flex-col lg:flex-row items-stretch gap-4 md:gap-8 pt-4 transition-colors duration-300 w-full max-w-full justify-center">
+    <div className="flex flex-row items-stretch gap-6 pt-4 w-full">
       {/* Left panel: form + table */}
-      <div className="flex-1 flex flex-col items-center">
-        <div className="w-full max-w-3xl mx-auto flex flex-col gap-6">
+      <div className="flex-1 flex flex-col">
+        <div className="w-full flex flex-col gap-6">
           <form className="flex flex-col gap-2 md:gap-4 p-2 md:p-4 rounded transition-colors duration-300 w-full min-w-0 overflow-x-auto">
             <div className="flex flex-col md:flex-row gap-2 md:gap-4 w-full items-end">
               {/* Projected Year */}
@@ -320,7 +317,8 @@ function VehiclePenetration({ activeStep }) {
                   onChange={(e) => {
                     setPenetrationState({ projectedYear: e.target.value });
                   }}
-                  className={`border rounded px-2 py-1 w-full h-[32px] ${
+                  disabled={!penetrationState.penetrationFile}
+                  className={`border rounded px-2 py-1 w-full h-[32px] disabled:opacity-50 disabled:cursor-not-allowed ${
                     theme === "dark"
                       ? "bg-[#18181b] text-white border-gray-700"
                       : ""
@@ -359,8 +357,8 @@ function VehiclePenetration({ activeStep }) {
                   onChange={(e) =>
                     setClassificationState({ vehicleType: e.target.value })
                   }
-                  disabled={classificationState.city === ""}
-                  className={`border rounded px-2 py-1 w-full transition-colors duration-300 ${
+                  disabled={!penetrationState.penetrationFile}
+                  className={`border rounded px-2 py-1 w-full transition-colors duration-300 disabled:opacity-50 disabled:cursor-not-allowed ${
                     theme === "dark"
                       ? "bg-[#18181b] text-white border-gray-700"
                       : "bg-white text-black border-gray-300"
@@ -399,7 +397,7 @@ function VehiclePenetration({ activeStep }) {
             <div className="flex w-full justify-end mt-2">
               <label
                 className={`flex items-center font-semibold px-3 py-1.5 rounded cursor-pointer h-[36px] text-sm transition-colors duration-300 whitespace-nowrap w-full max-w-[300px]
-                  ${theme === "dark" ? "bg-blue-900 text-white" : "bg-blue-400 text-white"}`}
+                  ${theme === "dark" ? "bg-blue-700 hover:bg-blue-800 text-white" : "bg-blue-600 hover:bg-blue-700 text-white"}`}
                 style={{ minWidth: 0 }}
               >
                 <span className="flex items-center gap-2 w-full justify-center">
@@ -447,11 +445,8 @@ function VehiclePenetration({ activeStep }) {
                 theme === "dark" ? "ht-theme-main-dark" : "ht-theme-main"
               }
               afterGetColHeader={(col, TH) => {
-                const header = displayHeaders[col] || "";
-                const isNumeric = /age|count|rate|penetration|%/i.test(String(header));
-                TH.style.textAlign = isNumeric ? 'center' : 'left';
-                TH.style.paddingLeft = isNumeric ? '0' : '5px';
-                TH.style.fontWeight = 'bold';
+                TH.style.textAlign = "center";
+                TH.style.fontWeight = "bold";
               }}
             />
             <div className="flex flex-col sm:flex-row justify-between gap-2 sm:gap-4 mt-4">

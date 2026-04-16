@@ -16,6 +16,7 @@ const steps = [
 // Mode is now read from useAppStore.trafficMode ("ABM" | "MFD" | null)
 
 function InputStepper({ finalNext, activeStep, setActiveStep }) {
+  const classificationState = useAppStore((s) => s.classificationState);
   const lastSentDataRef = useRef(null);
   const VEHICLE_TYPES = [
     "Combination long-haul Truck",
@@ -131,7 +132,7 @@ function InputStepper({ finalNext, activeStep, setActiveStep }) {
           store.lockTrafficMode();
         } else {
           window.dispatchEvent(
-            new CustomEvent("app-notification", { detail: { text: "ABM data not yet processed. You can continue, but results may be incomplete." } })
+            new CustomEvent("app-notification", { detail: { text: "Traffic data not yet processed. You can continue, but results may be incomplete." } })
           );
         }
       } else if (mode === "MFD") {
@@ -164,7 +165,7 @@ function InputStepper({ finalNext, activeStep, setActiveStep }) {
           }
         } else {
           window.dispatchEvent(
-            new CustomEvent("app-notification", { detail: { text: "MFD files not uploaded. You can continue, but results may be incomplete." } })
+            new CustomEvent("app-notification", { detail: { text: "Model data files not uploaded. You can continue, but results may be incomplete." } })
           );
         }
       } else {
@@ -189,7 +190,7 @@ function InputStepper({ finalNext, activeStep, setActiveStep }) {
           console.log("ABM mode - projected demand estimated, proceeding");
         } else {
           window.dispatchEvent(
-            new CustomEvent("app-notification", { detail: { text: "Please select a projected year to load ABM data" } })
+            new CustomEvent("app-notification", { detail: { text: "Please select a projected year to load traffic data" } })
           );
           return;
         }
@@ -246,7 +247,7 @@ function InputStepper({ finalNext, activeStep, setActiveStep }) {
   };
 
   return (
-    <div className="flex flex-col items-center gap-5 pt-0 w-full">
+    <div className="flex flex-col gap-5 pt-0 w-full">
       {/* Step-wise content */}
       <div className="w-full">
         {activeStep === 0 && <VehicleClassification activeStep={activeStep} />}
@@ -256,7 +257,7 @@ function InputStepper({ finalNext, activeStep, setActiveStep }) {
       </div>
 
       {/* Navigation Buttons */}
-      <div className="w-full max-w-7xl mx-auto flex flex-row items-center mt-2 justify-between">
+      <div className="w-full flex flex-row items-center mt-2 justify-between">
         {activeStep > 0 ? (
           <button
             className="bg-blue-500 text-white px-4 py-2 rounded"
@@ -269,15 +270,21 @@ function InputStepper({ finalNext, activeStep, setActiveStep }) {
           <div style={{ minWidth: 100 }} />
         )}
         <div className="flex flex-row gap-4">
-          {activeStep < steps.length - 1 && (
-            <button
-              className="bg-blue-500 text-white px-4 py-2 rounded"
-              onClick={handleNext}
-              style={{ minWidth: 100 }}
-            >
-              Next
-            </button>
-          )}
+          {activeStep < steps.length - 1 && (() => {
+            const isStep0Disabled =
+              activeStep === 0 &&
+              (!classificationState.baseYear || classificationState.classificationData.length === 0);
+            return (
+              <button
+                className={`text-white px-4 py-2 rounded ${isStep0Disabled ? "bg-gray-300 cursor-not-allowed" : "bg-blue-500"}`}
+                onClick={handleNext}
+                disabled={isStep0Disabled}
+                style={{ minWidth: 100 }}
+              >
+                Next
+              </button>
+            );
+          })()}
           {activeStep === steps.length - 1 && (
             <button
               className="bg-green-600 text-white px-4 py-2 rounded -ml-2"
