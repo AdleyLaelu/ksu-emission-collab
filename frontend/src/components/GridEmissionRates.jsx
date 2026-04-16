@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import useAppStore from "../useAppStore";
 import VehicleStepper from "./VerticalStepper";
 import GridChartR3, { SCENARIO_COLORS } from "./GridChartR3";
@@ -17,6 +17,7 @@ import {
 
 const GridEmissionRates = ({ activeStep, isResults }) => {
   const [selectedScenarioIdx, setSelectedScenarioIdx] = useState(null);
+  const autoInitRef = useRef(false);
   const classificationState = useAppStore((state) => state.classificationState);
   const statesList = ["", "Atlanta", "Los Angeles", "Seattle", "NewYork"];
 
@@ -67,6 +68,16 @@ const GridEmissionRates = ({ activeStep, isResults }) => {
 
   const GridEmissionState = useAppStore((state) => state.GridEmission);
   const setGridEmissionState = useAppStore((state) => state.setGridEmission);
+
+  // Auto-set default emission type on mount to trigger chart generation
+  useEffect(() => {
+    if (autoInitRef.current) return;
+    autoInitRef.current = true;
+
+    if (!GridEmissionState.EmissionType) {
+      setGridEmissionState({ EmissionType: "CO2" });
+    }
+  }, [GridEmissionState.EmissionType, setGridEmissionState]);
 
   // Download handler removed: static image was replaced by live GridChartR3 chart.
   // TODO: Re-implement download by exporting the Chart.js canvas as PNG if needed.

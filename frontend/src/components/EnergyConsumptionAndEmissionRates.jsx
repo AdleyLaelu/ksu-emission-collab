@@ -145,6 +145,28 @@ export default function EnergyConsumptionAndEmissionRates() {
   // Track last-fetched params to skip redundant requests
   const lastFetchRef = useRef({ fuelType: null, emissionType: null, vehicleAge: null, city: null });
   const abortRef = useRef(null);
+  const autoInitRef = useRef(false);
+
+  // Default filter values used when user hasn't selected (charts render immediately)
+  const DEFAULT_FUEL = "Gasoline";
+  const DEFAULT_EMISSION = "CO₂ Emissions";
+  const DEFAULT_AGE = "1";
+
+  // Auto-trigger initial fetch on mount with defaults
+  useEffect(() => {
+    if (autoInitRef.current) return;
+    autoInitRef.current = true;
+
+    // Set defaults if not already set, triggering the fetch
+    const updates = {};
+    if (!ConsumptionAndEmissionState.FuelType) updates.FuelType = DEFAULT_FUEL;
+    if (!ConsumptionAndEmissionState.EmissionType) updates.EmissionType = DEFAULT_EMISSION;
+    if (!ConsumptionAndEmissionState.VehicleAge) updates.VehicleAge = DEFAULT_AGE;
+
+    if (Object.keys(updates).length > 0) {
+      setConsumptionAndEmissionState(updates);
+    }
+  }, [ConsumptionAndEmissionState, setConsumptionAndEmissionState]);
 
   // Derived params
   const fuelType = ConsumptionAndEmissionState.FuelType || "";
