@@ -212,7 +212,12 @@ export default function EnergyConsumptionAndEmissionRates() {
     const ageChanged = vehicleAge !== last.vehicleAge;
     const cityChanged = city !== last.city;
 
+    console.log("[Chart Fetch] Params:", { fuelType, emissionType, vehicleAge, city });
+    console.log("[Chart Fetch] Changed:", { fuelChanged, emissionChanged, ageChanged, cityChanged });
+
     if (!fuelChanged && !emissionChanged && !ageChanged && !cityChanged) return;
+
+    console.log("[Chart Fetch] Triggering fetch for age:", vehicleAge);
 
     const shouldFetchConsumption = fuelChanged || ageChanged || cityChanged;
     const shouldFetchEmissions = emissionChanged || ageChanged || cityChanged || fuelChanged;
