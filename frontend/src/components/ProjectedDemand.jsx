@@ -445,8 +445,8 @@ function ProjectedDemand() {
 
         {/* MFD: Uploaded data table */}
         {isMFD && showTable && projectedDemandState.speedEstimated && projectedDemandState.projectedTrafficVolumeData?.length > 0 ? (
-          <div className="w-full max-w-7xl bg-[#f7f7f9] text-[#222222] overflow-x-auto">
-            <div className="bg-[#f7f7f9] border border-[#ccc] border-b-0 text-center text-lg text-[#222]">
+          <div className="w-full max-w-7xl bg-[#f7f7f9] text-[#222222] overflow-x-auto border border-[#ccc]">
+            <div className="bg-[#f7f7f9] border-b border-[#ccc] text-center text-lg text-[#222] py-1">
               <span>Projected Increase In Traffic Volumes</span>
             </div>
             <div className="overflow-x-auto">
@@ -463,7 +463,15 @@ function ProjectedDemand() {
                   TH.style.textAlign = "center";
                   TH.style.fontWeight = "bold";
                 }}
-                cells={() => ({ className: "htCenter" })}
+                cells={(_row, col) => {
+                  const headers = projectedDemandState.projectedTrafficVolumeHeaders || [];
+                  const isVolumeCol = headers[col]?.toLowerCase().includes("volume");
+                  return {
+                    className: "htCenter",
+                    type: isVolumeCol ? "numeric" : "text",
+                    numericFormat: isVolumeCol ? { pattern: "0.00" } : undefined,
+                  };
+                }}
               />
             </div>
           </div>
