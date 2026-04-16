@@ -423,6 +423,24 @@ export default function EnergyConsumptionAndEmissionRates() {
     }
   }, []);
 
+  // Linear interpolation helper for continuous tooltip values
+  const interpolateY = useCallback((data, x) => {
+    if (!data || data.length < 2) return null;
+    // Data is sorted by x (speed)
+    for (let i = 0; i < data.length - 1; i++) {
+      if (x >= data[i].x && x <= data[i + 1].x) {
+        const x0 = data[i].x, y0 = data[i].y;
+        const x1 = data[i + 1].x, y1 = data[i + 1].y;
+        if (x1 === x0) return y0;
+        const t = (x - x0) / (x1 - x0);
+        return y0 + t * (y1 - y0);
+      }
+    }
+    // Outside range: return nearest endpoint
+    if (x < data[0].x) return data[0].y;
+    return data[data.length - 1].y;
+  }, []);
+
   // Chart options builder with dynamic y-axis step sizing (niceStepSize / square grid)
   const buildOptions = useCallback(
     (yAxisText, xMax, yMax, aspectOverride) => {
@@ -455,13 +473,30 @@ export default function EnergyConsumptionAndEmissionRates() {
             borderWidth: 1,
             displayColors: true,
             callbacks: {
-              title: (items) => items[0]?.dataset?.label || "",
+              title: (items) => {
+                if (!items.length) return "";
+                const chart = items[0].chart;
+                const xScale = chart.scales.x;
+                // Get actual mouse x position and convert to data value
+                const event = chart._lastEvent;
+                if (event && xScale) {
+                  const xValue = xScale.getValueForPixel(event.x);
+                  return `${items[0].dataset?.label || ""} @ ${xValue.toFixed(1)} mph`;
+                }
+                return items[0].dataset?.label || "";
+              },
               label: (item) => {
-                if (!item?.parsed) return "";
-                return [
-                  `Speed: ${item.parsed.x} mph`,
-                  `Value: ${item.parsed.y?.toFixed(4) ?? "\u2014"}`,
-                ];
+                if (!item?.chart) return "";
+                const chart = item.chart;
+                const xScale = chart.scales.x;
+                const event = chart._lastEvent;
+                if (event && xScale) {
+                  const xValue = xScale.getValueForPixel(event.x);
+                  const yValue = interpolateY(item.dataset.data, xValue);
+                  return `Value: ${yValue?.toFixed(4) ?? "\u2014"}`;
+                }
+                // Fallback to actual data point
+                return `Value: ${item.parsed?.y?.toFixed(4) ?? "\u2014"}`;
               },
               labelColor: (item) => {
                 const idx = VEHICLE_TYPES.indexOf(item.dataset?.vehicleType);
@@ -522,7 +557,7 @@ export default function EnergyConsumptionAndEmissionRates() {
         },
       };
     },
-    [handleChartHover, handleChartClick]
+    [handleChartHover, handleChartClick, interpolateY]
   );
 
   const consumptionOptions = useMemo(() => buildOptions(consumptionYAxisText, undefined, consumptionYMax), [buildOptions, consumptionYAxisText, consumptionYMax]);
