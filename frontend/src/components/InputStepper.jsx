@@ -16,6 +16,7 @@ const steps = [
 // Mode is now read from useAppStore.trafficMode ("ABM" | "MFD" | null)
 
 function InputStepper({ finalNext, activeStep, setActiveStep }) {
+  const classificationState = useAppStore((s) => s.classificationState);
   const lastSentDataRef = useRef(null);
   const VEHICLE_TYPES = [
     "Combination long-haul Truck",
@@ -269,15 +270,21 @@ function InputStepper({ finalNext, activeStep, setActiveStep }) {
           <div style={{ minWidth: 100 }} />
         )}
         <div className="flex flex-row gap-4">
-          {activeStep < steps.length - 1 && (
-            <button
-              className="bg-blue-500 text-white px-4 py-2 rounded"
-              onClick={handleNext}
-              style={{ minWidth: 100 }}
-            >
-              Next
-            </button>
-          )}
+          {activeStep < steps.length - 1 && (() => {
+            const isStep0Disabled =
+              activeStep === 0 &&
+              (!classificationState.baseYear || classificationState.classificationData.length === 0);
+            return (
+              <button
+                className={`text-white px-4 py-2 rounded ${isStep0Disabled ? "bg-gray-300 cursor-not-allowed" : "bg-blue-500"}`}
+                onClick={handleNext}
+                disabled={isStep0Disabled}
+                style={{ minWidth: 100 }}
+              >
+                Next
+              </button>
+            );
+          })()}
           {activeStep === steps.length - 1 && (
             <button
               className="bg-green-600 text-white px-4 py-2 rounded -ml-2"
