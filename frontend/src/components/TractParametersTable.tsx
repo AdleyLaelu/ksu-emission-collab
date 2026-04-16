@@ -43,7 +43,7 @@ function TractParametersTable({ trafficState, alignLeft }: { trafficState: any, 
         width = Math.max(90, Math.min(300, tightCalculatedWidth));
       }
 
-      const colAlign = lowerName.includes('tract id') ? 'left' as const : align;
+      const colAlign = align;
       return {
         field: fieldKey,
         headerName,
@@ -59,10 +59,12 @@ function TractParametersTable({ trafficState, alignLeft }: { trafficState: any, 
     return [snoCol, ...baseColumns];
   }, [rawHeaders, alignLeft]);
 
-  const roundVal = (v: any) => {
+  const formatVal = (v: any, header: string) => {
     if (v == null) return v;
     const n = Number(v);
-    return !isNaN(n) && typeof v !== 'boolean' && String(v).includes('.') ? Math.round(n * 100) / 100 : v;
+    if (isNaN(n) || typeof v === 'boolean') return v;
+    if (header.toLowerCase().includes('tract')) return v;
+    return n.toFixed(2);
   };
 
   const allRows: AnyRow[] = useMemo(() => {
@@ -72,13 +74,13 @@ function TractParametersTable({ trafficState, alignLeft }: { trafficState: any, 
       const normalizedRow: AnyRow = { id: idx + 1, sno: idx + 1 };
       if (Array.isArray(row)) {
         rawHeaders.forEach((h, i) => {
-          normalizedRow[getSafeField(h)] = row[i] !== undefined ? roundVal(row[i]) : null;
+          normalizedRow[getSafeField(h)] = row[i] !== undefined ? formatVal(row[i], h) : null;
         });
       } else {
         rawHeaders.forEach((h) => {
           const safeKey = getSafeField(h);
           const val = row[h] !== undefined ? row[h] : (row[safeKey] ?? null);
-          normalizedRow[safeKey] = roundVal(val);
+          normalizedRow[safeKey] = formatVal(val, h);
         });
       }
       return normalizedRow;
