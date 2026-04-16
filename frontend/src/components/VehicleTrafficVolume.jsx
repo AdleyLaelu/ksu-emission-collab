@@ -211,8 +211,8 @@ function VehicleTrafficVolume() {
   const statesList = ["", "Atlanta", "Los Angeles", "Seattle", "NewYork"];
 
   return (
-    <div className="flex flex-col pt-4 w-full max-w-full items-center">
-      <div className="w-full max-w-7xl mx-auto flex flex-col gap-4">
+    <div className="flex flex-col pt-4 w-full">
+      <div className="w-full flex flex-col gap-4">
 
         {/* === Mode Toggle === */}
         <div className="flex items-center gap-2">

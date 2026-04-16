@@ -274,8 +274,8 @@ function ProjectedDemand() {
   }, [penetrationState.projectedYear, mappedCity, isMFD]);
 
   return (
-    <div className="flex flex-col pt-4 w-full max-w-full items-center">
-      <div className="w-full max-w-7xl mx-auto flex flex-col gap-6">
+    <div className="flex flex-col pt-4 w-full">
+      <div className="w-full flex flex-col gap-6">
 
         {/* Mode indicator (read-only, locked from Step 2) */}
         <div className="flex items-center gap-2">
