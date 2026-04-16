@@ -110,10 +110,7 @@ function VehicleClassification({ activeStep }) {
     if (vehicleCountColIndex < 0) return undefined;
     const headers = classificationState.classificationHeaders || [];
     return [
-      ...headers.map((h) => {
-        const isNumeric = /age|count|rate|penetration/i.test(String(h || ""));
-        return isNumeric ? { className: "htCenter" } : {};
-      }),
+      ...headers.map(() => ({ className: "htCenter" })),
       { readOnly: true, className: "htDimmed htCenter" }
     ];
   }, [classificationState.classificationHeaders, vehicleCountColIndex]);
@@ -478,10 +475,7 @@ function VehicleClassification({ activeStep }) {
                   theme === "dark" ? "ht-theme-main-dark" : "ht-theme-main"
                 }
                 afterGetColHeader={(col, TH) => {
-                  const header = displayHeaders[col] || "";
-                  const isNumeric = /age|count|rate|penetration|%/i.test(String(header));
-                  TH.style.textAlign = isNumeric ? "center" : "left";
-                  TH.style.paddingLeft = isNumeric ? "0" : "5px";
+                  TH.style.textAlign = "center";
                   TH.style.fontWeight = "bold";
                 }}
               />
