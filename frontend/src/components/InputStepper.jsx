@@ -132,7 +132,7 @@ function InputStepper({ finalNext, activeStep, setActiveStep }) {
           store.lockTrafficMode();
         } else {
           window.dispatchEvent(
-            new CustomEvent("app-notification", { detail: { text: "ABM data not yet processed. You can continue, but results may be incomplete." } })
+            new CustomEvent("app-notification", { detail: { text: "Traffic data not yet processed. You can continue, but results may be incomplete." } })
           );
         }
       } else if (mode === "MFD") {
@@ -165,7 +165,7 @@ function InputStepper({ finalNext, activeStep, setActiveStep }) {
           }
         } else {
           window.dispatchEvent(
-            new CustomEvent("app-notification", { detail: { text: "MFD files not uploaded. You can continue, but results may be incomplete." } })
+            new CustomEvent("app-notification", { detail: { text: "Model data files not uploaded. You can continue, but results may be incomplete." } })
           );
         }
       } else {
@@ -190,7 +190,7 @@ function InputStepper({ finalNext, activeStep, setActiveStep }) {
           console.log("ABM mode - projected demand estimated, proceeding");
         } else {
           window.dispatchEvent(
-            new CustomEvent("app-notification", { detail: { text: "Please select a projected year to load ABM data" } })
+            new CustomEvent("app-notification", { detail: { text: "Please select a projected year to load traffic data" } })
           );
           return;
         }

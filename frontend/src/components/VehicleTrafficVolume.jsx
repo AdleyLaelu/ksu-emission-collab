@@ -134,7 +134,7 @@ function VehicleTrafficVolume() {
           throw new Error(errBody.error || "Failed to fetch chart data");
         }
         const chartJson = await res.json();
-        setTrafficState({ showResults: true, speedEstimated: true, methodUsed: "ABM Upload", trafficChartData: chartJson });
+        setTrafficState({ showResults: true, speedEstimated: true, methodUsed: "Import Traffic Data", trafficChartData: chartJson });
       } catch (err) {
         console.error("ABM upload error:", err);
         setTrafficState({ trafficChartData: null });
@@ -169,7 +169,7 @@ function VehicleTrafficVolume() {
       setTrafficState({
         showResults: true,
         speedEstimated: true,
-        methodUsed: "MFD",
+        methodUsed: "Model Traffic Dynamics",
         trafficChartData: chartJson,
       });
       notify("MFD processing complete");
@@ -234,7 +234,7 @@ function VehicleTrafficVolume() {
           >
             <span className="flex items-center gap-1.5">
               <Zap className="w-3.5 h-3.5" />
-              ABM (Activity-Based Model)
+              Import Traffic Data
             </span>
           </button>
           <button
@@ -249,14 +249,14 @@ function VehicleTrafficVolume() {
           >
             <span className="flex items-center gap-1.5">
               <FileSpreadsheet className="w-3.5 h-3.5" />
-              MFD (Macroscopic Fundamental Diagram)
+              Model Traffic Dynamics
             </span>
           </button>
           {trafficModeLocked && (
             <span className="text-xs text-gray-400 ml-2 italic">Locked for this session</span>
           )}
           {!abmPossible && trafficMode === "MFD" && (
-            <span className="text-xs text-gray-400 ml-2 italic">ABM only available for Atlanta (2020-2050)</span>
+            <span className="text-xs text-gray-400 ml-2 italic">Import Traffic Data only available for Atlanta (2020-2050)</span>
           )}
         </div>
 
@@ -265,7 +265,7 @@ function VehicleTrafficVolume() {
           <div className="flex flex-col gap-4">
             {/* Guidance */}
             <div className="bg-green-50 border border-green-200 rounded-lg px-4 py-3 text-sm text-green-800">
-              <p className="font-semibold mb-1">Upload ABM Traffic Data</p>
+              <p className="font-semibold mb-1">Upload Traffic Data</p>
               <p className="text-green-700">
                 Upload a CSV file with columns: <code className="bg-green-100 px-1 rounded text-xs">Tract ID</code>,{" "}
                 <code className="bg-green-100 px-1 rounded text-xs">Time</code>,{" "}
@@ -286,9 +286,9 @@ function VehicleTrafficVolume() {
             <form className="flex flex-row flex-nowrap items-end gap-3 p-2 rounded w-full min-w-0">
               {/* ABM file upload */}
               <div className="flex flex-col gap-1">
-                <label className="text-xs font-medium text-gray-600">ABM Traffic Data</label>
+                <label className="text-xs font-medium text-gray-600">Traffic Data</label>
                 <label className="flex items-center bg-blue-500 hover:bg-blue-600 text-white font-semibold px-4 rounded cursor-pointer h-10 whitespace-nowrap gap-2 text-sm">
-                  {abmFile ? abmFile.name : "Upload ABM Data"}
+                  {abmFile ? abmFile.name : "Upload Traffic Data"}
                   <CloudUpload className="w-4 h-4" />
                   <input
                     type="file"
@@ -338,13 +338,13 @@ function VehicleTrafficVolume() {
         {trafficMode === "MFD" && (
           <div className="flex flex-col gap-4">
             <div className="bg-blue-50 border border-blue-200 rounded-lg px-4 py-3 text-sm text-blue-800">
-              <p className="font-semibold mb-1">Upload MFD Traffic Data</p>
+              <p className="font-semibold mb-1">Upload Traffic Model Data</p>
               <p className="text-blue-700">
                 Upload two CSV files: (1) <strong>Traffic Volume</strong> with columns:
                 <code className="bg-blue-100 px-1 rounded text-xs">Tract ID</code>,
                 <code className="bg-blue-100 px-1 rounded text-xs">Time</code>,
                 <code className="bg-blue-100 px-1 rounded text-xs">Traffic Volume</code>.
-                (2) <strong>MFD Parameters</strong> with columns:
+                (2) <strong>Model Parameters</strong> with columns:
                 <code className="bg-blue-100 px-1 rounded text-xs">Tract ID</code>,
                 <code className="bg-blue-100 px-1 rounded text-xs">&lambda;</code>,
                 <code className="bg-blue-100 px-1 rounded text-xs">v_f</code>,
@@ -368,7 +368,7 @@ function VehicleTrafficVolume() {
                   className="inline-flex items-center gap-1 text-blue-600 hover:text-blue-800 font-medium text-xs underline"
                 >
                   <FileSpreadsheet className="w-3 h-3" />
-                  Download MFD Parameters template
+                  Download Model Parameters template
                 </a>
               </div>
             </div>
@@ -390,9 +390,9 @@ function VehicleTrafficVolume() {
 
               {/* File 2: MFD Parameters */}
               <div className="flex flex-col gap-1">
-                <label className="text-xs font-medium text-gray-600">MFD Parameters</label>
+                <label className="text-xs font-medium text-gray-600">Model Parameters</label>
                 <label className="flex items-center bg-blue-500 hover:bg-blue-600 text-white font-semibold px-4 rounded cursor-pointer h-10 whitespace-nowrap gap-2 text-sm">
-                  {hasMFTParametersData ? trafficState.trafficMFTParametersFile?.name || "Uploaded" : "Upload MFD Parameters"}
+                  {hasMFTParametersData ? trafficState.trafficMFTParametersFile?.name || "Uploaded" : "Upload Model Parameters"}
                   <CloudUpload className="w-4 h-4" />
                   <input
                     type="file"
@@ -435,7 +435,7 @@ function VehicleTrafficVolume() {
                 {hasTrafficVolumeFile ? "\u2713 Traffic Volume" : "\u25CB Traffic Volume"}
               </span>
               <span className={hasMFTParametersData ? "text-green-600" : "text-gray-400"}>
-                {hasMFTParametersData ? "\u2713 MFD Parameters" : "\u25CB MFD Parameters"}
+                {hasMFTParametersData ? "\u2713 Model Parameters" : "\u25CB Model Parameters"}
               </span>
             </div>
           </div>
@@ -453,11 +453,11 @@ function VehicleTrafficVolume() {
           <div className="flex flex-col gap-2 w-full max-w-7xl mt-4">
             {trafficState.methodUsed && (
               <div className={`flex items-center gap-2 px-3 py-1 rounded text-sm font-medium w-fit ${
-                trafficState.methodUsed.includes("ABM")
+                trafficState.methodUsed.includes("Import")
                   ? "bg-green-50 text-green-700 border border-green-200"
                   : "bg-blue-50 text-blue-700 border border-blue-200"
               }`}>
-                {trafficState.methodUsed.includes("ABM") ? <Zap className="w-3 h-3" /> : <FileSpreadsheet className="w-3 h-3" />}
+                {trafficState.methodUsed.includes("Import") ? <Zap className="w-3 h-3" /> : <FileSpreadsheet className="w-3 h-3" />}
                 <span>Method: {trafficState.methodUsed}</span>
               </div>
             )}
@@ -501,7 +501,7 @@ function VehicleTrafficVolume() {
             {trafficMode === "MFD" && hasMFTParametersData && (
               <div style={{ margin: 0, padding: 0, textAlign: "center", marginTop: "32px" }}>
                 <div className="bg-[#f7f7f9] text-[#222222] text-center box-border font-semibold border border-solid border-[#cccccc] rounded-none">
-                  <span>Macroscopic Traffic Model Parameters</span>
+                  <span>Traffic Model Parameters</span>
                 </div>
                 <div style={{ display: "inline-block", width: "100%" }}>
                   <TractParametersTable trafficState={trafficState} />
