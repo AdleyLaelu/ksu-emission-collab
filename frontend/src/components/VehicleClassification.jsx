@@ -298,8 +298,8 @@ function VehicleClassification({ activeStep }) {
   return (
     <div className="flex flex-row items-stretch gap-6 pt-4 w-full max-w-7xl mx-auto">
       {/* Left panel: form + table */}
-      <div className="flex-1 flex flex-col items-center">
-        <div className="w-full max-w-3xl mx-auto flex flex-col gap-6">
+      <div className="flex-1 flex flex-col">
+        <div className="w-full flex flex-col gap-6">
           <form className="flex flex-col gap-2 md:gap-4 p-2 md:p-4 rounded transition-colors duration-300 w-full min-w-0 overflow-x-auto">
             <div className="flex flex-col md:flex-row gap-2 md:gap-4 w-full">
               {/* Base Year */}
