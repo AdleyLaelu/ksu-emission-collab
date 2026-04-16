@@ -159,46 +159,37 @@ def _solve_for_k_simple(q, lam, vf, Qm, kj, w):
 
 
 # --- Main function to be called by Flask ---
-def run_traffic_analysis(params_file_obj, city_name, year):
+def run_traffic_analysis(params_file_obj, city_name, year, volume_file=None):
     """
     Runs the traffic density and speed calculation for a given state and year.
-    
+
     :param params_file_obj: The uploaded parameters file object (from request.files).
     :param city_name: The city name (e.g., "Atlanta", "Los Angeles").
     :param year: The year as a string (e.g., "2030").
+    :param volume_file: The uploaded traffic volume CSV (Tract ID, Time, Traffic Volume).
     """
     try:
         # 1. Determine State and get config
         state = CITY_TO_STATE.get(city_name)
         if not state:
             return {"status": "error", "message": f"City '{city_name}' not found in CITY_TO_STATE map."}
-        
+
         if state not in STATE_CONFIGS:
             return {"status": "error", "message": f"Configuration for state '{state}' not found in traffic_processor.py"}
-        
-        # Get the correct configuration for the determined state
+
         config = STATE_CONFIGS[state]
 
-        # Build dynamic paths based on state
         base_dir = os.path.dirname(os.path.abspath(__file__))
-        input_excel_file = os.path.join(base_dir, 'Combined_sheet_Input_volume', state, f'{state}_{year}.xlsx')
         output_excel_file = os.path.join(base_dir, 'Combined_sheet_output_speed', state, f'{state}_{year}.xlsx')
 
-        if not os.path.exists(input_excel_file):
-            return {"status": "error", "message": f"Input file not found: {input_excel_file}"}
-
-        # Create output directory if it doesn't exist
         output_dir = os.path.dirname(output_excel_file)
         os.makedirs(output_dir, exist_ok=True)
 
         # 2. Load parameters (from the uploaded file)
         parameters_df = pd.read_csv(params_file_obj)
-        # Fix: Use the actual Greek letter lambda for renaming
         parameters_df = parameters_df.rename(columns={
             'λ': 'lam', 'v_f': 'vf', 'Q_m': 'Qm', 'k_j': 'kj', 'w': 'w'
         })
-        # Zero-pad Tract ID to 11 digits to preserve leading zeros (e.g., CA tracts start with 0)
-        # This handles both string "6037206020" and int 6037206020 from CSV
         parameters_df['Tract ID'] = parameters_df['Tract ID'].apply(
             lambda x: str(int(float(x))).zfill(11)
         )
@@ -212,29 +203,31 @@ def run_traffic_analysis(params_file_obj, city_name, year):
         state_thresholds = config["thresholds"]
         simple_solver_list = config["simple_solver_tracts"]
 
+        # 4. Load traffic volume data from uploaded CSV
+        if not volume_file:
+            return {"status": "error", "message": "Missing traffic volume CSV file"}
 
-        # 4. Process the file
-        excel_file = pd.ExcelFile(input_excel_file)
-        sheet_names = excel_file.sheet_names
+        volume_df = pd.read_csv(volume_file)
+        volume_df['Tract ID'] = volume_df['Tract ID'].apply(
+            lambda x: str(int(float(x))).zfill(11)
+        )
+        volume_by_tract = dict(tuple(volume_df.groupby('Tract ID')))
+        tract_ids_in_volume = list(volume_by_tract.keys())
+
         processed_sheets = {}
 
         print(f"[DEBUG] Config tract IDs: {tract_ids_to_process[:3]}...")
-        print(f"[DEBUG] Sheet names: {sheet_names[:3]}...")
+        print(f"[DEBUG] Volume CSV tract IDs: {tract_ids_in_volume[:3]}...")
 
-        for sheet_name in sheet_names:
-            if 'tract=' in sheet_name:
-                tract_id = sheet_name.split('tract=')[1]
-            else:
-                tract_id = sheet_name
-            
-            # Check if the tract is in our list AND has parameters (keep as string for leading zeros)
+        for tract_id in tract_ids_in_volume:
             if tract_id in tract_ids_to_process and tract_id in parameters_df.index:
                 print(f"Processing tract: {tract_id}")
-                
+
                 tract_parameters = parameters_df.loc[tract_id][required_parameters].to_dict()
                 Qm = tract_parameters["Qm"]
 
-                traffic_volume_data = pd.read_excel(input_excel_file, sheet_name=sheet_name)
+                tract_df = volume_by_tract[tract_id][['Time', 'Traffic Volume']].reset_index(drop=True)
+                traffic_volume_data = tract_df.copy()
                 traffic_volume_data['Adjusted Traffic Volume'] = traffic_volume_data['Traffic Volume'].copy()
                 # Make writable copy to avoid "assignment destination is read-only" error
                 traffic_volume = traffic_volume_data['Adjusted Traffic Volume'].values.copy()
@@ -296,6 +289,7 @@ def run_traffic_analysis(params_file_obj, city_name, year):
                 traffic_volume_data['Density'] = calculated_density
                 traffic_volume_data['Speed'] = calculated_speed
 
+                sheet_name = f"tract={tract_id}"
                 processed_sheets[sheet_name] = traffic_volume_data
                 print(f"Completed tract: {tract_id} (Sheet: {sheet_name})")
 

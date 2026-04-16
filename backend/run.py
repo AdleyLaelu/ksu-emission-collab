@@ -1080,16 +1080,19 @@ def process_traffic_route():
     """
     Triggers the traffic analysis script from traffic_processor.py
     Expects a POST request with form-data:
-    - parameters_file: The GA_tract_parameters.csv file (or for another state)
+    - parameters_file: MFD parameters CSV (Tract ID, λ, v_f, Q_m, k_j, w)
+    - traffic_volume_file: Traffic volume CSV (Tract ID, Time, Traffic Volume)
     - city_name: "Atlanta" (or other city)
     - year: "2030" (or other year)
     """
     try:
-        # 1. Get data from the form
         if 'parameters_file' not in request.files:
             return jsonify({"error": "Missing 'parameters_file' in form-data"}), 400
-        
+        if 'traffic_volume_file' not in request.files:
+            return jsonify({"error": "Missing 'traffic_volume_file' in form-data"}), 400
+
         params_file = request.files['parameters_file']
+        volume_file = request.files['traffic_volume_file']
         city_name = request.form.get('city_name')
         year = request.form.get('year')
 
@@ -1097,14 +1100,11 @@ def process_traffic_route():
             return jsonify({"error": "Missing 'city_name' or 'year' in form-data"}), 400
 
         print(f"Starting traffic analysis for {city_name} ({year})...")
-        
-        # Import here to avoid circular dependency
+
         from traffic_processor import run_traffic_analysis
-        
-        # 2. Call the processor function
-        # It reads the params_file directly
-        result = run_traffic_analysis(params_file, city_name, year)
-        
+
+        result = run_traffic_analysis(params_file, city_name, year, volume_file=volume_file)
+
         if result["status"] == "success":
             return jsonify(result)
         else:

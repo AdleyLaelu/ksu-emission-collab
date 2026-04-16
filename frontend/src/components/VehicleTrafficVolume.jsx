@@ -143,69 +143,74 @@ function VehicleTrafficVolume() {
     })();
   };
 
+  // --- MFD: process both files when both are uploaded ---
+  const processMFD = React.useCallback(async (volumeFile, paramsFile) => {
+    if (!volumeFile || !paramsFile || !city || !year) return;
+    try {
+      const formData = new FormData();
+      formData.append("city_name", city);
+      formData.append("year", year);
+      formData.append("traffic_volume_file", volumeFile);
+      formData.append("parameters_file", paramsFile);
+
+      notify("Processing MFD traffic data...");
+      const processRes = await fetch(`${API_URL}/process/traffic`, { method: "POST", body: formData });
+      if (!processRes.ok) {
+        const errBody = await processRes.json().catch(() => ({}));
+        throw new Error(errBody.message || `Server returned ${processRes.status}`);
+      }
+      const chartUrl = `${API_URL}/plot/traffic/data/${encodeURIComponent(city)}/${encodeURIComponent(year)}?source=mfd`;
+      const chartRes = await fetch(chartUrl);
+      if (!chartRes.ok) {
+        const errBody = await chartRes.json().catch(() => ({}));
+        throw new Error(errBody.message || `Chart data fetch failed (${chartRes.status})`);
+      }
+      const chartJson = await chartRes.json();
+      setTrafficState({
+        showResults: true,
+        speedEstimated: true,
+        methodUsed: "MFD",
+        trafficChartData: chartJson,
+      });
+      notify("MFD processing complete");
+    } catch (err) {
+      console.error("MFD processing failed", err);
+      const msg = err.message === "Failed to fetch"
+        ? "Cannot reach backend server. Is it running on port 5003?"
+        : err.message;
+      notify("MFD processing failed: " + msg);
+    }
+  }, [city, year, setTrafficState]);
+
   // --- MFD: Load uploaded file ---
   const loadSheet = (file, type) => {
     if (!file) return;
-    const reader = new FileReader();
-    reader.onload = async (e) => {
-      const data = e.target.result;
-      const wb = file.name.endsWith(".csv")
-        ? XLSX.read(data, { type: "string" })
-        : XLSX.read(data, { type: "binary" });
-      const ws = wb.Sheets[wb.SheetNames[0]];
-      const parsed = XLSX.utils.sheet_to_json(ws, { header: 1 });
+    const currentState = useAppStore.getState().trafficState;
 
-      let updates = {};
-      if (type === "trafficVolume") {
-        updates = { trafficVolumeFile: file };
-      } else if (type === "mftParameters") {
-        updates = {
+    if (type === "trafficVolume") {
+      setTrafficState({ trafficVolumeFile: file });
+      if (currentState.trafficMFTParametersFile) {
+        processMFD(file, currentState.trafficMFTParametersFile);
+      }
+    } else if (type === "mftParameters") {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const data = e.target.result;
+        const wb = XLSX.read(data, { type: "string" });
+        const ws = wb.Sheets[wb.SheetNames[0]];
+        const parsed = XLSX.utils.sheet_to_json(ws, { header: 1 });
+        setTrafficState({
           trafficMFTParametersHeaders: parsed.length ? parsed[0] : [],
           trafficMFTParametersData: parsed.length ? parsed.slice(1) : [],
           trafficMFTParametersFile: file,
-        };
-      }
-      setTrafficState(updates);
-
-      // MFD processing: when parameters file is uploaded and traffic volume file exists, process and show chart
-      if (type === "mftParameters" && parsed.length && city && year) {
-        try {
-          const formData = new FormData();
-          formData.append("city_name", city);
-          formData.append("year", year);
-          formData.append("parameters_file", file);
-
-          notify("Processing MFD traffic data...");
-          const processRes = await fetch(`${API_URL}/process/traffic`, { method: "POST", body: formData });
-          if (!processRes.ok) {
-            const errBody = await processRes.json().catch(() => ({}));
-            throw new Error(errBody.message || `Server returned ${processRes.status}`);
-          }
-          // Fetch chart data
-          const chartUrl = `${API_URL}/plot/traffic/data/${encodeURIComponent(city)}/${encodeURIComponent(year)}?source=mfd`;
-          const chartRes = await fetch(chartUrl);
-          if (!chartRes.ok) {
-            const errBody = await chartRes.json().catch(() => ({}));
-            throw new Error(errBody.message || `Chart data fetch failed (${chartRes.status})`);
-          }
-          const chartJson = await chartRes.json();
-          setTrafficState({
-            showResults: true,
-            speedEstimated: true,
-            methodUsed: "MFD",
-            trafficChartData: chartJson,
-          });
-          notify("MFD processing complete");
-        } catch (err) {
-          console.error("MFD processing failed", err);
-          const msg = err.message === "Failed to fetch"
-            ? "Cannot reach backend server. Is it running on port 5003?"
-            : err.message;
-          notify("MFD processing failed: " + msg);
+        });
+        const volFile = useAppStore.getState().trafficState.trafficVolumeFile;
+        if (volFile) {
+          processMFD(volFile, file);
         }
-      }
-    };
-    file.name.endsWith(".csv") ? reader.readAsText(file) : reader.readAsBinaryString(file);
+      };
+      reader.readAsText(file);
+    }
   };
 
   const statesList = ["", "Atlanta", "Los Angeles", "Seattle", "NewYork"];
@@ -335,22 +340,23 @@ function VehicleTrafficVolume() {
             <div className="bg-blue-50 border border-blue-200 rounded-lg px-4 py-3 text-sm text-blue-800">
               <p className="font-semibold mb-1">Upload MFD Traffic Data</p>
               <p className="text-blue-700">
-                Upload two files: (1) <strong>Traffic Volume</strong> as an Excel file with one sheet per tract
-                (named <code className="bg-blue-100 px-1 rounded text-xs">tract=XXXXXXXXXXX</code>), each containing
-                <code className="bg-blue-100 px-1 rounded text-xs">Time</code> and
-                <code className="bg-blue-100 px-1 rounded text-xs">Traffic Volume</code> columns.
-                (2) <strong>MFD Parameters</strong> as a CSV with columns:
+                Upload two CSV files: (1) <strong>Traffic Volume</strong> with columns:
+                <code className="bg-blue-100 px-1 rounded text-xs">Tract ID</code>,
+                <code className="bg-blue-100 px-1 rounded text-xs">Time</code>,
+                <code className="bg-blue-100 px-1 rounded text-xs">Traffic Volume</code>.
+                (2) <strong>MFD Parameters</strong> with columns:
                 <code className="bg-blue-100 px-1 rounded text-xs">Tract ID</code>,
                 <code className="bg-blue-100 px-1 rounded text-xs">&lambda;</code>,
                 <code className="bg-blue-100 px-1 rounded text-xs">v_f</code>,
                 <code className="bg-blue-100 px-1 rounded text-xs">Q_m</code>,
                 <code className="bg-blue-100 px-1 rounded text-xs">k_j</code>,
                 <code className="bg-blue-100 px-1 rounded text-xs">w</code>.
+                Processing begins automatically once both files are uploaded.
               </p>
               <div className="flex gap-4 mt-2">
                 <a
-                  href="/MFD_traffic_volume_template.xlsx"
-                  download="MFD_traffic_volume_template.xlsx"
+                  href="/MFD_traffic_volume_template.csv"
+                  download="MFD_traffic_volume_template.csv"
                   className="inline-flex items-center gap-1 text-blue-600 hover:text-blue-800 font-medium text-xs underline"
                 >
                   <FileSpreadsheet className="w-3 h-3" />
@@ -375,7 +381,7 @@ function VehicleTrafficVolume() {
                   <CloudUpload className="w-4 h-4" />
                   <input
                     type="file"
-                    accept=".xlsx,.xls,.csv"
+                    accept=".csv"
                     onChange={(e) => loadSheet(e.target.files[0], "trafficVolume")}
                     className="hidden"
                   />
@@ -390,7 +396,7 @@ function VehicleTrafficVolume() {
                   <CloudUpload className="w-4 h-4" />
                   <input
                     type="file"
-                    accept=".xlsx,.xls,.csv"
+                    accept=".csv"
                     onChange={(e) => loadSheet(e.target.files[0], "mftParameters")}
                     className="hidden"
                   />
