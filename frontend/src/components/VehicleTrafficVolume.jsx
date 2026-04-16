@@ -185,7 +185,7 @@ function VehicleTrafficVolume() {
   // --- MFD: Load uploaded file ---
   const loadSheet = (file, type) => {
     if (!file) return;
-    const currentState = useAppStore.getState().trafficState;
+    const currentState = useAppStore.getState().trafficVolumeState;
 
     if (type === "trafficVolume") {
       setTrafficState({ trafficVolumeFile: file });
@@ -204,7 +204,7 @@ function VehicleTrafficVolume() {
           trafficMFTParametersData: parsed.length ? parsed.slice(1) : [],
           trafficMFTParametersFile: file,
         });
-        const volFile = useAppStore.getState().trafficState.trafficVolumeFile;
+        const volFile = useAppStore.getState().trafficVolumeState.trafficVolumeFile;
         if (volFile) {
           processMFD(volFile, file);
         }
