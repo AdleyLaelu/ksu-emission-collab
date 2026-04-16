@@ -407,20 +407,19 @@ function VehicleClassification({ activeStep }) {
                 </select>
               </div>
             </div>
-            {/* Upload Vehicle Classification button below City, right-aligned and smaller */}
-            <div className="flex w-full justify-end mt-2">
+            {/* Upload Vehicle Classification button below City, right-aligned */}
+            <div className="flex w-full justify-end mt-3">
               <label
-                className={`flex items-center font-semibold px-3 py-1.5 rounded h-[36px] text-sm transition-colors duration-300 whitespace-nowrap w-full max-w-[300px]
-                  ${classificationState.city === "" ? "opacity-50 cursor-not-allowed" : "cursor-pointer"}
+                className={`flex items-center font-bold px-5 py-2.5 rounded-lg text-sm transition-all duration-200 whitespace-nowrap shadow-md
+                  ${classificationState.city === "" ? "opacity-40 cursor-not-allowed" : "cursor-pointer hover:shadow-lg hover:scale-[1.02] active:scale-[0.98]"}
                   ${
                     theme === "dark"
-                      ? "bg-blue-900 text-white"
-                      : "bg-blue-400 text-white"
+                      ? "bg-blue-600 hover:bg-blue-500 text-white"
+                      : "bg-blue-700 hover:bg-blue-800 text-white"
                   }`}
-                style={{ minWidth: 0 }}
               >
-                <span className="flex items-center gap-2 w-full justify-center">
-                  Vehicle Classification
+                <span className="flex items-center gap-2 justify-center">
+                  Upload Vehicle Classification
                   <CloudUpload className="w-4 h-4" />
                 </span>
                 <input
