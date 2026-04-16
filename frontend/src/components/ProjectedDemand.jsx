@@ -106,12 +106,6 @@ function ProjectedDemand() {
     file.name.endsWith(".csv") ? reader.readAsText(file) : reader.readAsBinaryString(file);
   };
 
-  const cityToFile = {
-    Atlanta: "GA", "Los Angeles": "CA", Seattle: "WA", NewYork: "NY",
-    "New York": "Newyork", LosAngeles: "California", Georgia: "Georgia",
-    California: "California", Washington: "Washington",
-  };
-
   const statesList = ["", "Atlanta", "Los Angeles", "Seattle", "NewYork"];
 
   const cityNameMapping = {
@@ -128,12 +122,6 @@ function ProjectedDemand() {
   // eslint-disable-next-line no-unused-vars
   const abmAvailableForYear = isABMAvailable(mappedCity, year);
 
-  // For non-ABM mode, use static images
-  let projectedImg = null;
-  if (isMFD && mappedCity && year) {
-    const fileCity = cityToFile[mappedCity] || mappedCity;
-    projectedImg = `/projected-demand-images/${fileCity}_${year}.png`;
-  }
 
   const hasChartData = trafficChartData && !isDataStale;
   const yearCache = projectedDemandState.yearCache || {};
@@ -212,7 +200,8 @@ function ProjectedDemand() {
     }
   };
 
-  // MFD mode: process traffic data and fetch interactive chart when projected year changes
+  // MFD mode: process traffic data and fetch interactive chart when projected volume file is uploaded
+  const projectedVolumeFile = projectedDemandState.projectedTrafficVolumeFile;
   useEffect(() => {
     if (!isMFD) return;
     const selectedYear = penetrationState.projectedYear;
@@ -220,10 +209,11 @@ function ProjectedDemand() {
 
     // Check cache first
     const cached = yearCache[selectedYear];
-    if (cached?.chartData) return; // already restored by the cache useEffect above
+    if (cached?.chartData) return;
     if (chartYear === selectedYear && trafficChartData) return;
 
     const mfdParamsFile = trafficState.trafficMFTParametersFile;
+    if (!mfdParamsFile || !projectedVolumeFile) return;
 
     setTrafficChartData(null);
     setChartYear(null);
@@ -231,14 +221,13 @@ function ProjectedDemand() {
     setProjectedDemandState({ speedEstimated: true });
     setMethodUsed("Model Traffic Dynamics");
 
-    if (!mfdParamsFile) return;
-
     let cancelled = false;
     const processMFD = async () => {
       setIsLoading(true);
       try {
         const formData = new FormData();
         formData.append("parameters_file", mfdParamsFile);
+        formData.append("traffic_volume_file", projectedVolumeFile);
         formData.append("city_name", mappedCity);
         formData.append("year", selectedYear);
 
@@ -247,7 +236,9 @@ function ProjectedDemand() {
           body: formData,
         });
         if (!processRes.ok) {
-          console.error("MFD processing failed for projected year");
+          const errData = await processRes.json().catch(() => ({}));
+          console.error("MFD processing failed for projected year:", errData);
+          notify("Processing failed: " + (errData.error || errData.message || "Unknown error"));
           return;
         }
         if (cancelled) return;
@@ -271,7 +262,7 @@ function ProjectedDemand() {
     processMFD();
     return () => { cancelled = true; };
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [penetrationState.projectedYear, mappedCity, isMFD]);
+  }, [penetrationState.projectedYear, mappedCity, isMFD, projectedVolumeFile]);
 
   return (
     <div className="flex flex-col pt-4 w-full">
@@ -450,30 +441,7 @@ function ProjectedDemand() {
           </div>
         )}
 
-        {/* --- MFD Results: Static Image fallback (only when NO interactive chart and NOT loading) --- */}
-        {isMFD && !hasChartData && !isLoading && projectedDemandState.speedEstimated && projectedImg && mappedCity && (
-          <div className="flex flex-col gap-2 w-full max-w-7xl">
-            {methodUsed && (
-              <div className="flex items-center gap-2 px-3 py-1 rounded text-sm font-medium w-fit bg-blue-50 text-blue-700 border border-blue-200">
-                <FileSpreadsheet className="w-3 h-3" />
-                <span>Method: {methodUsed}</span>
-              </div>
-            )}
-            <div className="relative w-full border border-gray-200 rounded-lg overflow-hidden bg-white shadow-sm">
-              <div className="pt-4 pb-2 text-center">
-                <span className="text-lg font-semibold">Year {year}</span>
-              </div>
-              <div className="w-full h-[360px] overflow-auto">
-                <img
-                  src={projectedImg}
-                  alt={`${mappedCity} ${year} Projected Demand`}
-                  className="max-w-none mx-auto"
-                  style={{ width: "100%", height: "auto", objectFit: "contain" }}
-                />
-              </div>
-            </div>
-          </div>
-        )}
+        {/* Static image fallback removed: interactive chart is now always used */}
 
         {/* MFD: Uploaded data table */}
         {isMFD && showTable && projectedDemandState.speedEstimated && projectedDemandState.projectedTrafficVolumeData?.length > 0 ? (
