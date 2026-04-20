@@ -1,0 +1,810 @@
+Vehicle Type,Fuel Type,Age,Vehicle Count
+Combination Long-haul Truck,Compressed natural Gas (CNG),0,12
+Combination Long-haul Truck,Compressed natural Gas (CNG),1,329
+Combination Long-haul Truck,Compressed natural Gas (CNG),2,82
+Combination Long-haul Truck,Compressed natural Gas (CNG),3,58
+Combination Long-haul Truck,Compressed natural Gas (CNG),4,33
+Combination Long-haul Truck,Compressed natural Gas (CNG),5,114
+Combination Long-haul Truck,Compressed natural Gas (CNG),6,356
+Combination Long-haul Truck,Compressed natural Gas (CNG),7,213
+Combination Long-haul Truck,Compressed natural Gas (CNG),8,143
+Combination Long-haul Truck,Compressed natural Gas (CNG),9,115
+Combination Long-haul Truck,Compressed natural Gas (CNG),10,114
+Combination Long-haul Truck,Compressed natural Gas (CNG),11,33
+Combination Long-haul Truck,Compressed natural Gas (CNG),12,35
+Combination Long-haul Truck,Compressed natural Gas (CNG),13,3
+Combination Long-haul Truck,Compressed natural Gas (CNG),14,1
+Combination Long-haul Truck,Compressed natural Gas (CNG),15,45
+Combination Long-haul Truck,Compressed natural Gas (CNG),17,42
+Combination Long-haul Truck,Compressed natural Gas (CNG),20,8
+Combination Long-haul Truck,Compressed natural Gas (CNG),21,1
+Combination Long-haul Truck,Compressed natural Gas (CNG),24,3
+Combination Long-haul Truck,Diesel Fuel,0,1337
+Combination Long-haul Truck,Diesel Fuel,1,4691
+Combination Long-haul Truck,Diesel Fuel,2,4224
+Combination Long-haul Truck,Diesel Fuel,3,3105
+Combination Long-haul Truck,Diesel Fuel,4,4785
+Combination Long-haul Truck,Diesel Fuel,5,4702
+Combination Long-haul Truck,Diesel Fuel,6,4891
+Combination Long-haul Truck,Diesel Fuel,7,4357
+Combination Long-haul Truck,Diesel Fuel,8,5610
+Combination Long-haul Truck,Diesel Fuel,9,4615
+Combination Long-haul Truck,Diesel Fuel,10,4255
+Combination Long-haul Truck,Diesel Fuel,11,3306
+Combination Long-haul Truck,Diesel Fuel,12,3602
+Combination Long-haul Truck,Diesel Fuel,13,1653
+Combination Long-haul Truck,Diesel Fuel,14,1553
+Combination Long-haul Truck,Diesel Fuel,15,1792
+Combination Long-haul Truck,Diesel Fuel,16,1426
+Combination Long-haul Truck,Diesel Fuel,17,5076
+Combination Long-haul Truck,Diesel Fuel,18,3485
+Combination Long-haul Truck,Diesel Fuel,19,3166
+Combination Long-haul Truck,Diesel Fuel,20,1883
+Combination Long-haul Truck,Diesel Fuel,21,1496
+Combination Long-haul Truck,Diesel Fuel,22,1274
+Combination Long-haul Truck,Diesel Fuel,23,1677
+Combination Long-haul Truck,Diesel Fuel,24,2190
+Combination Long-haul Truck,Diesel Fuel,25,1584
+Combination Long-haul Truck,Diesel Fuel,26,1286
+Combination Long-haul Truck,Diesel Fuel,27,953
+Combination Long-haul Truck,Diesel Fuel,28,841
+Combination Long-haul Truck,Diesel Fuel,29,576
+Combination Long-haul Truck,Diesel Fuel,30,2354
+Combination Long-haul Truck,Electricity,0,1
+Combination Long-haul Truck,Gasoline,0,15
+Combination Long-haul Truck,Gasoline,1,705
+Combination Long-haul Truck,Gasoline,2,1237
+Combination Long-haul Truck,Gasoline,3,1266
+Combination Long-haul Truck,Gasoline,4,1435
+Combination Long-haul Truck,Gasoline,5,683
+Combination Long-haul Truck,Gasoline,6,779
+Combination Long-haul Truck,Gasoline,7,380
+Combination Long-haul Truck,Gasoline,8,987
+Combination Long-haul Truck,Gasoline,9,423
+Combination Long-haul Truck,Gasoline,10,716
+Combination Long-haul Truck,Gasoline,11,296
+Combination Long-haul Truck,Gasoline,12,243
+Combination Long-haul Truck,Gasoline,13,79
+Combination Long-haul Truck,Gasoline,28,1
+Combination Short-haul Truck,Diesel Fuel,0,16
+Combination Short-haul Truck,Diesel Fuel,1,569
+Combination Short-haul Truck,Diesel Fuel,2,2586
+Combination Short-haul Truck,Diesel Fuel,3,2212
+Combination Short-haul Truck,Diesel Fuel,4,2172
+Combination Short-haul Truck,Diesel Fuel,5,2189
+Combination Short-haul Truck,Diesel Fuel,6,3032
+Combination Short-haul Truck,Diesel Fuel,7,2066
+Combination Short-haul Truck,Diesel Fuel,8,2093
+Combination Short-haul Truck,Diesel Fuel,9,1785
+Combination Short-haul Truck,Diesel Fuel,10,1627
+Combination Short-haul Truck,Diesel Fuel,11,617
+Combination Short-haul Truck,Diesel Fuel,12,49
+Combination Short-haul Truck,Diesel Fuel,13,28
+Combination Short-haul Truck,Diesel Fuel,14,12
+Combination Short-haul Truck,Diesel Fuel,15,25
+Combination Short-haul Truck,Diesel Fuel,16,74
+Combination Short-haul Truck,Diesel Fuel,17,114
+Combination Short-haul Truck,Diesel Fuel,18,142
+Combination Short-haul Truck,Diesel Fuel,19,170
+Combination Short-haul Truck,Diesel Fuel,20,125
+Combination Short-haul Truck,Diesel Fuel,21,127
+Combination Short-haul Truck,Diesel Fuel,22,107
+Combination Short-haul Truck,Diesel Fuel,23,128
+Combination Short-haul Truck,Diesel Fuel,24,103
+Combination Short-haul Truck,Diesel Fuel,25,69
+Combination Short-haul Truck,Diesel Fuel,26,46
+Combination Short-haul Truck,Diesel Fuel,27,26
+Combination Short-haul Truck,Diesel Fuel,28,38
+Combination Short-haul Truck,Diesel Fuel,29,24
+Combination Short-haul Truck,Diesel Fuel,30,95
+Combination Short-haul Truck,Gasoline,1,31
+Combination Short-haul Truck,Gasoline,2,236
+Combination Short-haul Truck,Gasoline,3,144
+Combination Short-haul Truck,Gasoline,4,71
+Combination Short-haul Truck,Gasoline,5,104
+Combination Short-haul Truck,Gasoline,6,214
+Combination Short-haul Truck,Gasoline,7,148
+Combination Short-haul Truck,Gasoline,8,133
+Combination Short-haul Truck,Gasoline,9,114
+Combination Short-haul Truck,Gasoline,10,85
+Combination Short-haul Truck,Gasoline,11,17
+Combination Short-haul Truck,Gasoline,30,2
+Light Commercial Truck,Compressed natural Gas (CNG),4,2
+Light Commercial Truck,Compressed natural Gas (CNG),5,4
+Light Commercial Truck,Compressed natural Gas (CNG),6,5
+Light Commercial Truck,Compressed natural Gas (CNG),7,4
+Light Commercial Truck,Compressed natural Gas (CNG),9,1
+Light Commercial Truck,Compressed natural Gas (CNG),10,6
+Light Commercial Truck,Compressed natural Gas (CNG),11,11
+Light Commercial Truck,Compressed natural Gas (CNG),12,1
+Light Commercial Truck,Diesel Fuel,1,1489
+Light Commercial Truck,Diesel Fuel,2,3833
+Light Commercial Truck,Diesel Fuel,3,4158
+Light Commercial Truck,Diesel Fuel,4,2812
+Light Commercial Truck,Diesel Fuel,5,3020
+Light Commercial Truck,Diesel Fuel,6,4677
+Light Commercial Truck,Diesel Fuel,7,2905
+Light Commercial Truck,Diesel Fuel,8,3977
+Light Commercial Truck,Diesel Fuel,9,3444
+Light Commercial Truck,Diesel Fuel,10,2053
+Light Commercial Truck,Diesel Fuel,11,1192
+Light Commercial Truck,Diesel Fuel,12,325
+Light Commercial Truck,Diesel Fuel,13,508
+Light Commercial Truck,Diesel Fuel,14,145
+Light Commercial Truck,Diesel Fuel,15,217
+Light Commercial Truck,Diesel Fuel,16,572
+Light Commercial Truck,Diesel Fuel,17,836
+Light Commercial Truck,Diesel Fuel,18,824
+Light Commercial Truck,Diesel Fuel,19,860
+Light Commercial Truck,Diesel Fuel,20,794
+Light Commercial Truck,Diesel Fuel,21,558
+Light Commercial Truck,Diesel Fuel,22,352
+Light Commercial Truck,Diesel Fuel,23,197
+Light Commercial Truck,Diesel Fuel,24,38
+Light Commercial Truck,Diesel Fuel,25,41
+Light Commercial Truck,Diesel Fuel,26,50
+Light Commercial Truck,Diesel Fuel,27,49
+Light Commercial Truck,Diesel Fuel,28,77
+Light Commercial Truck,Diesel Fuel,29,71
+Light Commercial Truck,Diesel Fuel,30,633
+Light Commercial Truck,Electricity,1,2602
+Light Commercial Truck,Electricity,2,1155
+Light Commercial Truck,Electricity,3,7
+Light Commercial Truck,Electricity,4,5
+Light Commercial Truck,Electricity,5,17
+Light Commercial Truck,Electricity,6,26
+Light Commercial Truck,Electricity,7,33
+Light Commercial Truck,Electricity,8,23
+Light Commercial Truck,Electricity,9,34
+Light Commercial Truck,Electricity,10,18
+Light Commercial Truck,Electricity,11,22
+Light Commercial Truck,Electricity,12,16
+Light Commercial Truck,Electricity,13,5
+Light Commercial Truck,Electricity,14,10
+Light Commercial Truck,Electricity,15,20
+Light Commercial Truck,Electricity,16,17
+Light Commercial Truck,Electricity,17,21
+Light Commercial Truck,Electricity,18,15
+Light Commercial Truck,Electricity,19,16
+Light Commercial Truck,Electricity,20,1
+Light Commercial Truck,Electricity,21,2
+Light Commercial Truck,Electricity,22,13
+Light Commercial Truck,Electricity,23,12
+Light Commercial Truck,Electricity,24,18
+Light Commercial Truck,Electricity,25,4
+Light Commercial Truck,Ethanol (E-85),1,1922
+Light Commercial Truck,Ethanol (E-85),2,3097
+Light Commercial Truck,Ethanol (E-85),3,4032
+Light Commercial Truck,Ethanol (E-85),4,2552
+Light Commercial Truck,Ethanol (E-85),5,3804
+Light Commercial Truck,Ethanol (E-85),6,3675
+Light Commercial Truck,Ethanol (E-85),7,6336
+Light Commercial Truck,Ethanol (E-85),8,4345
+Light Commercial Truck,Ethanol (E-85),9,4784
+Light Commercial Truck,Ethanol (E-85),10,5897
+Light Commercial Truck,Ethanol (E-85),11,8417
+Light Commercial Truck,Ethanol (E-85),12,6212
+Light Commercial Truck,Ethanol (E-85),13,5191
+Light Commercial Truck,Ethanol (E-85),14,3268
+Light Commercial Truck,Ethanol (E-85),15,2224
+Light Commercial Truck,Ethanol (E-85),16,1440
+Light Commercial Truck,Ethanol (E-85),17,2751
+Light Commercial Truck,Ethanol (E-85),18,1190
+Light Commercial Truck,Ethanol (E-85),19,1064
+Light Commercial Truck,Ethanol (E-85),20,2554
+Light Commercial Truck,Ethanol (E-85),21,2517
+Light Commercial Truck,Ethanol (E-85),22,2489
+Light Commercial Truck,Ethanol (E-85),23,244
+Light Commercial Truck,Ethanol (E-85),24,239
+Light Commercial Truck,Gasoline,0,1
+Light Commercial Truck,Gasoline,1,13694
+Light Commercial Truck,Gasoline,2,21231
+Light Commercial Truck,Gasoline,3,23942
+Light Commercial Truck,Gasoline,4,21752
+Light Commercial Truck,Gasoline,5,33325
+Light Commercial Truck,Gasoline,6,21649
+Light Commercial Truck,Gasoline,7,24344
+Light Commercial Truck,Gasoline,8,22450
+Light Commercial Truck,Gasoline,9,21077
+Light Commercial Truck,Gasoline,10,18344
+Light Commercial Truck,Gasoline,11,7829
+Light Commercial Truck,Gasoline,12,3497
+Light Commercial Truck,Gasoline,13,4815
+Light Commercial Truck,Gasoline,14,2510
+Light Commercial Truck,Gasoline,15,3016
+Light Commercial Truck,Gasoline,16,8029
+Light Commercial Truck,Gasoline,17,10369
+Light Commercial Truck,Gasoline,18,7161
+Light Commercial Truck,Gasoline,19,10063
+Light Commercial Truck,Gasoline,20,10274
+Light Commercial Truck,Gasoline,21,9031
+Light Commercial Truck,Gasoline,22,8044
+Light Commercial Truck,Gasoline,23,7979
+Light Commercial Truck,Gasoline,24,8140
+Light Commercial Truck,Gasoline,25,7117
+Light Commercial Truck,Gasoline,26,4665
+Light Commercial Truck,Gasoline,27,4190
+Light Commercial Truck,Gasoline,28,3461
+Light Commercial Truck,Gasoline,29,3838
+Light Commercial Truck,Gasoline,30,21322
+Motor Home,Diesel Fuel,1,26
+Motor Home,Diesel Fuel,2,58
+Motor Home,Diesel Fuel,3,64
+Motor Home,Diesel Fuel,4,130
+Motor Home,Diesel Fuel,5,74
+Motor Home,Diesel Fuel,6,54
+Motor Home,Diesel Fuel,7,61
+Motor Home,Diesel Fuel,8,39
+Motor Home,Diesel Fuel,9,44
+Motor Home,Diesel Fuel,10,39
+Motor Home,Diesel Fuel,11,35
+Motor Home,Diesel Fuel,12,30
+Motor Home,Diesel Fuel,13,31
+Motor Home,Diesel Fuel,14,93
+Motor Home,Diesel Fuel,15,36
+Motor Home,Diesel Fuel,16,68
+Motor Home,Diesel Fuel,17,120
+Motor Home,Diesel Fuel,18,131
+Motor Home,Diesel Fuel,19,117
+Motor Home,Diesel Fuel,20,130
+Motor Home,Diesel Fuel,21,98
+Motor Home,Diesel Fuel,22,86
+Motor Home,Diesel Fuel,23,52
+Motor Home,Diesel Fuel,24,109
+Motor Home,Diesel Fuel,25,99
+Motor Home,Diesel Fuel,26,92
+Motor Home,Diesel Fuel,27,78
+Motor Home,Diesel Fuel,28,76
+Motor Home,Diesel Fuel,29,72
+Motor Home,Diesel Fuel,30,272
+Motor Home,Electricity,4,1
+Motor Home,Electricity,5,2
+Motor Home,Gasoline,7,22
+Motor Home,Gasoline,9,38
+Motor Home,Gasoline,12,380
+Motor Home,Gasoline,13,482
+Motor Home,Gasoline,14,191
+Motor Home,Gasoline,15,137
+Motor Home,Gasoline,16,230
+Motor Home,Gasoline,17,403
+Motor Home,Gasoline,18,95
+Motor Home,Gasoline,19,215
+Motor Home,Gasoline,20,348
+Motor Home,Gasoline,21,313
+Motor Home,Gasoline,22,220
+Motor Home,Gasoline,23,89
+Motor Home,Gasoline,24,143
+Motor Home,Gasoline,25,50
+Motor Home,Gasoline,28,2
+Motor Home,Gasoline,29,9
+Motorcycle,Electricity,2,37
+Motorcycle,Electricity,3,31
+Motorcycle,Electricity,4,46
+Motorcycle,Electricity,5,9
+Motorcycle,Electricity,6,10
+Motorcycle,Electricity,7,19
+Motorcycle,Electricity,8,17
+Motorcycle,Electricity,9,8
+Motorcycle,Electricity,10,4
+Motorcycle,Electricity,11,2
+Motorcycle,Gasoline,1,502
+Motorcycle,Gasoline,2,8383
+Motorcycle,Gasoline,3,8305
+Motorcycle,Gasoline,4,8557
+Motorcycle,Gasoline,5,7620
+Motorcycle,Gasoline,6,7351
+Motorcycle,Gasoline,7,7669
+Motorcycle,Gasoline,8,8073
+Motorcycle,Gasoline,9,7751
+Motorcycle,Gasoline,10,7195
+Motorcycle,Gasoline,11,6573
+Motorcycle,Gasoline,12,6973
+Motorcycle,Gasoline,13,5112
+Motorcycle,Gasoline,14,3728
+Motorcycle,Gasoline,15,8894
+Motorcycle,Gasoline,16,9992
+Motorcycle,Gasoline,17,12254
+Motorcycle,Gasoline,18,11484
+Motorcycle,Gasoline,19,10150
+Motorcycle,Gasoline,20,7534
+Motorcycle,Gasoline,21,8684
+Motorcycle,Gasoline,22,6990
+Motorcycle,Gasoline,23,5951
+Motorcycle,Gasoline,24,4999
+Motorcycle,Gasoline,25,3659
+Motorcycle,Gasoline,26,2563
+Motorcycle,Gasoline,27,2158
+Motorcycle,Gasoline,28,2009
+Motorcycle,Gasoline,29,1692
+Motorcycle,Gasoline,30,12187
+Other Buses,Compressed natural Gas (CNG),16,1
+Other Buses,Diesel Fuel,1,32
+Other Buses,Diesel Fuel,2,35
+Other Buses,Diesel Fuel,3,41
+Other Buses,Diesel Fuel,4,51
+Other Buses,Diesel Fuel,5,22
+Other Buses,Diesel Fuel,6,37
+Other Buses,Diesel Fuel,7,20
+Other Buses,Diesel Fuel,8,25
+Other Buses,Diesel Fuel,9,74
+Other Buses,Diesel Fuel,10,78
+Other Buses,Diesel Fuel,11,30
+Other Buses,Diesel Fuel,12,18
+Other Buses,Diesel Fuel,13,16
+Other Buses,Diesel Fuel,14,32
+Other Buses,Diesel Fuel,15,33
+Other Buses,Diesel Fuel,16,16
+Other Buses,Diesel Fuel,17,20
+Other Buses,Diesel Fuel,18,19
+Other Buses,Diesel Fuel,19,15
+Other Buses,Diesel Fuel,20,11
+Other Buses,Diesel Fuel,21,12
+Other Buses,Diesel Fuel,22,3
+Other Buses,Diesel Fuel,23,14
+Other Buses,Diesel Fuel,24,17
+Other Buses,Diesel Fuel,25,13
+Other Buses,Diesel Fuel,26,18
+Other Buses,Diesel Fuel,27,13
+Other Buses,Diesel Fuel,28,11
+Other Buses,Diesel Fuel,29,18
+Other Buses,Diesel Fuel,30,91
+Other Buses,Gasoline,30,44
+Passenger Car,Compressed natural Gas (CNG),4,8
+Passenger Car,Compressed natural Gas (CNG),5,12
+Passenger Car,Compressed natural Gas (CNG),6,9
+Passenger Car,Compressed natural Gas (CNG),8,1
+Passenger Car,Compressed natural Gas (CNG),9,18
+Passenger Car,Compressed natural Gas (CNG),10,81
+Passenger Car,Compressed natural Gas (CNG),11,33
+Passenger Car,Compressed natural Gas (CNG),12,48
+Passenger Car,Compressed natural Gas (CNG),13,3
+Passenger Car,Compressed natural Gas (CNG),14,2
+Passenger Car,Compressed natural Gas (CNG),15,5
+Passenger Car,Compressed natural Gas (CNG),16,1
+Passenger Car,Compressed natural Gas (CNG),19,2
+Passenger Car,Compressed natural Gas (CNG),20,1
+Passenger Car,Compressed natural Gas (CNG),21,7
+Passenger Car,Compressed natural Gas (CNG),22,4
+Passenger Car,Compressed natural Gas (CNG),23,21
+Passenger Car,Compressed natural Gas (CNG),24,28
+Passenger Car,Compressed natural Gas (CNG),25,39
+Passenger Car,Compressed natural Gas (CNG),26,31
+Passenger Car,Compressed natural Gas (CNG),27,20
+Passenger Car,Compressed natural Gas (CNG),28,25
+Passenger Car,Compressed natural Gas (CNG),29,1
+Passenger Car,Compressed natural Gas (CNG),30,7
+Passenger Car,Diesel Fuel,0,3
+Passenger Car,Diesel Fuel,1,1429
+Passenger Car,Diesel Fuel,2,3215
+Passenger Car,Diesel Fuel,3,3330
+Passenger Car,Diesel Fuel,4,3082
+Passenger Car,Diesel Fuel,5,8178
+Passenger Car,Diesel Fuel,6,5596
+Passenger Car,Diesel Fuel,7,7777
+Passenger Car,Diesel Fuel,8,6791
+Passenger Car,Diesel Fuel,9,7996
+Passenger Car,Diesel Fuel,10,5428
+Passenger Car,Diesel Fuel,11,4934
+Passenger Car,Diesel Fuel,12,6363
+Passenger Car,Diesel Fuel,13,5363
+Passenger Car,Diesel Fuel,14,2032
+Passenger Car,Diesel Fuel,15,1609
+Passenger Car,Diesel Fuel,16,5628
+Passenger Car,Diesel Fuel,17,4812
+Passenger Car,Diesel Fuel,18,8742
+Passenger Car,Diesel Fuel,19,6858
+Passenger Car,Diesel Fuel,20,7219
+Passenger Car,Diesel Fuel,21,6775
+Passenger Car,Diesel Fuel,22,5826
+Passenger Car,Diesel Fuel,23,5780
+Passenger Car,Diesel Fuel,24,4688
+Passenger Car,Diesel Fuel,25,4765
+Passenger Car,Diesel Fuel,26,851
+Passenger Car,Diesel Fuel,27,3511
+Passenger Car,Diesel Fuel,28,2430
+Passenger Car,Diesel Fuel,29,1976
+Passenger Car,Diesel Fuel,30,9298
+Passenger Car,Electricity,0,30
+Passenger Car,Electricity,1,56803
+Passenger Car,Electricity,2,15280
+Passenger Car,Electricity,3,10281
+Passenger Car,Electricity,4,5062
+Passenger Car,Electricity,5,3855
+Passenger Car,Electricity,6,4985
+Passenger Car,Electricity,7,1851
+Passenger Car,Electricity,8,1638
+Passenger Car,Electricity,9,3246
+Passenger Car,Electricity,10,1197
+Passenger Car,Electricity,11,1329
+Passenger Car,Electricity,12,253
+Passenger Car,Electricity,13,54
+Passenger Car,Electricity,14,4
+Passenger Car,Electricity,16,4
+Passenger Car,Electricity,22,6
+Passenger Car,Electricity,23,7
+Passenger Car,Electricity,24,6
+Passenger Car,Electricity,25,4
+Passenger Car,Electricity,26,2
+Passenger Car,Electricity,27,2
+Passenger Car,Electricity,30,3
+Passenger Car,Ethanol (E-85),1,4677
+Passenger Car,Ethanol (E-85),2,7363
+Passenger Car,Ethanol (E-85),3,7227
+Passenger Car,Ethanol (E-85),4,10010
+Passenger Car,Ethanol (E-85),5,18096
+Passenger Car,Ethanol (E-85),6,16884
+Passenger Car,Ethanol (E-85),7,20529
+Passenger Car,Ethanol (E-85),8,21629
+Passenger Car,Ethanol (E-85),9,28679
+Passenger Car,Ethanol (E-85),10,48507
+Passenger Car,Ethanol (E-85),11,53169
+Passenger Car,Ethanol (E-85),12,43861
+Passenger Car,Ethanol (E-85),13,45950
+Passenger Car,Ethanol (E-85),14,35464
+Passenger Car,Ethanol (E-85),15,19298
+Passenger Car,Ethanol (E-85),16,23760
+Passenger Car,Ethanol (E-85),17,29186
+Passenger Car,Ethanol (E-85),18,15576
+Passenger Car,Ethanol (E-85),19,12261
+Passenger Car,Ethanol (E-85),20,13500
+Passenger Car,Ethanol (E-85),21,14629
+Passenger Car,Ethanol (E-85),22,11359
+Passenger Car,Ethanol (E-85),23,2828
+Passenger Car,Ethanol (E-85),24,6128
+Passenger Car,Ethanol (E-85),25,3723
+Passenger Car,Ethanol (E-85),26,223
+Passenger Car,Ethanol (E-85),27,7
+Passenger Car,Ethanol (E-85),28,1
+Passenger Car,Ethanol (E-85),30,3
+Passenger Car,Gasoline,0,1557
+Passenger Car,Gasoline,1,319214
+Passenger Car,Gasoline,2,328428
+Passenger Car,Gasoline,3,357231
+Passenger Car,Gasoline,4,365712
+Passenger Car,Gasoline,5,425768
+Passenger Car,Gasoline,6,439403
+Passenger Car,Gasoline,7,464609
+Passenger Car,Gasoline,8,442796
+Passenger Car,Gasoline,9,437050
+Passenger Car,Gasoline,10,361543
+Passenger Car,Gasoline,11,357605
+Passenger Car,Gasoline,12,296336
+Passenger Car,Gasoline,13,252399
+Passenger Car,Gasoline,14,222226
+Passenger Car,Gasoline,15,173121
+Passenger Car,Gasoline,16,254863
+Passenger Car,Gasoline,17,269550
+Passenger Car,Gasoline,18,248452
+Passenger Car,Gasoline,19,230148
+Passenger Car,Gasoline,20,215636
+Passenger Car,Gasoline,21,189019
+Passenger Car,Gasoline,22,160308
+Passenger Car,Gasoline,23,140913
+Passenger Car,Gasoline,24,124268
+Passenger Car,Gasoline,25,101085
+Passenger Car,Gasoline,26,80886
+Passenger Car,Gasoline,27,72389
+Passenger Car,Gasoline,28,54374
+Passenger Car,Gasoline,29,52019
+Passenger Car,Gasoline,30,402969
+Passenger Truck,Diesel Fuel,1,104
+Passenger Truck,Diesel Fuel,2,291
+Passenger Truck,Diesel Fuel,3,686
+Passenger Truck,Diesel Fuel,4,135
+Passenger Truck,Diesel Fuel,5,81
+Passenger Truck,Diesel Fuel,6,347
+Passenger Truck,Diesel Fuel,7,324
+Passenger Truck,Diesel Fuel,8,474
+Passenger Truck,Diesel Fuel,9,132
+Passenger Truck,Diesel Fuel,10,299
+Passenger Truck,Diesel Fuel,16,41
+Passenger Truck,Diesel Fuel,17,39
+Passenger Truck,Diesel Fuel,18,70
+Passenger Truck,Diesel Fuel,19,83
+Passenger Truck,Ethanol (E-85),2,1598
+Passenger Truck,Ethanol (E-85),3,4765
+Passenger Truck,Ethanol (E-85),4,4853
+Passenger Truck,Ethanol (E-85),5,6365
+Passenger Truck,Ethanol (E-85),6,9456
+Passenger Truck,Ethanol (E-85),7,12430
+Passenger Truck,Ethanol (E-85),8,10870
+Passenger Truck,Ethanol (E-85),9,15383
+Passenger Truck,Ethanol (E-85),10,13266
+Passenger Truck,Ethanol (E-85),11,6482
+Passenger Truck,Ethanol (E-85),12,6851
+Passenger Truck,Ethanol (E-85),13,2173
+Passenger Truck,Ethanol (E-85),15,33
+Passenger Truck,Ethanol (E-85),17,745
+Passenger Truck,Gasoline,1,8512
+Passenger Truck,Gasoline,2,14235
+Passenger Truck,Gasoline,3,18271
+Passenger Truck,Gasoline,4,18638
+Passenger Truck,Gasoline,5,17800
+Passenger Truck,Gasoline,6,19026
+Passenger Truck,Gasoline,7,11526
+Passenger Truck,Gasoline,8,14211
+Passenger Truck,Gasoline,9,9638
+Passenger Truck,Gasoline,10,8530
+Passenger Truck,Gasoline,11,3212
+Passenger Truck,Gasoline,12,6108
+Passenger Truck,Gasoline,13,7625
+Passenger Truck,Gasoline,14,6212
+Passenger Truck,Gasoline,15,4143
+Passenger Truck,Gasoline,16,10550
+Passenger Truck,Gasoline,17,9745
+Passenger Truck,Gasoline,18,11106
+Passenger Truck,Gasoline,19,8056
+Passenger Truck,Gasoline,20,9906
+Passenger Truck,Gasoline,21,6260
+Passenger Truck,Gasoline,22,5398
+Passenger Truck,Gasoline,23,4843
+Passenger Truck,Gasoline,24,5938
+Passenger Truck,Gasoline,25,5250
+Passenger Truck,Gasoline,26,4706
+Passenger Truck,Gasoline,27,4932
+Passenger Truck,Gasoline,28,2167
+Passenger Truck,Gasoline,29,4028
+Passenger Truck,Gasoline,30,18121
+Refuse Truck,Compressed natural Gas (CNG),1,8
+Refuse Truck,Compressed natural Gas (CNG),3,1
+Refuse Truck,Compressed natural Gas (CNG),4,6
+Refuse Truck,Compressed natural Gas (CNG),5,3
+Refuse Truck,Compressed natural Gas (CNG),6,16
+Refuse Truck,Compressed natural Gas (CNG),7,1
+Refuse Truck,Compressed natural Gas (CNG),8,13
+Refuse Truck,Compressed natural Gas (CNG),9,186
+Refuse Truck,Compressed natural Gas (CNG),10,147
+Refuse Truck,Compressed natural Gas (CNG),11,45
+Refuse Truck,Compressed natural Gas (CNG),12,5
+Refuse Truck,Compressed natural Gas (CNG),13,3
+Refuse Truck,Compressed natural Gas (CNG),14,2
+Refuse Truck,Diesel Fuel,0,153
+Refuse Truck,Diesel Fuel,1,966
+Refuse Truck,Diesel Fuel,2,943
+Refuse Truck,Diesel Fuel,3,636
+Refuse Truck,Diesel Fuel,4,768
+Refuse Truck,Diesel Fuel,5,652
+Refuse Truck,Diesel Fuel,6,548
+Refuse Truck,Diesel Fuel,7,741
+Refuse Truck,Diesel Fuel,8,847
+Refuse Truck,Diesel Fuel,9,609
+Refuse Truck,Diesel Fuel,10,654
+Refuse Truck,Diesel Fuel,11,882
+Refuse Truck,Diesel Fuel,12,372
+Refuse Truck,Diesel Fuel,13,242
+Refuse Truck,Diesel Fuel,14,175
+Refuse Truck,Diesel Fuel,15,259
+Refuse Truck,Diesel Fuel,16,213
+Refuse Truck,Diesel Fuel,17,989
+Refuse Truck,Diesel Fuel,18,582
+Refuse Truck,Diesel Fuel,19,502
+Refuse Truck,Diesel Fuel,20,440
+Refuse Truck,Diesel Fuel,21,345
+Refuse Truck,Diesel Fuel,22,196
+Refuse Truck,Diesel Fuel,23,448
+Refuse Truck,Diesel Fuel,24,500
+Refuse Truck,Diesel Fuel,25,420
+Refuse Truck,Diesel Fuel,26,301
+Refuse Truck,Diesel Fuel,27,254
+Refuse Truck,Diesel Fuel,28,244
+Refuse Truck,Diesel Fuel,29,211
+Refuse Truck,Diesel Fuel,30,1267
+School Bus,Compressed natural Gas (CNG),0,107
+School Bus,Compressed natural Gas (CNG),1,188
+School Bus,Compressed natural Gas (CNG),2,307
+School Bus,Compressed natural Gas (CNG),3,216
+School Bus,Compressed natural Gas (CNG),4,298
+School Bus,Compressed natural Gas (CNG),5,207
+School Bus,Compressed natural Gas (CNG),6,202
+School Bus,Compressed natural Gas (CNG),7,28
+School Bus,Compressed natural Gas (CNG),8,39
+School Bus,Compressed natural Gas (CNG),9,8
+School Bus,Compressed natural Gas (CNG),10,50
+School Bus,Compressed natural Gas (CNG),11,21
+School Bus,Diesel Fuel,0,128
+School Bus,Diesel Fuel,1,454
+School Bus,Diesel Fuel,2,423
+School Bus,Diesel Fuel,3,333
+School Bus,Diesel Fuel,4,518
+School Bus,Diesel Fuel,5,320
+School Bus,Diesel Fuel,6,477
+School Bus,Diesel Fuel,7,577
+School Bus,Diesel Fuel,8,768
+School Bus,Diesel Fuel,9,577
+School Bus,Diesel Fuel,10,666
+School Bus,Diesel Fuel,11,451
+School Bus,Diesel Fuel,12,923
+School Bus,Diesel Fuel,13,295
+School Bus,Diesel Fuel,14,602
+School Bus,Diesel Fuel,15,976
+School Bus,Diesel Fuel,16,143
+School Bus,Diesel Fuel,17,255
+School Bus,Diesel Fuel,18,149
+School Bus,Diesel Fuel,19,227
+School Bus,Diesel Fuel,20,175
+School Bus,Diesel Fuel,21,124
+School Bus,Diesel Fuel,22,90
+School Bus,Diesel Fuel,23,79
+School Bus,Diesel Fuel,24,86
+School Bus,Diesel Fuel,25,72
+School Bus,Diesel Fuel,26,67
+School Bus,Diesel Fuel,27,48
+School Bus,Diesel Fuel,28,38
+School Bus,Diesel Fuel,29,29
+School Bus,Diesel Fuel,30,260
+School Bus,Electricity,4,1
+School Bus,Gasoline,0,19
+School Bus,Gasoline,1,151
+School Bus,Gasoline,2,263
+School Bus,Gasoline,3,176
+School Bus,Gasoline,4,222
+School Bus,Gasoline,5,144
+School Bus,Gasoline,6,70
+School Bus,Gasoline,13,1
+School Bus,Gasoline,30,1
+Single Unit Long-haul Truck,Diesel Fuel,0,339
+Single Unit Long-haul Truck,Diesel Fuel,1,901
+Single Unit Long-haul Truck,Diesel Fuel,2,983
+Single Unit Long-haul Truck,Diesel Fuel,3,666
+Single Unit Long-haul Truck,Diesel Fuel,4,1216
+Single Unit Long-haul Truck,Diesel Fuel,5,1127
+Single Unit Long-haul Truck,Diesel Fuel,6,998
+Single Unit Long-haul Truck,Diesel Fuel,7,1248
+Single Unit Long-haul Truck,Diesel Fuel,8,1450
+Single Unit Long-haul Truck,Diesel Fuel,9,1391
+Single Unit Long-haul Truck,Diesel Fuel,10,884
+Single Unit Long-haul Truck,Diesel Fuel,11,1006
+Single Unit Long-haul Truck,Diesel Fuel,12,1010
+Single Unit Long-haul Truck,Diesel Fuel,13,876
+Single Unit Long-haul Truck,Diesel Fuel,14,501
+Single Unit Long-haul Truck,Diesel Fuel,15,823
+Single Unit Long-haul Truck,Diesel Fuel,16,523
+Single Unit Long-haul Truck,Diesel Fuel,17,1821
+Single Unit Long-haul Truck,Diesel Fuel,18,1279
+Single Unit Long-haul Truck,Diesel Fuel,19,1290
+Single Unit Long-haul Truck,Diesel Fuel,20,802
+Single Unit Long-haul Truck,Diesel Fuel,21,734
+Single Unit Long-haul Truck,Diesel Fuel,22,936
+Single Unit Long-haul Truck,Diesel Fuel,23,1457
+Single Unit Long-haul Truck,Diesel Fuel,24,1506
+Single Unit Long-haul Truck,Diesel Fuel,25,1529
+Single Unit Long-haul Truck,Diesel Fuel,26,1097
+Single Unit Long-haul Truck,Diesel Fuel,27,998
+Single Unit Long-haul Truck,Diesel Fuel,28,979
+Single Unit Long-haul Truck,Diesel Fuel,29,1270
+Single Unit Long-haul Truck,Diesel Fuel,30,4846
+Single Unit Long-haul Truck,Gasoline,30,79
+Single Unit Short-haul Truck,Compressed natural Gas (CNG),4,4
+Single Unit Short-haul Truck,Compressed natural Gas (CNG),5,9
+Single Unit Short-haul Truck,Compressed natural Gas (CNG),6,2
+Single Unit Short-haul Truck,Compressed natural Gas (CNG),22,1
+Single Unit Short-haul Truck,Compressed natural Gas (CNG),23,2
+Single Unit Short-haul Truck,Compressed natural Gas (CNG),24,9
+Single Unit Short-haul Truck,Compressed natural Gas (CNG),26,17
+Single Unit Short-haul Truck,Compressed natural Gas (CNG),27,17
+Single Unit Short-haul Truck,Compressed natural Gas (CNG),28,7
+Single Unit Short-haul Truck,Compressed natural Gas (CNG),29,13
+Single Unit Short-haul Truck,Compressed natural Gas (CNG),30,76
+Single Unit Short-haul Truck,Diesel Fuel,0,485
+Single Unit Short-haul Truck,Diesel Fuel,1,5416
+Single Unit Short-haul Truck,Diesel Fuel,2,11269
+Single Unit Short-haul Truck,Diesel Fuel,3,6634
+Single Unit Short-haul Truck,Diesel Fuel,4,8501
+Single Unit Short-haul Truck,Diesel Fuel,5,6836
+Single Unit Short-haul Truck,Diesel Fuel,6,3929
+Single Unit Short-haul Truck,Diesel Fuel,7,5540
+Single Unit Short-haul Truck,Diesel Fuel,8,5206
+Single Unit Short-haul Truck,Diesel Fuel,9,5326
+Single Unit Short-haul Truck,Diesel Fuel,10,2356
+Single Unit Short-haul Truck,Diesel Fuel,11,2790
+Single Unit Short-haul Truck,Diesel Fuel,12,4880
+Single Unit Short-haul Truck,Diesel Fuel,13,4378
+Single Unit Short-haul Truck,Diesel Fuel,14,1642
+Single Unit Short-haul Truck,Diesel Fuel,15,2090
+Single Unit Short-haul Truck,Diesel Fuel,16,5603
+Single Unit Short-haul Truck,Diesel Fuel,17,6303
+Single Unit Short-haul Truck,Diesel Fuel,18,8135
+Single Unit Short-haul Truck,Diesel Fuel,19,6200
+Single Unit Short-haul Truck,Diesel Fuel,20,4938
+Single Unit Short-haul Truck,Diesel Fuel,21,4519
+Single Unit Short-haul Truck,Diesel Fuel,22,3872
+Single Unit Short-haul Truck,Diesel Fuel,23,4713
+Single Unit Short-haul Truck,Diesel Fuel,24,5150
+Single Unit Short-haul Truck,Diesel Fuel,25,5670
+Single Unit Short-haul Truck,Diesel Fuel,26,1901
+Single Unit Short-haul Truck,Diesel Fuel,27,2507
+Single Unit Short-haul Truck,Diesel Fuel,28,1635
+Single Unit Short-haul Truck,Diesel Fuel,29,2258
+Single Unit Short-haul Truck,Diesel Fuel,30,7969
+Single Unit Short-haul Truck,Electricity,1,878
+Single Unit Short-haul Truck,Electricity,2,31
+Single Unit Short-haul Truck,Electricity,3,8
+Single Unit Short-haul Truck,Ethanol (E-85),4,219
+Single Unit Short-haul Truck,Ethanol (E-85),5,521
+Single Unit Short-haul Truck,Ethanol (E-85),6,660
+Single Unit Short-haul Truck,Ethanol (E-85),7,931
+Single Unit Short-haul Truck,Ethanol (E-85),8,833
+Single Unit Short-haul Truck,Ethanol (E-85),9,820
+Single Unit Short-haul Truck,Ethanol (E-85),10,512
+Single Unit Short-haul Truck,Ethanol (E-85),11,399
+Single Unit Short-haul Truck,Ethanol (E-85),12,412
+Single Unit Short-haul Truck,Ethanol (E-85),13,381
+Single Unit Short-haul Truck,Ethanol (E-85),14,186
+Single Unit Short-haul Truck,Gasoline,0,289
+Single Unit Short-haul Truck,Gasoline,1,3413
+Single Unit Short-haul Truck,Gasoline,2,5878
+Single Unit Short-haul Truck,Gasoline,3,4904
+Single Unit Short-haul Truck,Gasoline,4,4621
+Single Unit Short-haul Truck,Gasoline,5,5798
+Single Unit Short-haul Truck,Gasoline,6,3161
+Single Unit Short-haul Truck,Gasoline,7,4120
+Single Unit Short-haul Truck,Gasoline,8,3673
+Single Unit Short-haul Truck,Gasoline,9,2574
+Single Unit Short-haul Truck,Gasoline,10,1924
+Single Unit Short-haul Truck,Gasoline,11,1728
+Single Unit Short-haul Truck,Gasoline,12,2072
+Single Unit Short-haul Truck,Gasoline,13,1399
+Single Unit Short-haul Truck,Gasoline,14,591
+Single Unit Short-haul Truck,Gasoline,15,1064
+Single Unit Short-haul Truck,Gasoline,16,1960
+Single Unit Short-haul Truck,Gasoline,17,1934
+Single Unit Short-haul Truck,Gasoline,18,2869
+Single Unit Short-haul Truck,Gasoline,19,1827
+Single Unit Short-haul Truck,Gasoline,20,1952
+Single Unit Short-haul Truck,Gasoline,21,1701
+Single Unit Short-haul Truck,Gasoline,22,1707
+Single Unit Short-haul Truck,Gasoline,23,1973
+Single Unit Short-haul Truck,Gasoline,24,2484
+Single Unit Short-haul Truck,Gasoline,25,2676
+Single Unit Short-haul Truck,Gasoline,26,1394
+Single Unit Short-haul Truck,Gasoline,27,1782
+Single Unit Short-haul Truck,Gasoline,28,1142
+Single Unit Short-haul Truck,Gasoline,29,1494
+Single Unit Short-haul Truck,Gasoline,30,8323
+Transit Bus,Compressed natural Gas (CNG),1,15
+Transit Bus,Compressed natural Gas (CNG),2,7
+Transit Bus,Compressed natural Gas (CNG),3,16
+Transit Bus,Compressed natural Gas (CNG),4,25
+Transit Bus,Compressed natural Gas (CNG),5,61
+Transit Bus,Compressed natural Gas (CNG),6,4
+Transit Bus,Compressed natural Gas (CNG),7,13
+Transit Bus,Compressed natural Gas (CNG),8,18
+Transit Bus,Compressed natural Gas (CNG),10,175
+Transit Bus,Compressed natural Gas (CNG),11,79
+Transit Bus,Compressed natural Gas (CNG),15,100
+Transit Bus,Compressed natural Gas (CNG),26,2
+Transit Bus,Diesel Fuel,1,13
+Transit Bus,Diesel Fuel,2,29
+Transit Bus,Diesel Fuel,3,14
+Transit Bus,Diesel Fuel,4,35
+Transit Bus,Diesel Fuel,5,73
+Transit Bus,Diesel Fuel,6,149
+Transit Bus,Diesel Fuel,7,46
+Transit Bus,Diesel Fuel,8,80
+Transit Bus,Diesel Fuel,9,20
+Transit Bus,Diesel Fuel,10,74
+Transit Bus,Diesel Fuel,11,29
+Transit Bus,Diesel Fuel,12,42
+Transit Bus,Diesel Fuel,13,23
+Transit Bus,Diesel Fuel,14,20
+Transit Bus,Diesel Fuel,15,36
+Transit Bus,Diesel Fuel,16,7
+Transit Bus,Diesel Fuel,17,7
+Transit Bus,Diesel Fuel,18,6
+Transit Bus,Diesel Fuel,19,10
+Transit Bus,Diesel Fuel,20,7
+Transit Bus,Diesel Fuel,21,8
+Transit Bus,Diesel Fuel,22,8
+Transit Bus,Diesel Fuel,23,6
+Transit Bus,Diesel Fuel,24,6
+Transit Bus,Diesel Fuel,25,9
+Transit Bus,Diesel Fuel,26,5
+Transit Bus,Diesel Fuel,27,5
+Transit Bus,Diesel Fuel,28,10
+Transit Bus,Diesel Fuel,29,15
+Transit Bus,Diesel Fuel,30,44
+Transit Bus,Electricity,3,16
+Transit Bus,Electricity,4,28
+Transit Bus,Electricity,5,20
+Transit Bus,Electricity,7,2
+Transit Bus,Gasoline,30,3

@@ -457,6 +457,9 @@ function ProjectedDemand() {
                 colHeaders={projectedDemandState.projectedTrafficVolumeHeaders}
                 rowHeaders
                 stretchH="all"
+                colWidths={projectedDemandState.projectedTrafficVolumeHeaders?.map(
+                  () => Math.floor(100 / (projectedDemandState.projectedTrafficVolumeHeaders?.length || 1)) + "%"
+                )}
                 licenseKey="non-commercial-and-evaluation"
                 themeName={theme === "dark" ? "ht-theme-main-dark" : "ht-theme-main"}
                 afterGetColHeader={(col, TH) => {
