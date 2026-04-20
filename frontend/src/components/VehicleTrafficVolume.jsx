@@ -345,11 +345,11 @@ function VehicleTrafficVolume() {
                 <code className="bg-blue-100 px-1 rounded text-xs">Time</code>,
                 <code className="bg-blue-100 px-1 rounded text-xs">Traffic Volume</code>.
                 (2) <strong>Model Parameters</strong> with columns:
-                <code className="bg-blue-100 px-1 rounded text-xs">Tract ID</code>,
-                <code className="bg-blue-100 px-1 rounded text-xs">&lambda;</code>,
-                <code className="bg-blue-100 px-1 rounded text-xs">v_f</code>,
-                <code className="bg-blue-100 px-1 rounded text-xs">Q_m</code>,
-                <code className="bg-blue-100 px-1 rounded text-xs">k_j</code>,
+                <code className="bg-blue-100 px-1 rounded text-xs">Tract ID</code>,{" "}
+                <code className="bg-blue-100 px-1 rounded text-xs">λ</code>,{" "}
+                <code className="bg-blue-100 px-1 rounded text-xs">v<sub>f</sub></code>,{" "}
+                <code className="bg-blue-100 px-1 rounded text-xs">Q<sub>m</sub></code>,{" "}
+                <code className="bg-blue-100 px-1 rounded text-xs">k<sub>j</sub></code>,{" "}
                 <code className="bg-blue-100 px-1 rounded text-xs">w</code>.
                 Processing begins automatically once both files are uploaded.
               </p>
