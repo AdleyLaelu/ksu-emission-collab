@@ -13,6 +13,7 @@ import { chartBgPlugin, subGridPlugin } from "../utils/chartConstants";
 
 ChartJS.register(LinearScale, PointElement, LineElement, Title, Tooltip, zoomPlugin);
 
+// Plugin: draw the right y-axis title bottom-to-top (Chart.js hardcodes it top-to-bottom)
 // Matplotlib tab20 palette — matches the original plot colors and SVG tract map fills
 export const TAB20 = [
   "#1f77b4", "#aec7e8", "#ff7f0e", "#ffbb78", "#2ca02c",
@@ -247,12 +248,7 @@ export default function TrafficChart({
         y1: {
           type: "linear",
           position: "right",
-          title: {
-            display: true,
-            text: "Traffic Volume (veh/hr/ln)",
-            font: { size: 15 },
-            color: "#444",
-          },
+          title: { display: false },
           ticks: { font: { size: 13 }, color: "#444" },
           grid: { drawOnChartArea: false },
           border: { color: "#444" },
@@ -280,8 +276,22 @@ export default function TrafficChart({
         <div className="text-center text-base font-semibold text-gray-700 pt-3 pb-1">
           Year {year} - {city} [{dataSource}]
         </div>
-        <div style={{ padding: "0 8px 8px", height: 280 }}>
-          <Line ref={chartRef} data={chartData} options={options} plugins={[chartBgPlugin, subGridPlugin]} />
+        <div style={{ display: "flex", alignItems: "stretch" }}>
+          <div style={{ flex: 1, padding: "0 8px 8px", height: 280 }}>
+            <Line ref={chartRef} data={chartData} options={options} plugins={[chartBgPlugin, subGridPlugin]} />
+          </div>
+          <div style={{ display: "flex", alignItems: "center", width: 22, marginBottom: 40 }}>
+            <span style={{
+              writingMode: "vertical-rl",
+              transform: "rotate(180deg)",
+              fontSize: 14,
+              color: "#444",
+              whiteSpace: "nowrap",
+              letterSpacing: "0.02em",
+            }}>
+              Traffic Volume (veh/hr/ln)
+            </span>
+          </div>
         </div>
         <ZoomToolbar chartRef={chartRef} />
       </div>

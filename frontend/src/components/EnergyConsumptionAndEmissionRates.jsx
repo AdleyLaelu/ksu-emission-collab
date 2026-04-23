@@ -148,28 +148,6 @@ export default function EnergyConsumptionAndEmissionRates() {
   // Track last-fetched params to skip redundant requests
   const lastFetchRef = useRef({ fuelType: null, emissionType: null, vehicleAge: null, city: null });
   const abortRef = useRef(null);
-  const autoInitRef = useRef(false);
-
-  // Default filter values used when user hasn't selected (charts render immediately)
-  const DEFAULT_FUEL = "Gasoline";
-  const DEFAULT_EMISSION = "CO₂ Emissions";
-  const DEFAULT_AGE = "1";
-
-  // Auto-trigger initial fetch on mount with defaults
-  useEffect(() => {
-    if (autoInitRef.current) return;
-    autoInitRef.current = true;
-
-    // Set defaults if not already set, triggering the fetch
-    const updates = {};
-    if (!ConsumptionAndEmissionState.FuelType) updates.FuelType = DEFAULT_FUEL;
-    if (!ConsumptionAndEmissionState.EmissionType) updates.EmissionType = DEFAULT_EMISSION;
-    if (!ConsumptionAndEmissionState.VehicleAge) updates.VehicleAge = DEFAULT_AGE;
-
-    if (Object.keys(updates).length > 0) {
-      setConsumptionAndEmissionState(updates);
-    }
-  }, [ConsumptionAndEmissionState, setConsumptionAndEmissionState]);
 
   // Derived params
   const fuelType = ConsumptionAndEmissionState.FuelType || "";
@@ -205,21 +183,9 @@ export default function EnergyConsumptionAndEmissionRates() {
     prevFuelTypeRef.current = fuelType;
   }, [fuelType, emissionType, setConsumptionAndEmissionState]);
 
-  // Auto-trigger: fetch vehicle data when params change
-  // If a vehicle is pinned, only fetch that one (2 calls). Otherwise fetch all (26 calls).
-  useEffect(() => {
+  // Manual fetch triggered by Generate button
+  const handleGenerate = useCallback(() => {
     if (!fuelType || !emissionType || !vehicleAge || !city || !emissionBackend) return;
-
-    const last = lastFetchRef.current;
-    const fuelChanged = fuelType !== last.fuelType;
-    const emissionChanged = emissionType !== last.emissionType;
-    const ageChanged = vehicleAge !== last.vehicleAge;
-    const cityChanged = city !== last.city;
-
-    if (!fuelChanged && !emissionChanged && !ageChanged && !cityChanged) return;
-
-    const shouldFetchConsumption = fuelChanged || ageChanged || cityChanged;
-    const shouldFetchEmissions = emissionChanged || ageChanged || cityChanged || fuelChanged;
 
     // Abort in-flight requests
     if (abortRef.current) abortRef.current.abort();
@@ -227,72 +193,58 @@ export default function EnergyConsumptionAndEmissionRates() {
     abortRef.current = controller;
 
     // Determine which vehicles to fetch: only pinned vehicle, or all if none pinned
-    const isInitialLoad = !last.fuelType && !last.emissionType && !last.vehicleAge && !last.city;
     const currentPinned = pinnedVehicleRef.current;
+    const isInitialLoad = !lastFetchRef.current.fuelType;
     const vehiclesToFetch = (currentPinned && !isInitialLoad) ? [currentPinned] : VEHICLE_TYPES;
 
-    console.log(`[Chart Fetch] Pinned: ${currentPinned || "none"}, Fetching ${vehiclesToFetch.length} vehicle(s)`);
-
-    // Preserve data for vehicles we're not refetching
+    // Clear previous data for vehicles being fetched
     setVehicleData((prev) => {
       if (!prev) return {};
       const preserved = {};
-      Object.entries(prev).forEach(([k, v]) => {
+      Object.entries(prev).forEach(([k]) => {
         const vt = k.replace(/_Consumption$|_Selected$/, "");
-        // Keep data for vehicles we're not fetching
-        if (!vehiclesToFetch.includes(vt)) {
-          preserved[k] = v;
-        } else {
-          // For vehicles we ARE fetching, preserve data we won't refetch
-          if (!shouldFetchConsumption && k.endsWith("_Consumption")) preserved[k] = v;
-          if (!shouldFetchEmissions && k.endsWith("_Selected")) preserved[k] = v;
-        }
+        if (!vehiclesToFetch.includes(vt)) preserved[k] = prev[k];
       });
       return preserved;
     });
 
-    const total = vehiclesToFetch.length * ((shouldFetchConsumption ? 1 : 0) + (shouldFetchEmissions ? 1 : 0));
+    const total = vehiclesToFetch.length * 2;
     setTotalCount(total);
     setLoadedCount(0);
     setLoading(true);
 
-    // Fire requests for selected vehicles
     const promises = [];
     vehiclesToFetch.forEach((vt) => {
-      if (shouldFetchConsumption) {
-        promises.push(
-          fetchConsumption(vt, fuelType, vehicleAge, city, controller.signal)
-            .then((data) => {
-              if (!controller.signal.aborted) {
-                setVehicleData((prev) => ({ ...prev, [`${vt}_Consumption`]: data }));
-                setLoadedCount((c) => c + 1);
-              }
-            })
-            .catch((err) => {
-              if (!controller.signal.aborted) {
-                console.error(`Consumption failed for ${vt}:`, err.message);
-                setLoadedCount((c) => c + 1);
-              }
-            })
-        );
-      }
-      if (shouldFetchEmissions) {
-        promises.push(
-          fetchEmissions(vt, fuelType, vehicleAge, city, emissionBackend, emissionType, controller.signal)
-            .then((data) => {
-              if (!controller.signal.aborted) {
-                setVehicleData((prev) => ({ ...prev, [`${vt}_Selected`]: data }));
-                setLoadedCount((c) => c + 1);
-              }
-            })
-            .catch((err) => {
-              if (!controller.signal.aborted) {
-                console.error(`Emission failed for ${vt}:`, err.message);
-                setLoadedCount((c) => c + 1);
-              }
-            })
-        );
-      }
+      promises.push(
+        fetchConsumption(vt, fuelType, vehicleAge, city, controller.signal)
+          .then((data) => {
+            if (!controller.signal.aborted) {
+              setVehicleData((prev) => ({ ...prev, [`${vt}_Consumption`]: data }));
+              setLoadedCount((c) => c + 1);
+            }
+          })
+          .catch((err) => {
+            if (!controller.signal.aborted) {
+              console.error(`Consumption failed for ${vt}:`, err.message);
+              setLoadedCount((c) => c + 1);
+            }
+          })
+      );
+      promises.push(
+        fetchEmissions(vt, fuelType, vehicleAge, city, emissionBackend, emissionType, controller.signal)
+          .then((data) => {
+            if (!controller.signal.aborted) {
+              setVehicleData((prev) => ({ ...prev, [`${vt}_Selected`]: data }));
+              setLoadedCount((c) => c + 1);
+            }
+          })
+          .catch((err) => {
+            if (!controller.signal.aborted) {
+              console.error(`Emission failed for ${vt}:`, err.message);
+              setLoadedCount((c) => c + 1);
+            }
+          })
+      );
     });
 
     Promise.allSettled(promises).then(() => {
@@ -301,8 +253,6 @@ export default function EnergyConsumptionAndEmissionRates() {
         lastFetchRef.current = { fuelType, emissionType, vehicleAge, city };
       }
     });
-
-    return () => controller.abort();
   }, [fuelType, emissionType, vehicleAge, city, emissionBackend, setVehicleData]);
 
   // Build chart datasets from vehicleData (pure derivation, no intermediate state)
@@ -587,9 +537,8 @@ export default function EnergyConsumptionAndEmissionRates() {
           <label className="text-xs font-medium text-gray-600">Fuel Type</label>
           <select
             value={fuelType}
-            disabled={loading}
             onChange={(e) => setConsumptionAndEmissionState({ FuelType: e.target.value })}
-            className={`border rounded px-2 py-1.5 text-sm w-56 ${loading ? "bg-gray-100 text-gray-400 cursor-not-allowed" : ""}`}
+            className="border rounded px-2 py-1.5 text-sm w-56"
           >
             <option value="">Select Fuel Type</option>
             {FUEL_TYPES.map((ft) => (
@@ -602,9 +551,8 @@ export default function EnergyConsumptionAndEmissionRates() {
           <label className="text-xs font-medium text-gray-600">Emission Type</label>
           <select
             value={selectedEmissionTypeObj.value || ""}
-            disabled={loading}
             onChange={(e) => setConsumptionAndEmissionState({ EmissionType: e.target.value })}
-            className={`border rounded px-2 py-1.5 text-sm w-44 ${loading ? "bg-gray-100 text-gray-400 cursor-not-allowed" : ""}`}
+            className="border rounded px-2 py-1.5 text-sm w-44"
           >
             <option value="">Select Emission Type</option>
             {availableEmissionTypes.map((et) => (
@@ -617,11 +565,10 @@ export default function EnergyConsumptionAndEmissionRates() {
           <label className="text-xs font-medium text-gray-600">Vehicle Age</label>
           <select
             value={vehicleAge}
-            disabled={loading}
             onChange={(e) => setConsumptionAndEmissionState({ VehicleAge: e.target.value })}
-            className={`border rounded px-2 py-1.5 text-sm w-28 ${loading ? "bg-gray-100 text-gray-400 cursor-not-allowed" : ""}`}
+            className="border rounded px-2 py-1.5 text-sm w-28"
           >
-            <option value="" disabled>Vehicle Age</option>
+            <option value="">Vehicle Age</option>
             {ageOptions.map((n) => (
               <option key={n} value={n}>{n}</option>
             ))}
@@ -638,6 +585,19 @@ export default function EnergyConsumptionAndEmissionRates() {
           </select>
         </div>
 
+        {/* Generate button */}
+        <button
+          type="button"
+          disabled={!allParamsSet || loading}
+          onClick={handleGenerate}
+          className={`px-5 py-1.5 rounded-lg text-sm font-semibold transition-all duration-200 shadow-sm whitespace-nowrap
+            ${!allParamsSet || loading
+              ? "bg-gray-300 text-gray-500 cursor-not-allowed"
+              : "bg-green-600 hover:bg-green-700 text-white cursor-pointer hover:shadow-md active:scale-[0.98]"}`}
+        >
+          {loading ? "Generating..." : "Generate"}
+        </button>
+
         {/* Loading progress bar */}
         {loading && totalCount > 0 && (
           <div className="flex items-center gap-2 ml-2 min-w-[180px]">
@@ -647,7 +607,7 @@ export default function EnergyConsumptionAndEmissionRates() {
                 style={{ width: `${(loadedCount / totalCount) * 100}%` }}
               />
             </div>
-            <span className="text-xs text-gray-500 whitespace-nowrap">{loadedCount}/{totalCount}</span>
+            <span className="text-xs text-gray-500 whitespace-nowrap">{Math.round((loadedCount / totalCount) * 100)}%</span>
           </div>
         )}
       </div>

@@ -35,8 +35,8 @@ function VehicleTrafficVolume() {
   const trafficState = useAppStore((s) => s.trafficVolumeState);
   const setTrafficState = useAppStore((s) => s.setTrafficVolumeState);
   const trafficMode = useAppStore((s) => s.trafficMode);
-  const trafficModeLocked = useAppStore((s) => s.trafficModeLocked);
   const setTrafficMode = useAppStore((s) => s.setTrafficMode);
+  const setProjectedDemandState = useAppStore((s) => s.setProjectedDemandState);
   // eslint-disable-next-line no-unused-vars
   const addNotification = useAppStore.getState().addNotification;
 
@@ -88,14 +88,27 @@ function VehicleTrafficVolume() {
   const hasMFTParametersData = trafficState.trafficMFTParametersData?.length > 0;
 
   const handleModeSwitch = (newMode) => {
-    if (trafficModeLocked) return;
+    if (newMode === trafficMode) return;
     setTrafficMode(newMode);
-    // Clear results when switching modes
+    // Clear all uploaded data and results so the user starts fresh
     setTrafficState({
       showResults: false,
       speedEstimated: false,
       methodUsed: null,
       trafficChartData: null,
+      trafficVolumeFile: null,
+      trafficMFTParametersHeaders: [],
+      trafficMFTParametersData: [],
+      trafficMFTParametersFile: null,
+      abmFile: null,
+    });
+    // Clear Step 3 chart data and cache so stale results from the previous method don't persist
+    setProjectedDemandState({
+      projectedTrafficVolumeFile: null,
+      projectedTrafficVolumeData: [],
+      projectedTrafficVolumeHeaders: [],
+      abmProjectedFile: null,
+      yearCache: {},
     });
   };
 
@@ -224,13 +237,13 @@ function VehicleTrafficVolume() {
           <span className="text-sm font-medium text-gray-600 mr-2">Method:</span>
           <button
             type="button"
-            disabled={trafficModeLocked || !abmPossible}
+            disabled={!abmPossible}
             onClick={() => handleModeSwitch("ABM")}
             className={`px-4 py-1.5 rounded-l-lg text-sm font-semibold border transition-colors
               ${trafficMode === "ABM"
                 ? "bg-green-600 text-white border-green-600"
                 : "bg-white text-gray-600 border-gray-300 hover:bg-gray-50"}
-              ${(trafficModeLocked || !abmPossible) ? "opacity-50 cursor-not-allowed" : "cursor-pointer"}`}
+              ${!abmPossible ? "opacity-50 cursor-not-allowed" : "cursor-pointer"}`}
           >
             <span className="flex items-center gap-1.5">
               <Zap className="w-3.5 h-3.5" />
@@ -239,22 +252,17 @@ function VehicleTrafficVolume() {
           </button>
           <button
             type="button"
-            disabled={trafficModeLocked}
             onClick={() => handleModeSwitch("MFD")}
-            className={`px-4 py-1.5 rounded-r-lg text-sm font-semibold border border-l-0 transition-colors
+            className={`px-4 py-1.5 rounded-r-lg text-sm font-semibold border border-l-0 transition-colors cursor-pointer
               ${trafficMode === "MFD"
                 ? "bg-blue-600 text-white border-blue-600"
-                : "bg-white text-gray-600 border-gray-300 hover:bg-gray-50"}
-              ${trafficModeLocked ? "opacity-50 cursor-not-allowed" : "cursor-pointer"}`}
+                : "bg-white text-gray-600 border-gray-300 hover:bg-gray-50"}`}
           >
             <span className="flex items-center gap-1.5">
               <FileSpreadsheet className="w-3.5 h-3.5" />
               Model Traffic Dynamics
             </span>
           </button>
-          {trafficModeLocked && (
-            <span className="text-xs text-gray-400 ml-2 italic">Locked for this session</span>
-          )}
           {!abmPossible && trafficMode === "MFD" && (
             <span className="text-xs text-gray-400 ml-2 italic">Import Traffic Data only available for Atlanta (2020-2050)</span>
           )}
