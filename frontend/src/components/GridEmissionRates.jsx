@@ -98,7 +98,7 @@ const GridEmissionRates = ({ activeStep, isResults }) => {
         <Card variant="outlined" sx={{ backgroundColor: "#fafafa", mb: 4, maxWidth: 1200, px: 2, py: 1 }}>
           <CardContent>
             <Typography variant="h6" gutterBottom>
-              Scenarios
+              Grid Emission Projection Scenarios
             </Typography>
             <Divider sx={{ my: 1 }} />
             <List>

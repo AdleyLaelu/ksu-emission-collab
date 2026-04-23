@@ -317,8 +317,7 @@ function VehiclePenetration({ activeStep }) {
                   onChange={(e) => {
                     setPenetrationState({ projectedYear: e.target.value });
                   }}
-                  disabled={!penetrationState.penetrationFile}
-                  className={`border rounded px-2 py-1 w-full h-[32px] disabled:opacity-50 disabled:cursor-not-allowed ${
+                  className={`border rounded px-2 py-1 w-full h-[32px] ${
                     theme === "dark"
                       ? "bg-[#18181b] text-white border-gray-700"
                       : ""
@@ -396,7 +395,8 @@ function VehiclePenetration({ activeStep }) {
             {/* Projected Penetration upload button below City, right-aligned and smaller */}
             <div className="flex w-full justify-end mt-2">
               <label
-                className={`flex items-center font-semibold px-3 py-1.5 rounded cursor-pointer h-[36px] text-sm transition-colors duration-300 whitespace-nowrap w-full max-w-[300px]
+                className={`flex items-center font-semibold px-3 py-1.5 rounded h-[36px] text-sm transition-colors duration-300 whitespace-nowrap w-full max-w-[300px]
+                  ${!penetrationState.projectedYear ? "opacity-40 cursor-not-allowed" : "cursor-pointer"}
                   ${theme === "dark" ? "bg-blue-700 hover:bg-blue-800 text-white" : "bg-blue-600 hover:bg-blue-700 text-white"}`}
                 style={{ minWidth: 0 }}
               >
@@ -408,7 +408,7 @@ function VehiclePenetration({ activeStep }) {
                   type="file"
                   accept=".xlsx, .xls, .csv"
                   onChange={handleFileChange}
-                  disabled={classificationState.city === ""}
+                  disabled={!penetrationState.projectedYear}
                   className="hidden"
                 />
               </label>

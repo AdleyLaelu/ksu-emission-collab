@@ -87,15 +87,15 @@ const FinalResultsPage = ({ resultsSelection, setResultsSelection }) => {
   const [dailyAnnualSelection, setDailyAnnualSelection] = useState("DAILY");
   const [selectedScenarioIdx, setSelectedScenarioIdx] = useState(null);
   const [selectedVehicleIdx, setSelectedVehicleIdx] = useState(null);
+  const [localFuelType, setLocalFuelType] = useState("");
+  const [localEmissionType, setLocalEmissionType] = useState("");
 
-  const ConsumptionAndEmissionState = useAppStore((s) => s.ConsumptionAndEmission);
-  const setConsumptionAndEmission = useAppStore((s) => s.setConsumptionAndEmission);
   const classificationState = useAppStore((s) => s.classificationState);
   const theme = useAppStore((s) => s.theme);
 
   const cityName     = classificationState.city || classificationState.cityInput;
-  const fuelType     = ConsumptionAndEmissionState.FuelType || "";
-  const emissionType = ConsumptionAndEmissionState.EmissionType || "";
+  const fuelType     = localFuelType;
+  const emissionType = localEmissionType;
   const chartMode    = dailyAnnualSelection === "DAILY" ? "R1" : "R2";
   const showVehicle  = resultsSelection === "VEHICLE";
   const showGrid     = resultsSelection === "GRID";
@@ -138,7 +138,7 @@ const FinalResultsPage = ({ resultsSelection, setResultsSelection }) => {
             <label className="text-sm font-medium text-gray-600">Fuel Type</label>
             <select
               value={fuelType}
-              onChange={(e) => setConsumptionAndEmission({ FuelType: e.target.value })}
+              onChange={(e) => setLocalFuelType(e.target.value)}
               className="border rounded px-3 py-2 w-44 text-sm"
             >
               <option value="">Select Fuel Type</option>
@@ -152,7 +152,7 @@ const FinalResultsPage = ({ resultsSelection, setResultsSelection }) => {
             <label className="text-sm font-medium text-gray-600">Emission Type</label>
             <select
               value={emissionType}
-              onChange={(e) => setConsumptionAndEmission({ EmissionType: e.target.value })}
+              onChange={(e) => setLocalEmissionType(e.target.value)}
               className="border rounded px-3 py-2 w-48 text-sm"
             >
               <option value="">Select Emission Type</option>
@@ -215,15 +215,19 @@ const FinalResultsPage = ({ resultsSelection, setResultsSelection }) => {
 
           {showVehicle && (
             <>
-              {fuelType && (
+              {fuelType ? (
                 <div className="w-full border border-gray-200 rounded-lg bg-white shadow-sm p-3">
                   <div className="text-xs font-semibold text-gray-500 mb-1">{fuelType} Consumption</div>
                   <div style={{ height: 280 }}>
                     <VehicleChartR1R2 metric={fuelType} cityName={cityName} mode={chartMode} controlledIdx={selectedVehicleIdx} onSelectIdx={setSelectedVehicleIdx} />
                   </div>
                 </div>
+              ) : (
+                <div className="w-full border border-dashed border-gray-300 rounded-lg bg-gray-50 p-3 flex items-center justify-center" style={{ height: 280 }}>
+                  <span className="text-gray-400 text-sm">Select a Fuel Type to view the consumption chart.</span>
+                </div>
               )}
-              {emissionType && (
+              {emissionType ? (
                 <div className="w-full border border-gray-200 rounded-lg bg-white shadow-sm p-3">
                   <div className="text-xs font-semibold text-gray-500 mb-1">
                     {emissionType === "CO2" ? "CO\u2082" : emissionType === "NOx" ? "NO\u2093" : emissionType} Emission
@@ -232,10 +236,9 @@ const FinalResultsPage = ({ resultsSelection, setResultsSelection }) => {
                     <VehicleChartR1R2 metric={emissionType} cityName={cityName} mode={chartMode} controlledIdx={selectedVehicleIdx} onSelectIdx={setSelectedVehicleIdx} />
                   </div>
                 </div>
-              )}
-              {!fuelType && !emissionType && (
-                <div className="flex items-center justify-center h-40 text-gray-400 text-sm">
-                  Select a Fuel Type or Emission Type to view the chart.
+              ) : (
+                <div className="w-full border border-dashed border-gray-300 rounded-lg bg-gray-50 p-3 flex items-center justify-center" style={{ height: 280 }}>
+                  <span className="text-gray-400 text-sm">Select an Emission Type to view the emission chart.</span>
                 </div>
               )}
             </>

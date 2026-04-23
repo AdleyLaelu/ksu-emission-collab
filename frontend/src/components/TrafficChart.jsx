@@ -252,6 +252,7 @@ export default function TrafficChart({
             text: "Traffic Volume (veh/hr/ln)",
             font: { size: 15 },
             color: "#444",
+            rotation: 270,
           },
           ticks: { font: { size: 13 }, color: "#444" },
           grid: { drawOnChartArea: false },

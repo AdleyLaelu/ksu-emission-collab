@@ -336,7 +336,7 @@ function VehicleClassification({ activeStep }) {
                   onChange={(e) =>
                     setClassificationState({ vehicleType: e.target.value })
                   }
-                  disabled={classificationState.city === ""}
+                  disabled={!classificationState.uploadedFile}
                   className={`border rounded px-2 py-1 w-full transition-colors duration-300 disabled:opacity-50 disabled:cursor-not-allowed ${
                     theme === "dark"
                       ? "bg-[#18181b] text-white border-gray-700"
@@ -411,7 +411,7 @@ function VehicleClassification({ activeStep }) {
             <div className="flex w-full justify-end mt-3">
               <label
                 className={`flex items-center font-bold px-5 py-2.5 rounded-lg text-sm transition-all duration-200 whitespace-nowrap shadow-md
-                  ${classificationState.city === "" ? "opacity-40 cursor-not-allowed" : "cursor-pointer hover:shadow-lg hover:scale-[1.02] active:scale-[0.98]"}
+                  ${classificationState.city === "" || classificationState.baseYear === "" ? "opacity-40 cursor-not-allowed" : "cursor-pointer hover:shadow-lg hover:scale-[1.02] active:scale-[0.98]"}
                   ${
                     theme === "dark"
                       ? "bg-blue-600 hover:bg-blue-500 text-white"
@@ -426,7 +426,7 @@ function VehicleClassification({ activeStep }) {
                   type="file"
                   accept=".xlsx, .xls, .csv"
                   onChange={handleFileChange}
-                  disabled={classificationState.city === ""}
+                  disabled={classificationState.city === "" || classificationState.baseYear === ""}
                   className="hidden"
                 />
               </label>

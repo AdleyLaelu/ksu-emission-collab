@@ -129,7 +129,6 @@ function InputStepper({ finalNext, activeStep, setActiveStep }) {
       if (mode === "ABM") {
         if (state.speedEstimated) {
           console.log("ABM mode - speed estimated, proceeding to next step");
-          store.lockTrafficMode();
         } else {
           window.dispatchEvent(
             new CustomEvent("app-notification", { detail: { text: "Traffic data not yet processed. You can continue, but results may be incomplete." } })
@@ -137,8 +136,6 @@ function InputStepper({ finalNext, activeStep, setActiveStep }) {
         }
       } else if (mode === "MFD") {
         if (state.trafficVolumeFile && state.trafficMFTParametersFile) {
-          store.lockTrafficMode();
-
           const formData = new FormData();
           formData.append("city_name", classState.city || classState.cityInput || "");
           formData.append("transaction_id", localStorage.getItem("transaction_id") || "emission-analysis-2025");
