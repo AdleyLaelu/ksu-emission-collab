@@ -36,6 +36,7 @@ function VehicleTrafficVolume() {
   const setTrafficState = useAppStore((s) => s.setTrafficVolumeState);
   const trafficMode = useAppStore((s) => s.trafficMode);
   const setTrafficMode = useAppStore((s) => s.setTrafficMode);
+  const setProjectedDemandState = useAppStore((s) => s.setProjectedDemandState);
   // eslint-disable-next-line no-unused-vars
   const addNotification = useAppStore.getState().addNotification;
 
@@ -100,6 +101,14 @@ function VehicleTrafficVolume() {
       trafficMFTParametersData: [],
       trafficMFTParametersFile: null,
       abmFile: null,
+    });
+    // Clear Step 3 chart data and cache so stale results from the previous method don't persist
+    setProjectedDemandState({
+      projectedTrafficVolumeFile: null,
+      projectedTrafficVolumeData: [],
+      projectedTrafficVolumeHeaders: [],
+      abmProjectedFile: null,
+      yearCache: {},
     });
   };
 
