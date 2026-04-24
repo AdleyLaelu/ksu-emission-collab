@@ -121,14 +121,12 @@ export default function VehicleChartR1R2({
 
   const { labels: rawLabels, unit, tracts } = metricData;
 
-  // Convert 24-hour labels to 12-hour format for R1 (Daily)
+  // Convert labels to 24-hour format (HH:00) for R1 (Daily)
   const labels = mode === "R1"
     ? rawLabels.map((lbl) => {
         const h = parseInt(lbl, 10);
         if (isNaN(h)) return lbl;
-        if (h === 0 || h === 24) return "12 AM";
-        if (h === 12) return "12 PM";
-        return h < 12 ? `${h} AM` : `${h - 12} PM`;
+        return `${String(h).padStart(2, "0")}:00`;
       })
     : rawLabels;
   const tractIds = Object.keys(tracts);
