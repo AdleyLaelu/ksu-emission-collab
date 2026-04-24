@@ -121,23 +121,15 @@ export default function VehicleChartR1R2({
 
   const { labels: rawLabels, unit, tracts } = metricData;
 
-  // Convert 24-hour labels to 12-hour format for R1 (Daily)
+  // Convert labels to 24-hour format (HH:00) for R1 (Daily)
   const labels = mode === "R1"
     ? rawLabels.map((lbl) => {
         const h = parseInt(lbl, 10);
         if (isNaN(h)) return lbl;
-        if (h === 0 || h === 24) return "12 AM";
-        if (h === 12) return "12 PM";
-        return h < 12 ? `${h} AM` : `${h - 12} PM`;
+        return `${String(h).padStart(2, "0")}:00`;
       })
     : rawLabels;
   const tractIds = Object.keys(tracts);
-
-  // City average
-  const avgData = labels.map((_, i) => {
-    const vals = tractIds.map(id => tracts[id][i]).filter(v => v != null && !isNaN(v));
-    return vals.length ? vals.reduce((s, v) => s + v, 0) / vals.length : null;
-  });
 
   // Resolve which tract index is "active" (controlled > internal > external locked > hovered)
   const extActiveTractId = selectedTractId || hoveredTractId;
@@ -151,7 +143,6 @@ export default function VehicleChartR1R2({
   const applyChartHover = (chart, hoverIdx) => {
     if (isControlled ? controlledIdxRef.current !== null : internalSelectedIdxRef.current !== null) return;
     chart.data.datasets.forEach((ds, i) => {
-      if (ds._isAvg) return;
       const base = ds._baseColor;
       if (i === hoverIdx) {
         ds.borderColor = base;
@@ -168,7 +159,6 @@ export default function VehicleChartR1R2({
   const clearChartHover = (chart) => {
     const sel = isControlled ? controlledIdxRef.current : internalSelectedIdxRef.current;
     chart.data.datasets.forEach((ds, i) => {
-      if (ds._isAvg) return;
       const base = ds._baseColor;
       if (sel !== null) {
         if (i === sel) {
@@ -212,18 +202,11 @@ export default function VehicleChartR1R2({
       borderColor, backgroundColor: "rgba(0,0,0,0)", borderWidth,
       pointRadius: 0,
       tension: 0.4,
-      _baseColor: color, _isAvg: false,
+      _baseColor: color,
     };
   });
 
-  const avgDataset = {
-    label: "City Average", data: avgData,
-    borderColor: "#1a1a1a", backgroundColor: "rgba(0,0,0,0)", borderWidth: 2.5,
-    pointRadius: 0,
-    tension: 0.4, _baseColor: "#1a1a1a", _isAvg: true, order: 0,
-  };
-
-  const datasets = [...tractDatasets, avgDataset];
+  const datasets = [...tractDatasets];
   const xLabel = mode === "R1" ? "Hour of Day" : "Year";
 
   // Compute y-axis step size
@@ -246,7 +229,7 @@ export default function VehicleChartR1R2({
     hover: { mode: "nearest", intersect: false },
 
     onHover: (_evt, activeElements, chart) => {
-      const overTract = activeElements.length > 0 && !chart.data.datasets[activeElements[0].datasetIndex]?._isAvg;
+      const overTract = activeElements.length > 0;
       chart.canvas.style.cursor = overTract ? "pointer" : "default";
       if (internalSelectedIdxRef.current !== null) return;
       if (overTract) applyChartHover(chart, activeElements[0].datasetIndex);
@@ -257,16 +240,14 @@ export default function VehicleChartR1R2({
       if (activeElements.length > 0) {
         const dsIdx = activeElements[0].datasetIndex;
         const ds = datasets[dsIdx];
-        if (!ds?._isAvg) {
-          if (isControlled) {
-            onSelectIdx?.(controlledIdx === dsIdx ? null : dsIdx);
-          } else {
-            const newIdx = internalSelectedIdxRef.current === dsIdx ? null : dsIdx;
-            internalSelectedIdxRef.current = newIdx;
-            setInternalSelectedIdx(newIdx);
-            const tractId = tractIds[dsIdx];
-            onTractSelect(selectedTractIdRef.current === tractId ? null : tractId);
-          }
+        if (isControlled) {
+          onSelectIdx?.(controlledIdx === dsIdx ? null : dsIdx);
+        } else {
+          const newIdx = internalSelectedIdxRef.current === dsIdx ? null : dsIdx;
+          internalSelectedIdxRef.current = newIdx;
+          setInternalSelectedIdx(newIdx);
+          const tractId = tractIds[dsIdx];
+          onTractSelect(selectedTractIdRef.current === tractId ? null : tractId);
         }
       } else {
         if (isControlled) {
