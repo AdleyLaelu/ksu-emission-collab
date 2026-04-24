@@ -274,7 +274,7 @@ export default function TrafficChart({
         onMouseLeave={() => onHoverTract(null)}
       >
         <div className="text-center text-base font-semibold text-gray-700 pt-3 pb-1">
-          Year {year} - {city} [{dataSource}]
+          Year {year} - {city} [Method: {dataSource === "MFD" ? "Traffic Model" : "Traffic Data"}]
         </div>
         <div style={{ display: "flex", alignItems: "stretch" }}>
           <div style={{ flex: 1, padding: "0 8px 8px", height: 280 }}>

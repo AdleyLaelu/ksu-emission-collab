@@ -71,9 +71,9 @@ def generate_plot_image(city_name, year):
         colormap = plt.get_cmap('tab20')
         colors = [colormap(i) for i in np.linspace(0, 1, len(tract_ids))]
         fig, ax1 = plt.subplots(figsize=(15, 5))
-        # Include data source in title for transparency
-        title_suffix = f" [{data_source}]" if data_source != "MFD" else ""
-        plt.title(f'Year {year} - {city_name} ({state}){title_suffix}', fontname='Sans Serif', fontsize=19, pad=18)
+        # Include method in title for transparency
+        method_label = "Traffic Model" if data_source == "MFD" else "Traffic Data"
+        plt.title(f'Year {year} - {city_name} ({state}) [Method: {method_label}]', fontname='Sans Serif', fontsize=19, pad=18)
         for idx, (time, traffic_volume, speed, tract_id) in enumerate(all_data):
             x = np.arange(len(time))
             # Handle potential NaNs in speed/volume data before interpolation
