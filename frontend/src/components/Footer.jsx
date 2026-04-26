@@ -4,7 +4,7 @@ import ksuLogo from "../assets/ksu-logo.png";
 
 const Footer = () => {
   return (
-    <footer className="bg-white px-8 py-4 flex justify-between items-center z-[1000]">
+    <footer className="bg-white px-8 py-4 flex justify-between items-center z-[1000]" style={{ display: "none" }}>
       <div className="flex items-center">
         <img
           src={futraLogo}

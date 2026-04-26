@@ -57,8 +57,17 @@ const EMISSION_TYPES = [
   { label: "PM2.5T", value: "PM2.5T" },
 ];
 
-// Scenario names from R3 data (same for all states/gases)
-const SCENARIO_NAMES = Object.keys(R3_DATA_MAP.GA_CO2.scenarios || {});
+// Full display names for scenarios (JSON keys are truncated)
+const SCENARIO_NAMES = [
+  "Mid-case Scenario",
+  "Low Renewable Energy and Battery Costs",
+  "High Renewable Energy and Battery Costs",
+  "High Demand Growth",
+  "Low Natural Gas Prices",
+  "High Natural Gas Prices",
+  "Low RE & Battery Costs + High Gas Prices",
+  "High RE & Battery Costs + Low Gas Prices",
+];
 
 function downloadCsv(cityName, chartMode) {
   const state = CITY_TO_STATE[cityName] || CITY_TO_STATE[cityName?.replace(/\s/g, "")] || null;
@@ -259,7 +268,7 @@ const FinalResultsPage = ({ resultsSelection, setResultsSelection }) => {
                     </div>
                   </div>
                   {SCENARIO_NAMES.length > 0 && (
-                    <div className="flex-shrink-0 w-56 border border-gray-500 rounded-xl bg-white p-3 shadow-md self-center">
+                    <div className="flex-shrink-0 border border-gray-500 rounded-xl bg-white p-3 shadow-md self-center">
                       <div className="flex items-center gap-2 mb-2">
                         <span className="text-sm font-bold text-gray-800">Scenarios</span>
                         {selectedScenarioIdx !== null && (
@@ -277,7 +286,7 @@ const FinalResultsPage = ({ resultsSelection, setResultsSelection }) => {
                             <svg width="28" height="10" style={{ flexShrink: 0 }}>
                               <line x1="0" y1="5" x2="28" y2="5" stroke={SCENARIO_COLORS[idx % SCENARIO_COLORS.length]} strokeWidth={isSelected ? 2.5 : 1.5} strokeLinecap="round" />
                             </svg>
-                            <span className={`text-[11px] text-left ${isSelected ? "font-bold text-gray-900" : "font-bold text-gray-700"}`}>{name}</span>
+                            <span className={`text-[11px] text-left whitespace-nowrap ${isSelected ? "font-bold text-gray-900" : "font-bold text-gray-700"}`}>{name}</span>
                           </button>
                         );
                       })}

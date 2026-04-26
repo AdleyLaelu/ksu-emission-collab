@@ -124,6 +124,18 @@ export default function GridChartR3({ emissionType, cityName, showLegend = true,
 
   const scenarios = jsonData.scenarios || {};
   const scenarioNames = Object.keys(scenarios);
+
+  // Map truncated JSON keys to full display names
+  const DISPLAY_NAMES = [
+    "Mid-case Scenario",
+    "Low Renewable Energy and Battery Costs",
+    "High Renewable Energy and Battery Costs",
+    "High Demand Growth",
+    "Low Natural Gas Prices",
+    "High Natural Gas Prices",
+    "Low RE & Battery Costs + High Gas Prices",
+    "High RE & Battery Costs + Low Gas Prices",
+  ];
   const labels = (scenarios[scenarioNames[0]] || []).map((p) => p.date);
 
   // ── Imperative hover helpers ──────────────────────────────────────────────
@@ -323,40 +335,35 @@ export default function GridChartR3({ emissionType, cityName, showLegend = true,
         <ZoomToolbar chartRef={chartRef} />
       </div>
 
-      {/* Legend — horizontal wrap row below chart */}
-      {showLegend && <div className="flex flex-wrap items-center gap-x-4 gap-y-1 px-1">
+      {/* Legend — single column below chart */}
+      {showLegend && <div className="border border-gray-500 rounded-xl bg-white p-2 shadow-md w-full">
         {selectedIdx !== null && (
-          <button
-            type="button"
-            onClick={handleReset}
-            className="text-[9px] text-blue-500 hover:text-blue-700 font-semibold"
-          >
-            Clear
-          </button>
+          <button type="button" onClick={handleReset} className="text-[9px] text-blue-500 hover:text-blue-700 font-semibold mb-1">Clear</button>
         )}
-        {scenarioNames.map((name, idx) => {
-          const color = SCENARIO_COLORS[idx % SCENARIO_COLORS.length];
-          const isSelected = selectedIdx === idx;
-          const isFaded = selectedIdx !== null && !isSelected;
-          return (
-            <button
-              key={name}
-              type="button"
-              onClick={() => handleSelectIdx(idx)}
-              className="flex items-center gap-1 hover:opacity-80 transition-opacity"
-              style={{ opacity: isFaded ? 0.28 : 1 }}
-              title={name}
-            >
-              <svg width="24" height="10" style={{ flexShrink: 0 }}>
-                <line x1="0" y1="5" x2="24" y2="5" stroke={color}
-                  strokeWidth={isSelected ? 2.5 : 1.5} strokeLinecap="round" />
-              </svg>
-              <span className={`text-[9px] ${isSelected ? "font-bold text-gray-900" : "text-gray-500"}`}>
-                {name}
-              </span>
-            </button>
-          );
-        })}
+        <div className="grid grid-cols-1 gap-y-0.5">
+          {scenarioNames.map((name, idx) => {
+            const color = SCENARIO_COLORS[idx % SCENARIO_COLORS.length];
+            const isSelected = selectedIdx === idx;
+            const isFaded = selectedIdx !== null && !isSelected;
+            return (
+              <button
+                key={name}
+                type="button"
+                onClick={() => handleSelectIdx(idx)}
+                className="flex items-center gap-1.5 py-0.5 hover:opacity-80 transition-opacity"
+                style={{ opacity: isFaded ? 0.28 : 1 }}
+              >
+                <svg width="22" height="8" style={{ flexShrink: 0 }}>
+                  <line x1="0" y1="4" x2="22" y2="4" stroke={color}
+                    strokeWidth={isSelected ? 2.5 : 1.5} strokeLinecap="round" />
+                </svg>
+                <span className={`text-[11px] text-left whitespace-nowrap ${isSelected ? "font-bold text-gray-900" : "font-bold text-gray-700"}`}>
+                  {DISPLAY_NAMES[idx] || name}
+                </span>
+              </button>
+            );
+          })}
+        </div>
       </div>}
     </div>
   );

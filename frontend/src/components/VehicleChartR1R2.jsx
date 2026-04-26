@@ -121,12 +121,15 @@ export default function VehicleChartR1R2({
 
   const { labels: rawLabels, unit, tracts } = metricData;
 
-  // Convert labels to 24-hour format (HH:00) for R1 (Daily)
+  // Convert 24-hour labels to 12-hour format for R1 (Daily)
+  // Data is 0:00–24:00 (25 points, 12 AM to 12 AM)
   const labels = mode === "R1"
     ? rawLabels.map((lbl) => {
         const h = parseInt(lbl, 10);
         if (isNaN(h)) return lbl;
-        return `${String(h).padStart(2, "0")}:00`;
+        if (h === 0 || h === 24) return "12 AM";
+        if (h === 12) return "12 PM";
+        return h < 12 ? `${h} AM` : `${h - 12} PM`;
       })
     : rawLabels;
   const tractIds = Object.keys(tracts);
@@ -287,7 +290,7 @@ export default function VehicleChartR1R2({
       x: {
         border: { display: true, color: "#444", width: 1 },
         grid: { display: true, color: "rgba(169,169,169,0.15)", lineWidth: 0.8, drawTicks: mode === "R1", tickColor: "#444" },
-        ticks: { maxTicksLimit: mode === "R2" ? 7 : 24, maxRotation: mode === "R1" ? 90 : 0, minRotation: mode === "R1" ? 90 : 0, font: CHART_FONT, color: "#222", padding: mode === "R1" ? 2 : 4 },
+        ticks: { autoSkip: false, maxTicksLimit: mode === "R2" ? 7 : 25, maxRotation: mode === "R1" ? 90 : 0, minRotation: mode === "R1" ? 90 : 0, font: CHART_FONT, color: "#222", padding: mode === "R1" ? 2 : 4 },
         title: { display: true, text: xLabel, font: CHART_FONT, color: "#222", padding: { top: 8, bottom: 0 } },
       },
       xTop: {
