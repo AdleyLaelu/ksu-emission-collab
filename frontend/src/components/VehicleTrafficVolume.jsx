@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo, useCallback } from "react";
 import { CloudUpload, Zap, FileSpreadsheet } from "lucide-react";
 import * as XLSX from "xlsx";
 import { registerAllModules } from "handsontable/registry";
-import useAppStore from "../useAppStore";
+import useAppStore from "../seAppStore";
 import { API_URL } from "../config";
 import "handsontable/dist/handsontable.full.min.css";
 import "handsontable/styles/handsontable.css";
@@ -24,11 +24,16 @@ const isABMAvailable = (city, year) => {
   if (!city || !year) return false;
   const normalizedCity = city.toLowerCase().trim();
   const yearNum = parseInt(year, 10);
-  return normalizedCity === "atlanta" && yearNum >= ABM_MIN_YEAR && yearNum <= ABM_MAX_YEAR;
+  return (
+    normalizedCity === "atlanta" &&
+    yearNum >= ABM_MIN_YEAR &&
+    yearNum <= ABM_MAX_YEAR
+  );
 };
 
 // eslint-disable-next-line no-unused-vars
-const isExactABMYear = (year) => ABM_AVAILABLE_YEARS.includes(parseInt(year, 10));
+const isExactABMYear = (year) =>
+  ABM_AVAILABLE_YEARS.includes(parseInt(year, 10));
 
 function VehicleTrafficVolume() {
   const classificationState = useAppStore((s) => s.classificationState);
@@ -45,7 +50,10 @@ function VehicleTrafficVolume() {
   const [pinnedTract, setPinnedTract] = useState(null);
   const activeTract = hoveredTract || pinnedTract;
 
-  const handleTractHover = useCallback((tractId) => setHoveredTract(tractId), []);
+  const handleTractHover = useCallback(
+    (tractId) => setHoveredTract(tractId),
+    [],
+  );
   const handleTractClick = useCallback((tractId) => {
     setPinnedTract((prev) => (prev === tractId ? null : tractId));
   }, []);
@@ -64,12 +72,24 @@ function VehicleTrafficVolume() {
 
   // Restore showResults on mount if data exists
   useEffect(() => {
-    if (trafficState.speedEstimated && (trafficState.trafficVolumeFile || trafficState.trafficMFTParametersData?.length > 0 || trafficMode === "ABM")) {
+    if (
+      trafficState.speedEstimated &&
+      (trafficState.trafficVolumeFile ||
+        trafficState.trafficMFTParametersData?.length > 0 ||
+        trafficMode === "ABM")
+    ) {
       setTrafficState({ showResults: true });
     }
-  }, [trafficState.speedEstimated, trafficState.trafficVolumeFile, trafficState.trafficMFTParametersData, trafficMode, setTrafficState]);
+  }, [
+    trafficState.speedEstimated,
+    trafficState.trafficVolumeFile,
+    trafficState.trafficMFTParametersData,
+    trafficMode,
+    setTrafficState,
+  ]);
 
-  const city = (classificationState.city ?? classificationState.cityInput) || "";
+  const city =
+    (classificationState.city ?? classificationState.cityInput) || "";
   const year = classificationState.baseYear || "";
 
   // ABM is only possible for Atlanta 2020-2050
@@ -85,7 +105,8 @@ function VehicleTrafficVolume() {
   }, [trafficMode, abmPossible, city, year, setTrafficMode]);
 
   const hasTrafficVolumeFile = trafficState.trafficVolumeFile;
-  const hasMFTParametersData = trafficState.trafficMFTParametersData?.length > 0;
+  const hasMFTParametersData =
+    trafficState.trafficMFTParametersData?.length > 0;
 
   const handleModeSwitch = (newMode) => {
     if (newMode === trafficMode) return;
@@ -118,7 +139,12 @@ function VehicleTrafficVolume() {
   // --- ABM: Upload file and process ---
   const handleABMUpload = (file) => {
     if (!file) return;
-    setTrafficState({ abmFile: file, showResults: false, speedEstimated: false, trafficChartData: null });
+    setTrafficState({
+      abmFile: file,
+      showResults: false,
+      speedEstimated: false,
+      trafficChartData: null,
+    });
 
     // Auto-process after upload
     (async () => {
@@ -135,7 +161,9 @@ function VehicleTrafficVolume() {
         });
         if (!abmRes.ok) {
           const errData = await abmRes.json();
-          throw new Error(errData.message || errData.error || "ABM processing failed");
+          throw new Error(
+            errData.message || errData.error || "ABM processing failed",
+          );
         }
         const abmData = await abmRes.json();
         notify(`Processed ${abmData.tracts_processed} tracts`);
@@ -147,7 +175,12 @@ function VehicleTrafficVolume() {
           throw new Error(errBody.error || "Failed to fetch chart data");
         }
         const chartJson = await res.json();
-        setTrafficState({ showResults: true, speedEstimated: true, methodUsed: "Import Traffic Data", trafficChartData: chartJson });
+        setTrafficState({
+          showResults: true,
+          speedEstimated: true,
+          methodUsed: "Import Traffic Data",
+          trafficChartData: chartJson,
+        });
       } catch (err) {
         console.error("ABM upload error:", err);
         setTrafficState({ trafficChartData: null });
@@ -157,43 +190,54 @@ function VehicleTrafficVolume() {
   };
 
   // --- MFD: process both files when both are uploaded ---
-  const processMFD = React.useCallback(async (volumeFile, paramsFile) => {
-    if (!volumeFile || !paramsFile || !city || !year) return;
-    try {
-      const formData = new FormData();
-      formData.append("city_name", city);
-      formData.append("year", year);
-      formData.append("traffic_volume_file", volumeFile);
-      formData.append("parameters_file", paramsFile);
+  const processMFD = React.useCallback(
+    async (volumeFile, paramsFile) => {
+      if (!volumeFile || !paramsFile || !city || !year) return;
+      try {
+        const formData = new FormData();
+        formData.append("city_name", city);
+        formData.append("year", year);
+        formData.append("traffic_volume_file", volumeFile);
+        formData.append("parameters_file", paramsFile);
 
-      notify("Processing MFD traffic data...");
-      const processRes = await fetch(`${API_URL}/process/traffic`, { method: "POST", body: formData });
-      if (!processRes.ok) {
-        const errBody = await processRes.json().catch(() => ({}));
-        throw new Error(errBody.message || `Server returned ${processRes.status}`);
+        notify("Processing MFD traffic data...");
+        const processRes = await fetch(`${API_URL}/process/traffic`, {
+          method: "POST",
+          body: formData,
+        });
+        if (!processRes.ok) {
+          const errBody = await processRes.json().catch(() => ({}));
+          throw new Error(
+            errBody.message || `Server returned ${processRes.status}`,
+          );
+        }
+        const chartUrl = `${API_URL}/plot/traffic/data/${encodeURIComponent(city)}/${encodeURIComponent(year)}?source=mfd`;
+        const chartRes = await fetch(chartUrl);
+        if (!chartRes.ok) {
+          const errBody = await chartRes.json().catch(() => ({}));
+          throw new Error(
+            errBody.message || `Chart data fetch failed (${chartRes.status})`,
+          );
+        }
+        const chartJson = await chartRes.json();
+        setTrafficState({
+          showResults: true,
+          speedEstimated: true,
+          methodUsed: "Model Traffic Dynamics",
+          trafficChartData: chartJson,
+        });
+        notify("MFD processing complete");
+      } catch (err) {
+        console.error("MFD processing failed", err);
+        const msg =
+          err.message === "Failed to fetch"
+            ? "Cannot reach backend server. Is it running on port 5003?"
+            : err.message;
+        notify("MFD processing failed: " + msg);
       }
-      const chartUrl = `${API_URL}/plot/traffic/data/${encodeURIComponent(city)}/${encodeURIComponent(year)}?source=mfd`;
-      const chartRes = await fetch(chartUrl);
-      if (!chartRes.ok) {
-        const errBody = await chartRes.json().catch(() => ({}));
-        throw new Error(errBody.message || `Chart data fetch failed (${chartRes.status})`);
-      }
-      const chartJson = await chartRes.json();
-      setTrafficState({
-        showResults: true,
-        speedEstimated: true,
-        methodUsed: "Model Traffic Dynamics",
-        trafficChartData: chartJson,
-      });
-      notify("MFD processing complete");
-    } catch (err) {
-      console.error("MFD processing failed", err);
-      const msg = err.message === "Failed to fetch"
-        ? "Cannot reach backend server. Is it running on port 5003?"
-        : err.message;
-      notify("MFD processing failed: " + msg);
-    }
-  }, [city, year, setTrafficState]);
+    },
+    [city, year, setTrafficState],
+  );
 
   // --- MFD: Load uploaded file ---
   const loadSheet = (file, type) => {
@@ -217,7 +261,8 @@ function VehicleTrafficVolume() {
           trafficMFTParametersData: parsed.length ? parsed.slice(1) : [],
           trafficMFTParametersFile: file,
         });
-        const volFile = useAppStore.getState().trafficVolumeState.trafficVolumeFile;
+        const volFile =
+          useAppStore.getState().trafficVolumeState.trafficVolumeFile;
         if (volFile) {
           processMFD(volFile, file);
         }
@@ -231,18 +276,21 @@ function VehicleTrafficVolume() {
   return (
     <div className="flex flex-col pt-4 w-full">
       <div className="w-full flex flex-col gap-4">
-
         {/* === Mode Toggle === */}
         <div className="flex items-center gap-2">
-          <span className="text-sm font-medium text-gray-600 mr-2">Method:</span>
+          <span className="text-sm font-medium text-gray-600 mr-2">
+            Method:
+          </span>
           <button
             type="button"
             disabled={!abmPossible}
             onClick={() => handleModeSwitch("ABM")}
             className={`px-4 py-1.5 rounded-l-lg text-sm font-semibold border transition-colors
-              ${trafficMode === "ABM"
-                ? "bg-green-600 text-white border-green-600"
-                : "bg-white text-gray-600 border-gray-300 hover:bg-gray-50"}
+              ${
+                trafficMode === "ABM"
+                  ? "bg-green-600 text-white border-green-600"
+                  : "bg-white text-gray-600 border-gray-300 hover:bg-gray-50"
+              }
               ${!abmPossible ? "opacity-50 cursor-not-allowed" : "cursor-pointer"}`}
           >
             <span className="flex items-center gap-1.5">
@@ -254,9 +302,11 @@ function VehicleTrafficVolume() {
             type="button"
             onClick={() => handleModeSwitch("MFD")}
             className={`px-4 py-1.5 rounded-r-lg text-sm font-semibold border border-l-0 transition-colors cursor-pointer
-              ${trafficMode === "MFD"
-                ? "bg-blue-600 text-white border-blue-600"
-                : "bg-white text-gray-600 border-gray-300 hover:bg-gray-50"}`}
+              ${
+                trafficMode === "MFD"
+                  ? "bg-blue-600 text-white border-blue-600"
+                  : "bg-white text-gray-600 border-gray-300 hover:bg-gray-50"
+              }`}
           >
             <span className="flex items-center gap-1.5">
               <FileSpreadsheet className="w-3.5 h-3.5" />
@@ -264,7 +314,9 @@ function VehicleTrafficVolume() {
             </span>
           </button>
           {!abmPossible && trafficMode === "MFD" && (
-            <span className="text-xs text-gray-400 ml-2 italic">Import Traffic Data only available for Atlanta (2020-2050)</span>
+            <span className="text-xs text-gray-400 ml-2 italic">
+              Import Traffic Data only available for Atlanta (2020-2050)
+            </span>
           )}
         </div>
 
@@ -275,11 +327,21 @@ function VehicleTrafficVolume() {
             <div className="bg-green-50 border border-green-200 rounded-lg px-4 py-3 text-sm text-green-800">
               <p className="font-semibold mb-1">Upload Traffic Data</p>
               <p className="text-green-700">
-                Upload a CSV file with columns: <code className="bg-green-100 px-1 rounded text-xs">Tract ID</code>,{" "}
+                Upload a CSV file with columns:{" "}
+                <code className="bg-green-100 px-1 rounded text-xs">
+                  Tract ID
+                </code>
+                ,{" "}
                 <code className="bg-green-100 px-1 rounded text-xs">Time</code>,{" "}
-                <code className="bg-green-100 px-1 rounded text-xs">Traffic Volume</code>,{" "}
-                <code className="bg-green-100 px-1 rounded text-xs">Traffic Speed</code>.
-                Each tract should have 96 rows (15-min intervals over 24 hours).
+                <code className="bg-green-100 px-1 rounded text-xs">
+                  Traffic Volume
+                </code>
+                ,{" "}
+                <code className="bg-green-100 px-1 rounded text-xs">
+                  Traffic Speed
+                </code>
+                . Each tract should have 96 rows (15-min intervals over 24
+                hours).
               </p>
               <a
                 href="/ABM_template.csv"
@@ -294,7 +356,9 @@ function VehicleTrafficVolume() {
             <form className="flex flex-row flex-nowrap items-end gap-3 p-2 rounded w-full min-w-0">
               {/* ABM file upload */}
               <div className="flex flex-col gap-1">
-                <label className="text-xs font-medium text-gray-600">Traffic Data</label>
+                <label className="text-xs font-medium text-gray-600">
+                  Traffic Data
+                </label>
                 <label className="flex items-center bg-blue-500 hover:bg-blue-600 text-white font-semibold px-4 rounded cursor-pointer h-10 whitespace-nowrap gap-2 text-sm">
                   {abmFile ? abmFile.name : "Upload Traffic Data"}
                   <CloudUpload className="w-4 h-4" />
@@ -308,7 +372,9 @@ function VehicleTrafficVolume() {
               </div>
 
               <div className="flex flex-col gap-1 items-center">
-                <label className="text-xs font-medium text-gray-600">Base Year</label>
+                <label className="text-xs font-medium text-gray-600">
+                  Base Year
+                </label>
                 <select
                   value={year}
                   disabled
@@ -319,7 +385,9 @@ function VehicleTrafficVolume() {
                 </select>
               </div>
               <div className="flex flex-col gap-1 items-center">
-                <label className="text-xs font-medium text-gray-600">City</label>
+                <label className="text-xs font-medium text-gray-600">
+                  City
+                </label>
                 <select
                   value={classificationState.cityInput}
                   disabled
@@ -327,7 +395,9 @@ function VehicleTrafficVolume() {
                 >
                   <option value="">City</option>
                   {statesList.slice(1).map((st) => (
-                    <option key={st} value={st}>{st}</option>
+                    <option key={st} value={st}>
+                      {st}
+                    </option>
                   ))}
                 </select>
               </div>
@@ -335,8 +405,12 @@ function VehicleTrafficVolume() {
 
             {/* Upload status */}
             {abmFile && (
-              <span className={`px-2 text-sm ${trafficState.speedEstimated ? "text-green-600" : "text-blue-600"}`}>
-                {trafficState.speedEstimated ? "\u2713 Data processed" : "Processing..."}
+              <span
+                className={`px-2 text-sm ${trafficState.speedEstimated ? "text-green-600" : "text-blue-600"}`}
+              >
+                {trafficState.speedEstimated
+                  ? "\u2713 Data processed"
+                  : "Processing..."}
               </span>
             )}
           </div>
@@ -348,17 +422,32 @@ function VehicleTrafficVolume() {
             <div className="bg-blue-50 border border-blue-200 rounded-lg px-4 py-3 text-sm text-blue-800">
               <p className="font-semibold mb-1">Upload Traffic Model Data</p>
               <p className="text-blue-700">
-                Upload two CSV files: (1) <strong>Traffic Volume</strong> with columns:
-                <code className="bg-blue-100 px-1 rounded text-xs">Tract ID</code>,
-                <code className="bg-blue-100 px-1 rounded text-xs">Time</code>,
-                <code className="bg-blue-100 px-1 rounded text-xs">Traffic Volume</code>.
-                (2) <strong>Model Parameters</strong> with columns:
-                <code className="bg-blue-100 px-1 rounded text-xs">Tract ID</code>,{" "}
-                <code className="bg-blue-100 px-1 rounded text-xs">λ</code>,{" "}
-                <code className="bg-blue-100 px-1 rounded text-xs">v<sub>f</sub></code>,{" "}
-                <code className="bg-blue-100 px-1 rounded text-xs">Q<sub>m</sub></code>,{" "}
-                <code className="bg-blue-100 px-1 rounded text-xs">k<sub>j</sub></code>,{" "}
-                <code className="bg-blue-100 px-1 rounded text-xs">w</code>.
+                Upload two CSV files: (1) <strong>Traffic Volume</strong> with
+                columns:
+                <code className="bg-blue-100 px-1 rounded text-xs">
+                  Tract ID
+                </code>
+                ,<code className="bg-blue-100 px-1 rounded text-xs">Time</code>,
+                <code className="bg-blue-100 px-1 rounded text-xs">
+                  Traffic Volume
+                </code>
+                . (2) <strong>Model Parameters</strong> with columns:
+                <code className="bg-blue-100 px-1 rounded text-xs">
+                  Tract ID
+                </code>
+                , <code className="bg-blue-100 px-1 rounded text-xs">λ</code>,{" "}
+                <code className="bg-blue-100 px-1 rounded text-xs">
+                  v<sub>f</sub>
+                </code>
+                ,{" "}
+                <code className="bg-blue-100 px-1 rounded text-xs">
+                  Q<sub>m</sub>
+                </code>
+                ,{" "}
+                <code className="bg-blue-100 px-1 rounded text-xs">
+                  k<sub>j</sub>
+                </code>
+                , <code className="bg-blue-100 px-1 rounded text-xs">w</code>.
                 Processing begins automatically once both files are uploaded.
               </p>
               <div className="flex gap-4 mt-2">
@@ -383,14 +472,20 @@ function VehicleTrafficVolume() {
             <form className="flex flex-row flex-nowrap items-end gap-3 p-2 rounded w-full min-w-0">
               {/* File 1: Traffic Volume */}
               <div className="flex flex-col gap-1">
-                <label className="text-xs font-medium text-gray-600">Traffic Volume Data</label>
+                <label className="text-xs font-medium text-gray-600">
+                  Traffic Volume Data
+                </label>
                 <label className="flex items-center bg-blue-500 hover:bg-blue-600 text-white font-semibold px-4 rounded cursor-pointer h-10 whitespace-nowrap gap-2 text-sm">
-                  {hasTrafficVolumeFile ? trafficState.trafficVolumeFile.name : "Upload Traffic Volume"}
+                  {hasTrafficVolumeFile
+                    ? trafficState.trafficVolumeFile.name
+                    : "Upload Traffic Volume"}
                   <CloudUpload className="w-4 h-4" />
                   <input
                     type="file"
                     accept=".csv"
-                    onChange={(e) => loadSheet(e.target.files[0], "trafficVolume")}
+                    onChange={(e) =>
+                      loadSheet(e.target.files[0], "trafficVolume")
+                    }
                     className="hidden"
                   />
                 </label>
@@ -398,21 +493,29 @@ function VehicleTrafficVolume() {
 
               {/* File 2: MFD Parameters */}
               <div className="flex flex-col gap-1">
-                <label className="text-xs font-medium text-gray-600">Model Parameters</label>
+                <label className="text-xs font-medium text-gray-600">
+                  Model Parameters
+                </label>
                 <label className="flex items-center bg-blue-500 hover:bg-blue-600 text-white font-semibold px-4 rounded cursor-pointer h-10 whitespace-nowrap gap-2 text-sm">
-                  {hasMFTParametersData ? trafficState.trafficMFTParametersFile?.name || "Uploaded" : "Upload Model Parameters"}
+                  {hasMFTParametersData
+                    ? trafficState.trafficMFTParametersFile?.name || "Uploaded"
+                    : "Upload Model Parameters"}
                   <CloudUpload className="w-4 h-4" />
                   <input
                     type="file"
                     accept=".csv"
-                    onChange={(e) => loadSheet(e.target.files[0], "mftParameters")}
+                    onChange={(e) =>
+                      loadSheet(e.target.files[0], "mftParameters")
+                    }
                     className="hidden"
                   />
                 </label>
               </div>
 
               <div className="flex flex-col gap-1 items-center">
-                <label className="text-xs font-medium text-gray-600">Base Year</label>
+                <label className="text-xs font-medium text-gray-600">
+                  Base Year
+                </label>
                 <select
                   value={year}
                   disabled
@@ -423,7 +526,9 @@ function VehicleTrafficVolume() {
                 </select>
               </div>
               <div className="flex flex-col gap-1 items-center">
-                <label className="text-xs font-medium text-gray-600">City</label>
+                <label className="text-xs font-medium text-gray-600">
+                  City
+                </label>
                 <select
                   value={classificationState.cityInput}
                   disabled
@@ -431,7 +536,9 @@ function VehicleTrafficVolume() {
                 >
                   <option value="">City</option>
                   {statesList.slice(1).map((st) => (
-                    <option key={st} value={st}>{st}</option>
+                    <option key={st} value={st}>
+                      {st}
+                    </option>
                   ))}
                 </select>
               </div>
@@ -439,11 +546,23 @@ function VehicleTrafficVolume() {
 
             {/* Upload status */}
             <div className="flex items-center gap-4 px-2 text-sm">
-              <span className={hasTrafficVolumeFile ? "text-green-600" : "text-gray-400"}>
-                {hasTrafficVolumeFile ? "\u2713 Traffic Volume" : "\u25CB Traffic Volume"}
+              <span
+                className={
+                  hasTrafficVolumeFile ? "text-green-600" : "text-gray-400"
+                }
+              >
+                {hasTrafficVolumeFile
+                  ? "\u2713 Traffic Volume"
+                  : "\u25CB Traffic Volume"}
               </span>
-              <span className={hasMFTParametersData ? "text-green-600" : "text-gray-400"}>
-                {hasMFTParametersData ? "\u2713 Model Parameters" : "\u25CB Model Parameters"}
+              <span
+                className={
+                  hasMFTParametersData ? "text-green-600" : "text-gray-400"
+                }
+              >
+                {hasMFTParametersData
+                  ? "\u2713 Model Parameters"
+                  : "\u25CB Model Parameters"}
               </span>
             </div>
           </div>
@@ -460,12 +579,18 @@ function VehicleTrafficVolume() {
         {showResults && trafficState.speedEstimated && trafficChartData && (
           <div className="flex flex-col gap-2 w-full max-w-7xl mt-4">
             {trafficState.methodUsed && (
-              <div className={`flex items-center gap-2 px-3 py-1 rounded text-sm font-medium w-fit ${
-                trafficState.methodUsed.includes("Import")
-                  ? "bg-green-50 text-green-700 border border-green-200"
-                  : "bg-blue-50 text-blue-700 border border-blue-200"
-              }`}>
-                {trafficState.methodUsed.includes("Import") ? <Zap className="w-3 h-3" /> : <FileSpreadsheet className="w-3 h-3" />}
+              <div
+                className={`flex items-center gap-2 px-3 py-1 rounded text-sm font-medium w-fit ${
+                  trafficState.methodUsed.includes("Import")
+                    ? "bg-green-50 text-green-700 border border-green-200"
+                    : "bg-blue-50 text-blue-700 border border-blue-200"
+                }`}
+              >
+                {trafficState.methodUsed.includes("Import") ? (
+                  <Zap className="w-3 h-3" />
+                ) : (
+                  <FileSpreadsheet className="w-3 h-3" />
+                )}
                 <span>Method: {trafficState.methodUsed}</span>
               </div>
             )}
@@ -494,9 +619,16 @@ function VehicleTrafficVolume() {
                   {pinnedTract && (
                     <div className="flex items-center justify-between px-3 py-1.5 bg-blue-50 border border-blue-200 rounded text-xs">
                       <span className="text-blue-700 font-medium">
-                        Pinned: {pinnedTract.length > 6 ? pinnedTract.slice(-6) : pinnedTract}
+                        Pinned:{" "}
+                        {pinnedTract.length > 6
+                          ? pinnedTract.slice(-6)
+                          : pinnedTract}
                       </span>
-                      <button type="button" className="text-blue-500 hover:text-blue-700 font-medium" onClick={() => setPinnedTract(null)}>
+                      <button
+                        type="button"
+                        className="text-blue-500 hover:text-blue-700 font-medium"
+                        onClick={() => setPinnedTract(null)}
+                      >
                         Clear
                       </button>
                     </div>
@@ -507,7 +639,14 @@ function VehicleTrafficVolume() {
 
             {/* MFD Parameters Table */}
             {trafficMode === "MFD" && hasMFTParametersData && (
-              <div style={{ margin: 0, padding: 0, textAlign: "center", marginTop: "32px" }}>
+              <div
+                style={{
+                  margin: 0,
+                  padding: 0,
+                  textAlign: "center",
+                  marginTop: "32px",
+                }}
+              >
                 <div className="bg-[#f7f7f9] text-[#222222] text-center box-border font-semibold border border-solid border-[#cccccc] rounded-none">
                   <span>Traffic Model Parameters</span>
                 </div>
@@ -527,7 +666,8 @@ function VehicleTrafficVolume() {
 VehicleTrafficVolume.handleNext = function (classificationState, trafficState) {
   return (async () => {
     const mode = useAppStore.getState().trafficMode;
-    const city = (classificationState.city ?? classificationState.cityInput) || "";
+    const city =
+      (classificationState.city ?? classificationState.cityInput) || "";
     const year = classificationState.baseYear || "";
 
     if (mode === "ABM") {
@@ -548,18 +688,25 @@ VehicleTrafficVolume.handleNext = function (classificationState, trafficState) {
     formData.append("city_name", city);
     formData.append("base_year", year);
     formData.append("vehicle_type", classificationState.vehicleType || "");
-    formData.append("transaction_id", localStorage.getItem("transaction_id") || "emission-analysis-2025");
+    formData.append(
+      "transaction_id",
+      localStorage.getItem("transaction_id") || "emission-analysis-2025",
+    );
     formData.append("file1", trafficVolumeFile);
     formData.append("file2", mftParametersFile);
 
     try {
-      const res = await fetch(`${API_URL}/upload/traffic_volume`, { method: "POST", body: formData });
+      const res = await fetch(`${API_URL}/upload/traffic_volume`, {
+        method: "POST",
+        body: formData,
+      });
       if (!res.ok) {
         const errorData = await res.json();
         throw new Error(errorData.error || "Upload failed");
       }
       const data = await res.json();
-      if (data.transaction_id) localStorage.setItem("transaction_id", data.transaction_id);
+      if (data.transaction_id)
+        localStorage.setItem("transaction_id", data.transaction_id);
       notify("Traffic data uploaded successfully!");
     } catch (err) {
       console.error("Upload error:", err);
