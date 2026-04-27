@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo, useCallback } from "react";
 import { CloudUpload, Zap, FileSpreadsheet } from "lucide-react";
 import * as XLSX from "xlsx";
 import { registerAllModules } from "handsontable/registry";
-import useAppStore from "../seAppStore";
+import useAppStore from "../useAppStore";
 import { API_URL } from "../config";
 import "handsontable/dist/handsontable.full.min.css";
 import "handsontable/styles/handsontable.css";
