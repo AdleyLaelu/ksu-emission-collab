@@ -4,6 +4,7 @@ import VehicleStepper from "./VerticalStepper";
 import GridChartR3, { SCENARIO_COLORS } from "./GridChartR3";
 import nrelLogo from "../assets/Logo2.jpg";
 import { downloadR3CsvSingle } from "../utils/r3DataUtils";
+import downloadPlotsPdf from "../utils/downloadPlotsPdf";
 
 import {
   Card,
@@ -17,6 +18,8 @@ import {
 
 const GridEmissionRates = ({ activeStep, isResults }) => {
   const [selectedScenarioIdx, setSelectedScenarioIdx] = useState(null);
+  const [downloadOpen, setDownloadOpen] = useState(false);
+  const gridChartRef = useRef(null);
   const autoInitRef = useRef(false);
   const classificationState = useAppStore((state) => state.classificationState);
   const statesList = ["", "Atlanta", "Los Angeles", "Seattle", "NewYork"];
@@ -150,14 +153,48 @@ const GridEmissionRates = ({ activeStep, isResults }) => {
               ))}
             </select>
           </div>
-          <div className="flex flex-col justify-end">
+          <div className="flex flex-col justify-end relative">
             <button
               type="button"
-              onClick={() => downloadR3CsvSingle(classificationState.cityInput, GridEmissionState.EmissionType)}
+              onClick={() => setDownloadOpen((v) => !v)}
+              onBlur={() => setTimeout(() => setDownloadOpen(false), 150)}
               className="flex items-center gap-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded px-5 py-2 text-sm font-semibold transition-colors"
             >
               DOWNLOAD
+              <svg className="w-3 h-3 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
             </button>
+            {downloadOpen && (
+              <div className="absolute top-full mt-1 right-0 bg-white border border-gray-200 rounded shadow-lg z-50 min-w-[150px]">
+                <button
+                  type="button"
+                  className="block w-full text-left px-4 py-2 text-sm hover:bg-gray-100"
+                  onMouseDown={() => {
+                    downloadR3CsvSingle(classificationState.cityInput, GridEmissionState.EmissionType);
+                    setDownloadOpen(false);
+                  }}
+                >
+                  CSV Data
+                </button>
+                <button
+                  type="button"
+                  className="block w-full text-left px-4 py-2 text-sm hover:bg-gray-100"
+                  onMouseDown={() => {
+                    const chart = gridChartRef.current?.getChart();
+                    if (chart) {
+                      const emType = GridEmissionState.EmissionType;
+                      const label = emType === "CO2" ? "CO\u2082" : emType === "CH4" ? "CH\u2084" : "N\u2082O";
+                      downloadPlotsPdf(
+                        [{ chart, title: `${label} Grid Emission Rate` }],
+                        `${classificationState.cityInput || "grid"}_${emType}_plot.pdf`
+                      );
+                    }
+                    setDownloadOpen(false);
+                  }}
+                >
+                  Plots (PDF)
+                </button>
+              </div>
+            )}
           </div>
         </form>
 
@@ -166,6 +203,7 @@ const GridEmissionRates = ({ activeStep, isResults }) => {
           {/* Live chart */}
           <div className="rounded-lg bg-white shadow-sm p-3">
             <GridChartR3
+              ref={gridChartRef}
               emissionType={GridEmissionState.EmissionType}
               cityName={classificationState.cityInput}
               showLegend={false}
