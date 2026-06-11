@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef, useState, forwardRef, useImperativeHandle } from "react";
 import { Line } from "react-chartjs-2";
 import {
   Chart as ChartJS,
@@ -86,16 +86,17 @@ const STEP_OVERRIDES = {
   R2: { Gasoline: 1500, "PM2.5T": 75 },
 };
 
-export default function VehicleChartR1R2({
+const VehicleChartR1R2 = forwardRef(function VehicleChartR1R2({
   metric, cityName, mode,
   selectedTractId = null,   // locked selection — from parent
   hoveredTractId = null,    // temporary hover — from parent (map swatches)
   onTractSelect = () => {}, // (tractId | null) => void
   controlledIdx = undefined,  // external index-based selection from legend
   onSelectIdx,                // (idx | null) => void
-}) {
+}, ref) {
   const isControlled = controlledIdx !== undefined;
   const chartRef = useRef(null);
+  useImperativeHandle(ref, () => ({ getChart: () => chartRef.current }), []);
   const [internalSelectedIdx, setInternalSelectedIdx] = useState(null);
   const internalSelectedIdxRef = useRef(null);
 
@@ -326,4 +327,6 @@ export default function VehicleChartR1R2({
       </div>
     </div>
   );
-}
+});
+
+export default VehicleChartR1R2;

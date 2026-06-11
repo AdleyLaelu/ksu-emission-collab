@@ -1,3 +1,6 @@
+from dotenv import load_dotenv
+load_dotenv()
+
 from flask import Flask, request, jsonify, send_file
 from flask_cors import CORS
 import sqlite3
@@ -9,6 +12,7 @@ import io, os
 import json
 import uuid
 from models import ModifiedNet
+from report_generator import report_bp
 import random
 
 # ---------- Allow safe sklearn globals for torch.load ----------
@@ -28,6 +32,7 @@ if hasattr(torch.serialization, "add_safe_globals"):
 # ---------- Flask ----------
 app = Flask(__name__)
 CORS(app)
+app.register_blueprint(report_bp)
 
 DB_FILE = os.environ.get("DB_FILE", "prediction.db")
 

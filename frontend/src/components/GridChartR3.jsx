@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef, useState, forwardRef, useImperativeHandle } from "react";
 import { Line } from "react-chartjs-2";
 import {
   Chart as ChartJS,
@@ -83,9 +83,10 @@ const ZoomToolbar = ({ chartRef }) => (
 
 export { SCENARIO_COLORS };
 
-export default function GridChartR3({ emissionType, cityName, showLegend = true, controlledIdx = undefined, onSelect }) {
+const GridChartR3 = forwardRef(function GridChartR3({ emissionType, cityName, showLegend = true, controlledIdx = undefined, onSelect }, ref) {
   const isControlled = controlledIdx !== undefined;
   const chartRef = useRef(null);
+  useImperativeHandle(ref, () => ({ getChart: () => chartRef.current }), []);
   const containerRef = useRef(null);
   const [internalIdx, setInternalIdx] = useState(null);
   const selectedIdx = isControlled ? controlledIdx : internalIdx;
@@ -367,4 +368,6 @@ export default function GridChartR3({ emissionType, cityName, showLegend = true,
       </div>}
     </div>
   );
-}
+});
+
+export default GridChartR3;

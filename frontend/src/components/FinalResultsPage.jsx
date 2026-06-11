@@ -1,8 +1,10 @@
 import useAppStore from "../useAppStore";
-import { useState } from "react";
+import { useState, useRef } from "react";
+import { ReportChatWidget } from "./ReportChat";
 import GridChartR3, { SCENARIO_COLORS } from "./GridChartR3";
 import VehicleChartR1R2, { TRACT_COLORS } from "./VehicleChartR1R2";
 import { CITY_TO_STATE } from "../utils/chartConstants";
+import downloadPlotsPdf from "../utils/downloadPlotsPdf";
 
 const FUEL_TYPES = ["CNG", "Diesel", "Electricity", "Ethanol", "Gasoline"];
 
@@ -98,6 +100,14 @@ const FinalResultsPage = ({ resultsSelection, setResultsSelection }) => {
   const [selectedVehicleIdx, setSelectedVehicleIdx] = useState(null);
   const [localFuelType, setLocalFuelType] = useState("");
   const [localEmissionType, setLocalEmissionType] = useState("");
+  const [downloadOpen, setDownloadOpen] = useState(false);
+
+  // Chart refs for PDF export
+  const consumptionChartRef = useRef(null);
+  const emissionChartRef = useRef(null);
+  const co2ChartRef = useRef(null);
+  const ch4ChartRef = useRef(null);
+  const n2oChartRef = useRef(null);
 
   const classificationState = useAppStore((s) => s.classificationState);
   const theme = useAppStore((s) => s.theme);
@@ -189,29 +199,57 @@ const FinalResultsPage = ({ resultsSelection, setResultsSelection }) => {
           </div>
         )}
 
-        {/* CSV Download button (user's addition) */}
-        {showVehicle && (
-          <div className="flex flex-col justify-end">
+        {/* Download dropdown */}
+        {(showVehicle || showGrid) && (
+          <div className="flex flex-col justify-end relative">
             <button
               type="button"
-              onClick={() => downloadCsv(cityName, chartMode)}
+              onClick={() => setDownloadOpen((v) => !v)}
+              onBlur={() => setTimeout(() => setDownloadOpen(false), 150)}
               className="flex items-center gap-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded px-5 py-2 text-sm font-semibold transition-colors"
             >
               DOWNLOAD
+              <svg className="w-3 h-3 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" /></svg>
             </button>
-          </div>
-        )}
-
-        {/* CSV Download button for Grid */}
-        {showGrid && (
-          <div className="flex flex-col justify-end">
-            <button
-              type="button"
-              onClick={() => downloadR3CsvAll(cityName)}
-              className="flex items-center gap-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded px-5 py-2 text-sm font-semibold transition-colors"
-            >
-              DOWNLOAD
-            </button>
+            {downloadOpen && (
+              <div className="absolute top-full mt-1 right-0 bg-white border border-gray-200 rounded shadow-lg z-50 min-w-[150px]">
+                <button
+                  type="button"
+                  className="block w-full text-left px-4 py-2 text-sm hover:bg-gray-100"
+                  onMouseDown={() => {
+                    if (showVehicle) downloadCsv(cityName, chartMode);
+                    else downloadR3CsvAll(cityName);
+                    setDownloadOpen(false);
+                  }}
+                >
+                  CSV Data
+                </button>
+                <button
+                  type="button"
+                  className="block w-full text-left px-4 py-2 text-sm hover:bg-gray-100"
+                  onMouseDown={() => {
+                    const charts = [];
+                    if (showVehicle) {
+                      const c1 = consumptionChartRef.current?.getChart();
+                      if (c1) charts.push({ chart: c1, title: `${fuelType} Consumption (${chartMode === "R1" ? "Daily" : "Annual"})` });
+                      const c2 = emissionChartRef.current?.getChart();
+                      if (c2) charts.push({ chart: c2, title: `${emissionType} Emission (${chartMode === "R1" ? "Daily" : "Annual"})` });
+                    } else {
+                      const c1 = co2ChartRef.current?.getChart();
+                      if (c1) charts.push({ chart: c1, title: "CO\u2082 Emission" });
+                      const c2 = ch4ChartRef.current?.getChart();
+                      if (c2) charts.push({ chart: c2, title: "CH\u2084 Emission" });
+                      const c3 = n2oChartRef.current?.getChart();
+                      if (c3) charts.push({ chart: c3, title: "N\u2082O Emission" });
+                    }
+                    downloadPlotsPdf(charts, `${cityName || "charts"}_plots.pdf`);
+                    setDownloadOpen(false);
+                  }}
+                >
+                  Plots (PDF)
+                </button>
+              </div>
+            )}
           </div>
         )}
       </div>
@@ -228,7 +266,7 @@ const FinalResultsPage = ({ resultsSelection, setResultsSelection }) => {
                 <div className="w-full border border-gray-200 rounded-lg bg-white shadow-sm p-3">
                   <div className="text-xs font-semibold text-gray-500 mb-1">{fuelType} Consumption</div>
                   <div style={{ height: 280 }}>
-                    <VehicleChartR1R2 metric={fuelType} cityName={cityName} mode={chartMode} controlledIdx={selectedVehicleIdx} onSelectIdx={setSelectedVehicleIdx} />
+                    <VehicleChartR1R2 ref={consumptionChartRef} metric={fuelType} cityName={cityName} mode={chartMode} controlledIdx={selectedVehicleIdx} onSelectIdx={setSelectedVehicleIdx} />
                   </div>
                 </div>
               ) : (
@@ -242,7 +280,7 @@ const FinalResultsPage = ({ resultsSelection, setResultsSelection }) => {
                     {emissionType === "CO2" ? "CO\u2082" : emissionType === "NOx" ? "NO\u2093" : emissionType} Emission
                   </div>
                   <div style={{ height: 280 }}>
-                    <VehicleChartR1R2 metric={emissionType} cityName={cityName} mode={chartMode} controlledIdx={selectedVehicleIdx} onSelectIdx={setSelectedVehicleIdx} />
+                    <VehicleChartR1R2 ref={emissionChartRef} metric={emissionType} cityName={cityName} mode={chartMode} controlledIdx={selectedVehicleIdx} onSelectIdx={setSelectedVehicleIdx} />
                   </div>
                 </div>
               ) : (
@@ -256,15 +294,15 @@ const FinalResultsPage = ({ resultsSelection, setResultsSelection }) => {
           {showGrid && (
             <div className="flex flex-col gap-8">
               {[
-                { type: "CO2", title: "CO\u2082" },
-                { type: "CH4", title: "CH\u2084" },
-                { type: "N2O", title: "N\u2082O" },
+                { type: "CO2", title: "CO\u2082", ref: co2ChartRef },
+                { type: "CH4", title: "CH\u2084", ref: ch4ChartRef },
+                { type: "N2O", title: "N\u2082O", ref: n2oChartRef },
               ].map((e) => (
                 <div key={e.type} className="flex flex-row gap-4">
                   <div className="flex-1 min-w-0 p-3 rounded-lg bg-gray-50">
                     <div className="text-xs font-semibold text-gray-500 mb-1">{e.title}</div>
                     <div style={{ height: 280 }}>
-                      <GridChartR3 emissionType={e.type} cityName={cityName} showLegend={false} controlledIdx={selectedScenarioIdx} onSelect={setSelectedScenarioIdx} />
+                      <GridChartR3 ref={e.ref} emissionType={e.type} cityName={cityName} showLegend={false} controlledIdx={selectedScenarioIdx} onSelect={setSelectedScenarioIdx} />
                     </div>
                   </div>
                   {SCENARIO_NAMES.length > 0 && (
@@ -341,6 +379,14 @@ const FinalResultsPage = ({ resultsSelection, setResultsSelection }) => {
 
 
       </div>
+
+      {/* AI Report Chat Widget */}
+      <ReportChatWidget
+        resultsSelection={resultsSelection}
+        fuelType={fuelType}
+        emissionType={emissionType}
+        chartMode={chartMode}
+      />
     </div>
   );
 };
