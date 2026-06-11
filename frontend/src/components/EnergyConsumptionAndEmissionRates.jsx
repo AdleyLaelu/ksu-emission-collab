@@ -158,7 +158,7 @@ export default function EnergyConsumptionAndEmissionRates() {
   const selectedEmissionTypeObj = EMISSION_TYPES.find((et) => et.value === emissionType || et.label === emissionType) || {};
   const emissionBackend = selectedEmissionTypeObj.backend || "";
 
-  const ageOptions = useMemo(() => Array.from({ length: 30 }, (_, i) => i + 1), []);
+  const ageOptions = useMemo(() => Array.from({ length: 41 }, (_, i) => i), []);
 
   // Filter emission types based on fuel (Electricity hides CO2 and NOx)
   const availableEmissionTypes = useMemo(() => {

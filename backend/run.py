@@ -256,7 +256,7 @@ models = {
     "gaTotalEnergyRate": load_model("best_model_GAEnergy.pth", input_features=20),
     "gaNOx": load_model("best_model_GANOx.pth", input_features=19),
     "gaPM25BrakeWear": load_model("best_model_GAPM25Brake.pth", input_features=20),
-    "gaPM25TireWear": load_model("best_model_GAPM25Tire.pth", input_features=19),
+    "gaPM25TireWear": load_model("best_model_GAPM25Tire.pth", input_features=20),
 }
 
 def predict_one(inputs, model_key, models):
@@ -842,8 +842,8 @@ def load_state_models(city_name: str):
 
     feature_map_all = {
         "CA": {"CO2": 19, "Energy": 20, "NOx": 19, "PM25Brake": 20, "PM25Tire": 20},
-        "GA": {"CO2": 19, "Energy": 20, "NOx": 19, "PM25Brake": 20, "PM25Tire": 19},
-        "NY": {"CO2": 18, "Energy": 19, "NOx": 18, "PM25Brake": 19, "PM25Tire": 19},
+        "GA": {"CO2": 19, "Energy": 20, "NOx": 19, "PM25Brake": 20, "PM25Tire": 20},
+        "NY": {"CO2": 19, "Energy": 20, "NOx": 19, "PM25Brake": 20, "PM25Tire": 20},
         "WA": {"CO2": 19, "Energy": 20, "NOx": 19, "PM25Brake": 20, "PM25Tire": 20}
     }
 
