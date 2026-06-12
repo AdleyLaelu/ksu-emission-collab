@@ -28,7 +28,7 @@ const ChatPanel = ({ messages, loading, reportUrl, onSend, onClose, onMinimize }
     <div className="w-96 h-[500px] bg-white rounded-xl shadow-2xl border border-gray-200 flex flex-col overflow-hidden">
       {/* Header */}
       <div className="flex items-center justify-between px-4 py-3 bg-blue-600 text-white rounded-t-xl">
-        <span className="font-semibold text-sm">Report Generator</span>
+        <span className="font-semibold text-sm">Generate Report</span>
         <div className="flex items-center gap-1">
           <button
             onClick={onMinimize}
@@ -51,7 +51,7 @@ const ChatPanel = ({ messages, loading, reportUrl, onSend, onClose, onMinimize }
       <div className="flex-1 overflow-y-auto px-3 py-3">
         {messages.length === 0 && (
           <div className="text-center text-gray-400 text-sm mt-8">
-            <p className="mb-2">Describe the report you need.</p>
+            <p className="mb-2">Please describe the report you would like to generate.</p>
             <p className="text-xs text-gray-300">
               e.g. "Generate a report on CO2 trends for Atlanta"
             </p>
@@ -80,7 +80,7 @@ const ChatPanel = ({ messages, loading, reportUrl, onSend, onClose, onMinimize }
           value={input}
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={handleKeyDown}
-          placeholder="Ask about your results..."
+          placeholder="Please describe the report you would like to generate."
           disabled={loading}
           className="flex-1 text-sm border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400 disabled:opacity-50"
         />

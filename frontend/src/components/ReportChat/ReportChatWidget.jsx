@@ -1,16 +1,49 @@
 import { useState } from "react";
-import { MessageSquare } from "lucide-react";
+import { FileText } from "lucide-react";
 import ChatPanel from "./ChatPanel";
 import useReportChat from "../../hooks/useReportChat";
 import useAppStore from "../../useAppStore";
 import { CITY_TO_STATE } from "../../utils/chartConstants";
 
-const ReportChatWidget = ({ resultsSelection, fuelType, emissionType, chartMode }) => {
+const ReportChatWidget = ({
+  resultsSelection,
+  fuelType,
+  emissionType,
+  chartMode,
+  consumptionChartRef,
+  emissionChartRef,
+  co2ChartRef,
+  ch4ChartRef,
+  n2oChartRef,
+}) => {
   const [open, setOpen] = useState(false);
   const { messages, loading, reportUrl, sendMessage, clearChat } = useReportChat();
 
   const classificationState = useAppStore((s) => s.classificationState);
   const derived = useAppStore((s) => s.derived);
+
+  const captureChartImages = () => {
+    const images = [];
+    const refs = [
+      { ref: consumptionChartRef, label: `${fuelType || "Fuel"} Consumption` },
+      { ref: emissionChartRef, label: `${emissionType || "Emission"} Emission` },
+      { ref: co2ChartRef, label: "CO2 Emission" },
+      { ref: ch4ChartRef, label: "CH4 Emission" },
+      { ref: n2oChartRef, label: "N2O Emission" },
+    ];
+    for (const { ref, label } of refs) {
+      try {
+        const chart = ref?.current?.getChart?.();
+        if (chart) {
+          const b64 = chart.toBase64Image("image/png", 1);
+          if (b64) images.push({ label, data: b64 });
+        }
+      } catch {
+        // skip charts that can't be captured
+      }
+    }
+    return images;
+  };
 
   const buildContext = () => {
     const cityName = classificationState.city || classificationState.cityInput || "";
@@ -26,6 +59,7 @@ const ReportChatWidget = ({ resultsSelection, fuelType, emissionType, chartMode 
       chartMode: chartMode || "",
       speedKmh: derived.speedKmh,
       vehicleWeightKg: derived.vehicleWeightKg,
+      chartImages: captureChartImages(),
     };
   };
 
@@ -47,10 +81,11 @@ const ReportChatWidget = ({ resultsSelection, fuelType, emissionType, chartMode 
       ) : (
         <button
           onClick={() => setOpen(true)}
-          className="w-14 h-14 rounded-full bg-blue-600 text-white shadow-lg hover:bg-blue-700 hover:shadow-xl transition-all flex items-center justify-center"
+          className="flex items-center gap-2 bg-blue-600 text-white px-5 py-3 rounded-lg shadow-lg hover:bg-blue-700 hover:shadow-xl transition-all font-semibold text-sm"
           title="Generate Report"
         >
-          <MessageSquare size={24} />
+          <FileText size={20} />
+          Generate Report
         </button>
       )}
     </div>

@@ -5,8 +5,10 @@ Report Generator Blueprint
 """
 
 import os
+import re
 import uuid
 import json
+import base64
 import tempfile
 from datetime import datetime
 
@@ -25,8 +27,18 @@ You are an expert analyst specializing in vehicle emissions and energy grid anal
 You help users generate professional reports based on their emission analysis results.
 
 When the user's request is clear enough to generate a report, produce a well-structured
-report with sections such as Executive Summary, Key Findings, Data Analysis, and
-Conclusions. Use the provided context data to ground your analysis.
+report using proper markdown headers for ALL section titles:
+- Use ## for major sections (e.g., ## Executive Summary, ## Key Findings, ## Data Analysis, ## Conclusions)
+- Use ### for subsections
+- Use bullet points (- ) for lists
+- Use numbered lists (1., 2., etc.) where appropriate
+- Use **bold** for emphasis on key terms or values
+
+The report should include sections such as Executive Summary, Key Findings, Data Analysis,
+and Conclusions. Use the provided context data to ground your analysis.
+
+Note: Charts from the user's current analysis view are available and will be automatically
+included in the generated PDF report alongside your written analysis.
 
 When the user's request is vague or needs clarification, ask a specific follow-up question.
 
@@ -86,7 +98,6 @@ def _sanitize_text(text: str) -> str:
 
 def _strip_markdown(text: str) -> str:
     """Remove common markdown formatting characters."""
-    import re
     # Remove bold/italic markers
     text = re.sub(r'\*{1,3}(.*?)\*{1,3}', r'\1', text)
     text = re.sub(r'_{1,3}(.*?)_{1,3}', r'\1', text)
@@ -95,10 +106,89 @@ def _strip_markdown(text: str) -> str:
     return _sanitize_text(text)
 
 
+def _is_heading(line: str):
+    """Detect heading lines — both markdown (##) and numbered bold patterns.
+
+    Returns (level, text) or None.
+    level 1 = '#', level 2 = '##', level 3 = '###'.
+    Numbered bold patterns like '1. **Executive Summary**' are treated as level 2.
+    """
+    stripped = line.strip()
+
+    # Standard markdown headers
+    if stripped.startswith("### "):
+        return (3, stripped[4:])
+    if stripped.startswith("## "):
+        return (2, stripped[3:])
+    if stripped.startswith("# "):
+        return (1, stripped[2:])
+
+    # Numbered bold headers: e.g. "1. **Executive Summary**" or "1. **Executive Summary:**"
+    m = re.match(r'^\d+\.\s+\*\*(.+?)\*\*:?\s*$', stripped)
+    if m:
+        return (2, m.group(1))
+
+    return None
+
+
 def _write_paragraph(pdf, text, w, line_h=6):
     """Write a paragraph, resetting x to left margin first."""
     pdf.set_x(pdf.l_margin)
     pdf.multi_cell(w, line_h, text)
+
+
+def _embed_chart_images(pdf, chart_images, w):
+    """Embed base64-encoded chart images into the PDF."""
+    if not chart_images:
+        return
+
+    pdf.add_page()
+    pdf.set_font("Helvetica", "B", 14)
+    _write_paragraph(pdf, "Charts", w, 8)
+    pdf.ln(4)
+
+    for img_info in chart_images:
+        label = img_info.get("label", "Chart")
+        data = img_info.get("data", "")
+        if not data:
+            continue
+
+        # Strip data URI prefix if present
+        if "," in data:
+            data = data.split(",", 1)[1]
+
+        try:
+            img_bytes = base64.b64decode(data)
+        except Exception:
+            continue
+
+        # Write to a temp file for fpdf
+        tmp_path = os.path.join(REPORT_DIR, f"_tmp_{uuid.uuid4().hex}.png")
+        try:
+            with open(tmp_path, "wb") as f:
+                f.write(img_bytes)
+
+            # Check if we need a new page (leave room for label + image)
+            if pdf.get_y() + 100 > pdf.h - 30:
+                pdf.add_page()
+
+            pdf.set_font("Helvetica", "B", 11)
+            _write_paragraph(pdf, _sanitize_text(label), w, 7)
+            pdf.ln(2)
+
+            # Fit image to page width, maintaining aspect ratio
+            pdf.image(tmp_path, x=pdf.l_margin, w=min(w, 170))
+            pdf.ln(8)
+        except Exception:
+            # If image embedding fails, just note it
+            pdf.set_font("Helvetica", "I", 10)
+            _write_paragraph(pdf, f"[Chart: {_sanitize_text(label)} - could not be embedded]", w, 6)
+            pdf.ln(4)
+        finally:
+            if os.path.exists(tmp_path):
+                os.remove(tmp_path)
+
+    pdf.set_font("Helvetica", "", 11)
 
 
 def _create_pdf(report_text: str, context: dict) -> str:
@@ -137,33 +227,40 @@ def _create_pdf(report_text: str, context: dict) -> str:
     for line in report_text.split("\n"):
         stripped = line.strip()
 
-        if stripped.startswith("### "):
-            pdf.ln(2)
-            pdf.set_font("Helvetica", "BI", 12)
-            _write_paragraph(pdf, _strip_markdown(stripped[4:]), W, 7)
-            pdf.set_font("Helvetica", "", 11)
-
-        elif stripped.startswith("## "):
-            pdf.ln(4)
-            pdf.set_font("Helvetica", "B", 13)
-            _write_paragraph(pdf, _strip_markdown(stripped[3:]), W, 8)
-            pdf.set_font("Helvetica", "", 11)
-
-        elif stripped.startswith("# "):
-            pdf.ln(4)
-            pdf.set_font("Helvetica", "B", 15)
-            _write_paragraph(pdf, _strip_markdown(stripped[2:]), W, 10)
+        heading = _is_heading(stripped)
+        if heading:
+            level, text = heading
+            if level == 1:
+                pdf.ln(4)
+                pdf.set_font("Helvetica", "B", 15)
+                _write_paragraph(pdf, _strip_markdown(text), W, 10)
+            elif level == 2:
+                pdf.ln(4)
+                pdf.set_font("Helvetica", "B", 13)
+                _write_paragraph(pdf, _strip_markdown(text), W, 8)
+            else:  # level 3
+                pdf.ln(2)
+                pdf.set_font("Helvetica", "BI", 12)
+                _write_paragraph(pdf, _strip_markdown(text), W, 7)
             pdf.set_font("Helvetica", "", 11)
 
         elif stripped.startswith("- ") or stripped.startswith("* "):
             bullet_text = "  -  " + _strip_markdown(stripped[2:])
             _write_paragraph(pdf, bullet_text, W, 6)
 
+        elif re.match(r'^\d+\.\s', stripped):
+            # Numbered list items (that aren't headings — headings caught above)
+            _write_paragraph(pdf, "  " + _strip_markdown(stripped), W, 6)
+
         elif stripped == "" or stripped == "---":
             pdf.ln(3)
 
         else:
             _write_paragraph(pdf, _strip_markdown(stripped), W, 6)
+
+    # Embed chart images at the end
+    chart_images = context.get("chartImages", [])
+    _embed_chart_images(pdf, chart_images, W)
 
     report_id = str(uuid.uuid4())
     filepath = os.path.join(REPORT_DIR, f"{report_id}.pdf")
@@ -196,8 +293,9 @@ def generate_report():
     if not prompt:
         return jsonify({"type": "message", "content": "Please enter a message."}), 200
 
-    # Build messages for OpenAI
-    context_summary = _build_context_summary(context)
+    # Build messages for OpenAI (exclude chartImages from context summary — they're binary)
+    context_for_summary = {k: v for k, v in context.items() if k != "chartImages"}
+    context_summary = _build_context_summary(context_for_summary)
     messages = [
         {"role": "system", "content": SYSTEM_PROMPT},
         {"role": "system", "content": f"Current analysis context:\n{context_summary}"},

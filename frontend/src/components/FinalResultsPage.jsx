@@ -386,6 +386,11 @@ const FinalResultsPage = ({ resultsSelection, setResultsSelection }) => {
         fuelType={fuelType}
         emissionType={emissionType}
         chartMode={chartMode}
+        consumptionChartRef={consumptionChartRef}
+        emissionChartRef={emissionChartRef}
+        co2ChartRef={co2ChartRef}
+        ch4ChartRef={ch4ChartRef}
+        n2oChartRef={n2oChartRef}
       />
     </div>
   );
