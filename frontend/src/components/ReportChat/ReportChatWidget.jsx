@@ -35,8 +35,26 @@ const ReportChatWidget = ({
       try {
         const chart = ref?.current?.getChart?.();
         if (chart) {
+          // Save original styles, then set all lines to full opacity for the report
+          const saved = chart.data.datasets.map((ds) => ({
+            borderColor: ds.borderColor,
+            borderWidth: ds.borderWidth,
+          }));
+          chart.data.datasets.forEach((ds) => {
+            ds.borderColor = ds._baseColor || ds.borderColor;
+            ds.borderWidth = 1.5;
+          });
+          chart.update("none");
+
           const b64 = chart.toBase64Image("image/png", 1);
           if (b64) images.push({ label, data: b64 });
+
+          // Restore original styles
+          chart.data.datasets.forEach((ds, i) => {
+            ds.borderColor = saved[i].borderColor;
+            ds.borderWidth = saved[i].borderWidth;
+          });
+          chart.update("none");
         }
       } catch {
         // skip charts that can't be captured

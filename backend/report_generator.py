@@ -37,8 +37,18 @@ report using proper markdown headers for ALL section titles:
 The report should include sections such as Executive Summary, Key Findings, Data Analysis,
 and Conclusions. Use the provided context data to ground your analysis.
 
-Note: Charts from the user's current analysis view are available and will be automatically
-included in the generated PDF report alongside your written analysis.
+IMPORTANT — Referencing figures:
+The user's current analysis view contains chart figures that will be embedded inline in the
+PDF report. The available figures are listed in the context under "Available figures".
+You MUST reference each available figure in your text using the exact marker format
+[Figure N] (e.g., [Figure 1], [Figure 2], etc.). When you write [Figure N], the
+corresponding chart image will be inserted at that exact position in the PDF.
+
+Guidelines for figure references:
+- Place each [Figure N] marker on its own line, right after the paragraph that discusses it.
+- Discuss what the figure shows — describe trends, notable values, and patterns visible in the chart.
+- Reference every available figure at least once.
+- Example: "CO2 emissions show a steady decline from 2024 to 2030, dropping approximately 15% over the period.\n[Figure 1]\nAs shown in Figure 1 above, the steepest reduction occurs between 2026 and 2028..."
 
 When the user's request is vague or needs clarification, ask a specific follow-up question.
 
@@ -74,6 +84,14 @@ def _build_context_summary(context: dict) -> str:
                 parts.append(f"  {metric}: {json.dumps(stats)}")
             else:
                 parts.append(f"  {metric}: {stats}")
+
+    # Tell the AI which chart figures are available
+    chart_images = context.get("chartImages", [])
+    if chart_images:
+        parts.append("\nAvailable figures (use [Figure N] markers to place them inline):")
+        for i, img in enumerate(chart_images, 1):
+            label = img.get("label", "Chart")
+            parts.append(f"  Figure {i}: {label}")
 
     return "\n".join(parts) if parts else "No analysis context provided."
 
@@ -137,62 +155,57 @@ def _write_paragraph(pdf, text, w, line_h=6):
     pdf.multi_cell(w, line_h, text)
 
 
-def _embed_chart_images(pdf, chart_images, w):
-    """Embed base64-encoded chart images into the PDF."""
-    if not chart_images:
-        return
-
-    pdf.add_page()
-    pdf.set_font("Helvetica", "B", 14)
-    _write_paragraph(pdf, "Charts", w, 8)
-    pdf.ln(4)
-
-    for img_info in chart_images:
+def _prepare_chart_files(chart_images):
+    """Decode base64 chart images to temp files. Returns {figure_number: (label, path)}."""
+    figures = {}
+    for i, img_info in enumerate(chart_images or [], 1):
         label = img_info.get("label", "Chart")
         data = img_info.get("data", "")
         if not data:
             continue
-
-        # Strip data URI prefix if present
         if "," in data:
             data = data.split(",", 1)[1]
-
         try:
             img_bytes = base64.b64decode(data)
         except Exception:
             continue
-
-        # Write to a temp file for fpdf
         tmp_path = os.path.join(REPORT_DIR, f"_tmp_{uuid.uuid4().hex}.png")
-        try:
-            with open(tmp_path, "wb") as f:
-                f.write(img_bytes)
+        with open(tmp_path, "wb") as f:
+            f.write(img_bytes)
+        figures[i] = (label, tmp_path)
+    return figures
 
-            # Check if we need a new page (leave room for label + image)
-            if pdf.get_y() + 100 > pdf.h - 30:
-                pdf.add_page()
 
-            pdf.set_font("Helvetica", "B", 11)
-            _write_paragraph(pdf, _sanitize_text(label), w, 7)
-            pdf.ln(2)
+def _embed_figure_inline(pdf, fig_num, label, tmp_path, w):
+    """Insert a single figure with numbered caption into the PDF at the current position."""
+    try:
+        # Check if we need a new page (leave room for image ~100pt + caption)
+        if pdf.get_y() + 110 > pdf.h - 30:
+            pdf.add_page()
 
-            # Fit image to page width, maintaining aspect ratio
-            pdf.image(tmp_path, x=pdf.l_margin, w=min(w, 170))
-            pdf.ln(8)
-        except Exception:
-            # If image embedding fails, just note it
-            pdf.set_font("Helvetica", "I", 10)
-            _write_paragraph(pdf, f"[Chart: {_sanitize_text(label)} - could not be embedded]", w, 6)
-            pdf.ln(4)
-        finally:
-            if os.path.exists(tmp_path):
-                os.remove(tmp_path)
+        pdf.ln(4)
+        # Fit image to page width
+        pdf.image(tmp_path, x=pdf.l_margin, w=min(w, 170))
+        pdf.ln(2)
 
-    pdf.set_font("Helvetica", "", 11)
+        # Caption: "Figure N. Label"
+        pdf.set_font("Helvetica", "I", 9)
+        caption = f"Figure {fig_num}. {_sanitize_text(label)}"
+        pdf.set_x(pdf.l_margin)
+        pdf.multi_cell(w, 5, caption, align="C")
+        pdf.ln(4)
+
+        # Restore body font
+        pdf.set_font("Helvetica", "", 11)
+    except Exception:
+        pdf.set_font("Helvetica", "I", 10)
+        _write_paragraph(pdf, f"[Figure {fig_num}: {_sanitize_text(label)} - could not be embedded]", w, 6)
+        pdf.set_font("Helvetica", "", 11)
+        pdf.ln(4)
 
 
 def _create_pdf(report_text: str, context: dict) -> str:
-    """Generate a PDF from the report text. Returns the report id."""
+    """Generate a PDF from the report text with inline figures. Returns the report id."""
     LEFT = 20
     RIGHT = 20
     pdf = FPDF()
@@ -202,7 +215,11 @@ def _create_pdf(report_text: str, context: dict) -> str:
     pdf.add_page()
 
     W = pdf.w - LEFT - RIGHT  # usable width
-    INDENT = 8                # bullet indent
+
+    # Prepare chart image temp files: {1: (label, path), 2: ...}
+    chart_images = context.get("chartImages", [])
+    figures = _prepare_chart_files(chart_images)
+    embedded = set()  # track which figures have been embedded
 
     # Title
     pdf.set_font("Helvetica", "B", 16)
@@ -222,10 +239,23 @@ def _create_pdf(report_text: str, context: dict) -> str:
     pdf.cell(0, 6, _sanitize_text(" | ".join(meta_parts)), ln=True, align="C")
     pdf.ln(8)
 
+    # Regex to detect [Figure N] markers
+    figure_marker_re = re.compile(r'^\[Figure\s+(\d+)\]\s*$', re.IGNORECASE)
+
     # Body
     pdf.set_font("Helvetica", "", 11)
     for line in report_text.split("\n"):
         stripped = line.strip()
+
+        # Check for [Figure N] marker
+        fig_match = figure_marker_re.match(stripped)
+        if fig_match:
+            fig_num = int(fig_match.group(1))
+            if fig_num in figures:
+                label, tmp_path = figures[fig_num]
+                _embed_figure_inline(pdf, fig_num, label, tmp_path, W)
+                embedded.add(fig_num)
+            continue
 
         heading = _is_heading(stripped)
         if heading:
@@ -249,7 +279,6 @@ def _create_pdf(report_text: str, context: dict) -> str:
             _write_paragraph(pdf, bullet_text, W, 6)
 
         elif re.match(r'^\d+\.\s', stripped):
-            # Numbered list items (that aren't headings — headings caught above)
             _write_paragraph(pdf, "  " + _strip_markdown(stripped), W, 6)
 
         elif stripped == "" or stripped == "---":
@@ -258,9 +287,21 @@ def _create_pdf(report_text: str, context: dict) -> str:
         else:
             _write_paragraph(pdf, _strip_markdown(stripped), W, 6)
 
-    # Embed chart images at the end
-    chart_images = context.get("chartImages", [])
-    _embed_chart_images(pdf, chart_images, W)
+    # Append any figures that weren't referenced inline (fallback)
+    remaining = sorted(set(figures.keys()) - embedded)
+    if remaining:
+        pdf.ln(6)
+        pdf.set_font("Helvetica", "B", 13)
+        _write_paragraph(pdf, "Additional Charts", W, 8)
+        pdf.set_font("Helvetica", "", 11)
+        for fig_num in remaining:
+            label, tmp_path = figures[fig_num]
+            _embed_figure_inline(pdf, fig_num, label, tmp_path, W)
+
+    # Clean up temp image files
+    for _, (_, tmp_path) in figures.items():
+        if os.path.exists(tmp_path):
+            os.remove(tmp_path)
 
     report_id = str(uuid.uuid4())
     filepath = os.path.join(REPORT_DIR, f"{report_id}.pdf")
@@ -274,6 +315,22 @@ def _is_report_request(prompt: str, conversation: list) -> bool:
     keywords = ["generate", "create", "write", "produce", "make", "build", "draft"]
     report_words = ["report", "summary", "analysis", "document"]
     return any(k in lower for k in keywords) and any(r in lower for r in report_words)
+
+
+def _is_report_content(text: str) -> bool:
+    """Check if the AI response actually contains a structured report (not just a
+    clarification question or short reply)."""
+    lower = text.lower()
+    # A real report should have at least 2 of these section-style headings
+    section_markers = [
+        "executive summary", "key findings", "data analysis",
+        "conclusions", "recommendations", "overview", "introduction",
+        "emission trends", "analysis results",
+    ]
+    matches = sum(1 for m in section_markers if m in lower)
+    # Also check for markdown heading markers (## or #)
+    heading_count = len(re.findall(r'^#{1,3}\s', text, re.MULTILINE))
+    return matches >= 2 or heading_count >= 3
 
 
 @report_bp.route("/api/report/generate", methods=["POST"])
@@ -293,8 +350,12 @@ def generate_report():
     if not prompt:
         return jsonify({"type": "message", "content": "Please enter a message."}), 200
 
-    # Build messages for OpenAI (exclude chartImages from context summary — they're binary)
+    # Build messages for OpenAI — pass chartImages labels (not binary data) for figure refs
     context_for_summary = {k: v for k, v in context.items() if k != "chartImages"}
+    # Include chart labels so the AI knows which figures are available
+    chart_images = context.get("chartImages", [])
+    if chart_images:
+        context_for_summary["chartImages"] = [{"label": img.get("label", "Chart")} for img in chart_images]
     context_summary = _build_context_summary(context_for_summary)
     messages = [
         {"role": "system", "content": SYSTEM_PROMPT},
@@ -317,11 +378,13 @@ def generate_report():
             messages=messages,
             max_tokens=2000,
             temperature=0.7,
+            timeout=60,
         )
         ai_content = response.choices[0].message.content
 
-        # If this looks like a report generation request, create a PDF
-        if _is_report_request(prompt, conversation):
+        # Generate PDF only when the AI response is an actual structured report,
+        # not a clarification question or short reply.
+        if _is_report_content(ai_content):
             report_id = _create_pdf(ai_content, context)
             return jsonify({
                 "type": "report",
