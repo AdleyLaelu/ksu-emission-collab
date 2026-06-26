@@ -15,6 +15,9 @@ const ReportChatWidget = ({
   co2ChartRef,
   ch4ChartRef,
   n2oChartRef,
+  cityName: cityNameProp,
+  r1r2DataMap,
+  r3DataMap,
 }) => {
   const [open, setOpen] = useState(false);
   const { messages, loading, reportUrl, sendMessage, clearChat } = useReportChat();
@@ -63,9 +66,89 @@ const ReportChatWidget = ({
     return images;
   };
 
+  const buildDataSnapshot = (cityName, state) => {
+    const snapshot = {};
+
+    if (resultsSelection === "VEHICLE" && r1r2DataMap && state) {
+      // R1/R2 data: keyed by metric, each has labels, unit, tracts (tractId -> values[])
+      const fileData = r1r2DataMap[`${state}_${chartMode}`];
+      if (fileData) {
+        // Include data for selected fuel type and emission type metrics
+        const metricsToInclude = [fuelType, emissionType].filter(Boolean);
+        for (const metric of metricsToInclude) {
+          const metricData = fileData[metric];
+          if (!metricData) continue;
+          const tractIds = Object.keys(metricData.tracts || {});
+          const tractSummaries = {};
+          // Cap to first 10 tracts to avoid huge payloads
+          const cappedTracts = tractIds.slice(0, 10);
+          for (const tractId of cappedTracts) {
+            const values = metricData.tracts[tractId];
+            if (!Array.isArray(values) || values.length === 0) continue;
+            const min = Math.min(...values);
+            const max = Math.max(...values);
+            const total = values.reduce((a, b) => a + b, 0);
+            const mean = total / values.length;
+            tractSummaries[tractId] = {
+              min: +min.toFixed(4),
+              max: +max.toFixed(4),
+              mean: +mean.toFixed(4),
+              total: +total.toFixed(4),
+              values: values.map((v) => +v.toFixed(4)),
+            };
+          }
+          if (tractIds.length > 10) {
+            tractSummaries._note = `Showing 10 of ${tractIds.length} tracts`;
+          }
+          snapshot[metric] = {
+            labels: metricData.labels,
+            unit: metricData.unit,
+            tracts: tractSummaries,
+          };
+        }
+      }
+    }
+
+    if (resultsSelection === "GRID" && r3DataMap && state) {
+      // R3 data: for each emission type (CO2, CH4, N2O)
+      for (const gas of ["CO2", "CH4", "N2O"]) {
+        const json = r3DataMap[`${state}_${gas}`];
+        if (!json?.scenarios) continue;
+        const scenarioSummaries = {};
+        for (const [scenarioName, dataPoints] of Object.entries(json.scenarios)) {
+          if (!Array.isArray(dataPoints) || dataPoints.length === 0) continue;
+          const values = dataPoints.map((p) => p.value);
+          const start = values[0];
+          const end = values[values.length - 1];
+          const min = Math.min(...values);
+          const max = Math.max(...values);
+          const trend = end < start ? "declining" : end > start ? "increasing" : "stable";
+          scenarioSummaries[scenarioName] = {
+            start: +start.toFixed(4),
+            end: +end.toFixed(4),
+            min: +min.toFixed(4),
+            max: +max.toFixed(4),
+            trend,
+            dataPoints: dataPoints.map((p) => ({
+              date: p.date.replace(/\s+00:00:00$/, ""),
+              value: +p.value.toFixed(4),
+            })),
+          };
+        }
+        snapshot[gas] = {
+          unit: json.unit || gas,
+          scenarios: scenarioSummaries,
+        };
+      }
+    }
+
+    return Object.keys(snapshot).length > 0 ? snapshot : undefined;
+  };
+
   const buildContext = () => {
-    const cityName = classificationState.city || classificationState.cityInput || "";
+    const cityName = cityNameProp || classificationState.city || classificationState.cityInput || "";
     const state = CITY_TO_STATE[cityName] || CITY_TO_STATE[cityName?.replace(/\s/g, "")] || "";
+    const dataSnapshot = buildDataSnapshot(cityName, state);
     return {
       mode: resultsSelection || "",
       city: cityName,
@@ -78,6 +161,7 @@ const ReportChatWidget = ({
       speedKmh: derived.speedKmh,
       vehicleWeightKg: derived.vehicleWeightKg,
       chartImages: captureChartImages(),
+      ...(dataSnapshot && { dataSnapshot }),
     };
   };
 

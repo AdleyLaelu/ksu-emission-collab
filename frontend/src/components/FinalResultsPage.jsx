@@ -391,6 +391,9 @@ const FinalResultsPage = ({ resultsSelection, setResultsSelection }) => {
         co2ChartRef={co2ChartRef}
         ch4ChartRef={ch4ChartRef}
         n2oChartRef={n2oChartRef}
+        cityName={cityName}
+        r1r2DataMap={DATA_MAP}
+        r3DataMap={R3_DATA_MAP}
       />
     </div>
   );
