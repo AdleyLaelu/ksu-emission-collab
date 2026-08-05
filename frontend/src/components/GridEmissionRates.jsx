@@ -87,7 +87,7 @@ const GridEmissionRates = ({ activeStep, isResults }) => {
 
 
   return (
-    <div className="flex flex-col gap-6 pt-4 w-full max-w-6xl" style={{ marginLeft: '15%', marginRight: 'auto' }}>
+    <div className="flex flex-col gap-6 pt-4 w-full max-w-5xl mx-auto px-4">
       {/* Logo + Scenarios card */}
       <div className="flex flex-row items-start gap-4">
         <div className="shrink-0 pt-2">
@@ -97,7 +97,7 @@ const GridEmissionRates = ({ activeStep, isResults }) => {
             style={{ width: "160px", height: "auto" }}
           />
         </div>
-        <Card variant="outlined" sx={{ backgroundColor: "#fafafa", mb: 4, maxWidth: 1200, px: 2, py: 1 }}>
+        <Card variant="outlined" sx={{ backgroundColor: "#fafafa", mb: 4, px: 2, py: 1, flex: 1 }}>
           <CardContent>
             <Typography variant="h6" gutterBottom>
               Grid Emission Projection Scenarios
@@ -118,7 +118,9 @@ const GridEmissionRates = ({ activeStep, isResults }) => {
           </CardContent>
         </Card>
       </div>
-        <form className="flex items-end gap-4 p-4 rounded" style={{ marginLeft: 176 }}>
+
+        {/* Form controls */}
+        <form className="flex items-end gap-4 p-4 rounded max-w-[650px] mx-auto w-full">
           <div className="flex flex-col gap-1">
             <label className="text-xs font-medium text-gray-600">
               Grid Emission Type
@@ -199,7 +201,7 @@ const GridEmissionRates = ({ activeStep, isResults }) => {
         </form>
 
         {/* Interactive GridChartR3 (user) + scenario legend below */}
-        <div className="flex flex-col gap-4 w-full max-w-3xl" style={{ marginLeft: 176 }}>
+        <div className="flex flex-col gap-4 w-full max-w-[650px] mx-auto">
           {/* Live chart */}
           <div className="rounded-lg bg-white shadow-sm p-3">
             <GridChartR3
@@ -212,50 +214,27 @@ const GridEmissionRates = ({ activeStep, isResults }) => {
             />
           </div>
 
-          {/* Scenario legend — two columns in one box, same width as chart */}
+          {/* Scenario legend — two columns */}
           <div className="border border-gray-500 rounded-xl bg-white p-3 shadow-md w-full">
             {selectedScenarioIdx !== null && (
               <button type="button" onClick={() => setSelectedScenarioIdx(null)} className="text-[9px] text-blue-500 hover:text-blue-700 font-semibold mb-1 col-span-2">Clear</button>
             )}
-            <div className="flex flex-row gap-6">
-              {/* Column 1: short names */}
-              <div className="flex flex-col gap-y-1">
-                {[0, 2, 6, 7].map((idx) => {
-                  const name = SCENARIO_NAMES[idx];
-                  const isSelected = selectedScenarioIdx === idx;
-                  const isFaded = selectedScenarioIdx !== null && !isSelected;
-                  return (
-                    <button key={name} type="button"
-                      onClick={() => setSelectedScenarioIdx(selectedScenarioIdx === idx ? null : idx)}
-                      className="flex items-center gap-1.5 py-0.5 hover:opacity-80 transition-opacity"
-                      style={{ opacity: isFaded ? 0.28 : 1 }}>
-                      <svg width="22" height="8" style={{ flexShrink: 0 }}>
-                        <line x1="0" y1="4" x2="22" y2="4" stroke={SCENARIO_COLORS[idx % SCENARIO_COLORS.length]} strokeWidth={isSelected ? 2.5 : 1.5} strokeLinecap="round" />
-                      </svg>
-                      <span className={`text-[11px] text-left whitespace-nowrap ${isSelected ? "font-bold text-gray-900" : "font-bold text-gray-700"}`}>{name}</span>
-                    </button>
-                  );
-                })}
-              </div>
-              {/* Column 2: includes both long combined-scenario names */}
-              <div className="flex flex-col gap-y-1">
-                {[1, 3, 4, 5].map((idx) => {
-                  const name = SCENARIO_NAMES[idx];
-                  const isSelected = selectedScenarioIdx === idx;
-                  const isFaded = selectedScenarioIdx !== null && !isSelected;
-                  return (
-                    <button key={name} type="button"
-                      onClick={() => setSelectedScenarioIdx(selectedScenarioIdx === idx ? null : idx)}
-                      className="flex items-center gap-1.5 py-0.5 hover:opacity-80 transition-opacity"
-                      style={{ opacity: isFaded ? 0.28 : 1 }}>
-                      <svg width="22" height="8" style={{ flexShrink: 0 }}>
-                        <line x1="0" y1="4" x2="22" y2="4" stroke={SCENARIO_COLORS[idx % SCENARIO_COLORS.length]} strokeWidth={isSelected ? 2.5 : 1.5} strokeLinecap="round" />
-                      </svg>
-                      <span className={`text-[11px] text-left whitespace-nowrap ${isSelected ? "font-bold text-gray-900" : "font-bold text-gray-700"}`}>{name}</span>
-                    </button>
-                  );
-                })}
-              </div>
+            <div className="grid grid-cols-2 gap-x-6 gap-y-1">
+              {SCENARIO_NAMES.map((name, idx) => {
+                const isSelected = selectedScenarioIdx === idx;
+                const isFaded = selectedScenarioIdx !== null && !isSelected;
+                return (
+                  <button key={name} type="button"
+                    onClick={() => setSelectedScenarioIdx(selectedScenarioIdx === idx ? null : idx)}
+                    className="flex items-center gap-1.5 py-0.5 hover:opacity-80 transition-opacity"
+                    style={{ opacity: isFaded ? 0.28 : 1 }}>
+                    <svg width="22" height="8" style={{ flexShrink: 0 }}>
+                      <line x1="0" y1="4" x2="22" y2="4" stroke={SCENARIO_COLORS[idx % SCENARIO_COLORS.length]} strokeWidth={isSelected ? 2.5 : 1.5} strokeLinecap="round" />
+                    </svg>
+                    <span className={`text-[11px] text-left whitespace-nowrap ${isSelected ? "font-bold text-gray-900" : "font-bold text-gray-700"}`}>{name}</span>
+                  </button>
+                );
+              })}
             </div>
           </div>
         </div>
