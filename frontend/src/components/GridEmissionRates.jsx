@@ -87,17 +87,16 @@ const GridEmissionRates = ({ activeStep, isResults }) => {
 
 
   return (
-    <div className="flex flex-row items-stretch gap-6 pl-6 pt-4">
-      {/* Logo image on the left */}
-      <div className="flex flex-col justify-start items-start pt-2 pr-2">
-        <img
-          src={nrelLogo}
-          alt="NREL Cambium"
-          style={{ width: "160px", height: "auto" }}
-        />
-      </div>
-      {/* Left panel: form + chart + legend */}
-      <div className="flex flex-col gap-6">
+    <div className="flex flex-col gap-6 pt-4 w-full max-w-6xl" style={{ marginLeft: '15%', marginRight: 'auto' }}>
+      {/* Logo + Scenarios card */}
+      <div className="flex flex-row items-start gap-4">
+        <div className="shrink-0 pt-2">
+          <img
+            src={nrelLogo}
+            alt="NREL Cambium"
+            style={{ width: "160px", height: "auto" }}
+          />
+        </div>
         <Card variant="outlined" sx={{ backgroundColor: "#fafafa", mb: 4, maxWidth: 1200, px: 2, py: 1 }}>
           <CardContent>
             <Typography variant="h6" gutterBottom>
@@ -118,7 +117,8 @@ const GridEmissionRates = ({ activeStep, isResults }) => {
             </List>
           </CardContent>
         </Card>
-        <form className="flex items-end gap-4 p-4 rounded">
+      </div>
+        <form className="flex items-end gap-4 p-4 rounded" style={{ marginLeft: 176 }}>
           <div className="flex flex-col gap-1">
             <label className="text-xs font-medium text-gray-600">
               Grid Emission Type
@@ -199,7 +199,7 @@ const GridEmissionRates = ({ activeStep, isResults }) => {
         </form>
 
         {/* Interactive GridChartR3 (user) + scenario legend below */}
-        <div className="flex flex-col gap-4 w-full max-w-3xl">
+        <div className="flex flex-col gap-4 w-full max-w-3xl" style={{ marginLeft: 176 }}>
           {/* Live chart */}
           <div className="rounded-lg bg-white shadow-sm p-3">
             <GridChartR3
@@ -212,38 +212,54 @@ const GridEmissionRates = ({ activeStep, isResults }) => {
             />
           </div>
 
-          {/* Scenario legend — 2 columns */}
-          <div className="border border-gray-500 rounded-xl bg-white p-2 shadow-md w-full">
+          {/* Scenario legend — two columns in one box, same width as chart */}
+          <div className="border border-gray-500 rounded-xl bg-white p-3 shadow-md w-full">
             {selectedScenarioIdx !== null && (
               <button type="button" onClick={() => setSelectedScenarioIdx(null)} className="text-[9px] text-blue-500 hover:text-blue-700 font-semibold mb-1 col-span-2">Clear</button>
             )}
-            <div className="grid grid-cols-2 gap-x-4 gap-y-0.5">
-              {SCENARIO_NAMES.map((name, idx) => {
-                const isSelected = selectedScenarioIdx === idx;
-                const isFaded = selectedScenarioIdx !== null && !isSelected;
-                return (
-                  <button key={name} type="button"
-                    onClick={() => setSelectedScenarioIdx(selectedScenarioIdx === idx ? null : idx)}
-                    className="flex items-center gap-1.5 py-0.5 hover:opacity-80 transition-opacity"
-                    style={{ opacity: isFaded ? 0.28 : 1 }}>
-                    <svg width="22" height="8" style={{ flexShrink: 0 }}>
-                      <line x1="0" y1="4" x2="22" y2="4" stroke={SCENARIO_COLORS[idx % SCENARIO_COLORS.length]} strokeWidth={isSelected ? 2.5 : 1.5} strokeLinecap="round" />
-                    </svg>
-                    <span className={`text-[11px] text-left whitespace-nowrap ${isSelected ? "font-bold text-gray-900" : "font-bold text-gray-700"}`}>{name}</span>
-                  </button>
-                );
-              })}
+            <div className="flex flex-row gap-6">
+              {/* Column 1: short names */}
+              <div className="flex flex-col gap-y-1">
+                {[0, 2, 6, 7].map((idx) => {
+                  const name = SCENARIO_NAMES[idx];
+                  const isSelected = selectedScenarioIdx === idx;
+                  const isFaded = selectedScenarioIdx !== null && !isSelected;
+                  return (
+                    <button key={name} type="button"
+                      onClick={() => setSelectedScenarioIdx(selectedScenarioIdx === idx ? null : idx)}
+                      className="flex items-center gap-1.5 py-0.5 hover:opacity-80 transition-opacity"
+                      style={{ opacity: isFaded ? 0.28 : 1 }}>
+                      <svg width="22" height="8" style={{ flexShrink: 0 }}>
+                        <line x1="0" y1="4" x2="22" y2="4" stroke={SCENARIO_COLORS[idx % SCENARIO_COLORS.length]} strokeWidth={isSelected ? 2.5 : 1.5} strokeLinecap="round" />
+                      </svg>
+                      <span className={`text-[11px] text-left whitespace-nowrap ${isSelected ? "font-bold text-gray-900" : "font-bold text-gray-700"}`}>{name}</span>
+                    </button>
+                  );
+                })}
+              </div>
+              {/* Column 2: includes both long combined-scenario names */}
+              <div className="flex flex-col gap-y-1">
+                {[1, 3, 4, 5].map((idx) => {
+                  const name = SCENARIO_NAMES[idx];
+                  const isSelected = selectedScenarioIdx === idx;
+                  const isFaded = selectedScenarioIdx !== null && !isSelected;
+                  return (
+                    <button key={name} type="button"
+                      onClick={() => setSelectedScenarioIdx(selectedScenarioIdx === idx ? null : idx)}
+                      className="flex items-center gap-1.5 py-0.5 hover:opacity-80 transition-opacity"
+                      style={{ opacity: isFaded ? 0.28 : 1 }}>
+                      <svg width="22" height="8" style={{ flexShrink: 0 }}>
+                        <line x1="0" y1="4" x2="22" y2="4" stroke={SCENARIO_COLORS[idx % SCENARIO_COLORS.length]} strokeWidth={isSelected ? 2.5 : 1.5} strokeLinecap="round" />
+                      </svg>
+                      <span className={`text-[11px] text-left whitespace-nowrap ${isSelected ? "font-bold text-gray-900" : "font-bold text-gray-700"}`}>{name}</span>
+                    </button>
+                  );
+                })}
+              </div>
             </div>
           </div>
         </div>
 
-      </div>
-
-      <div className="flex flex-col gap-6">
-        <div className="ml-4 flex items-center gap-4">
-          <VehicleStepper activeStep={isResults ? 1 : (typeof activeStep === 'number' ? activeStep : 0)} />
-        </div>
-      </div>
     </div>
   );
 };
