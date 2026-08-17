@@ -56,12 +56,12 @@ const GridEmissionRates = ({ activeStep, isResults }) => {
         "This scenario builds on the same foundational assumptions as the Mid-case but incorporates the AEO2023 Low Oil & Gas Resource/Technology case (U.S. EIA, 2023), which projects substantially higher natural gas prices over time. Prices start at the same level in 2025 but increase more rapidly, reaching over $6.00/MMBtu by 2035, compared to $3.50–$4.00/MMBtu in the Mid-case scenario, thereby enhancing the competitiveness of renewable energy and storage in the generation mix.",
     },
     {
-      title: "Low RE & Battery Costs + High Gas Prices",
+      title: "Low Renewable Energy & Battery Costs + High Gas Prices",
       description:
         " Building on the base assumptions of the Mid-case scenario, this case combines lower renewable energy and battery costs, based on the 2024 ATB advanced projections (NREL, 2024), which include wind adders dropping to $0/kW by 2050, with high natural gas prices, rising above $6.00/MMBtu by 2035. This combination creates one of the most favorable environments for renewable energy deployment among the eight modeled scenarios.",
     },
     {
-      title: "High RE & Battery Costs + Low Gas Prices",
+      title: "High Renewable Energy & Battery Costs + Low Gas Prices",
       description:
         "This scenario also builds on the same base assumptions as the first scenario but combines higher renewable energy and battery costs based on conservative ATB projections NREL, 2024), including a $200/kW capital cost adder for wind through 2050, with low natural gas prices, projected to reach around $2.50/MMBtu by 2035. This combination reduces the competitiveness of renewables and results in a slower decarbonization trajectory.",
     },
@@ -77,9 +77,8 @@ const GridEmissionRates = ({ activeStep, isResults }) => {
     if (autoInitRef.current) return;
     autoInitRef.current = true;
 
-    if (!GridEmissionState.EmissionType) {
-      setGridEmissionState({ EmissionType: "CO2" });
-    }
+    // Default to "Select Grid Emission Type" — no auto-selection
+    // User must explicitly pick an emission type
   }, [GridEmissionState.EmissionType, setGridEmissionState]);
 
   // Download handler removed: static image was replaced by live GridChartR3 chart.
@@ -118,6 +117,12 @@ const GridEmissionRates = ({ activeStep, isResults }) => {
           </CardContent>
         </Card>
       </div>
+
+        {/* Page title — between scenarios card and form controls */}
+        <div className="mb-1 max-w-[650px] mx-auto w-full">
+          <h1 className="text-2xl font-bold text-gray-800">Grid Emission Rates</h1>
+          <p className="text-sm text-gray-500 mt-1">Explore grid emission projections across different energy scenarios.</p>
+        </div>
 
         {/* Form controls */}
         <form className="flex items-end gap-4 p-4 rounded max-w-[650px] mx-auto w-full">

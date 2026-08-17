@@ -134,8 +134,8 @@ const GridChartR3 = forwardRef(function GridChartR3({ emissionType, cityName, sh
     "High Demand Growth",
     "Low Natural Gas Prices",
     "High Natural Gas Prices",
-    "Low RE & Battery Costs + High Gas Prices",
-    "High RE & Battery Costs + Low Gas Prices",
+    "Low Renewable Energy & Battery Costs + High Gas Prices",
+    "High Renewable Energy & Battery Costs + Low Gas Prices",
   ];
   const labels = (scenarios[scenarioNames[0]] || []).map((p) => p.date);
 

@@ -47,6 +47,12 @@ const EMISSION_TYPES = [
   { label: "PM2.5 Tire Wear", value: "PM2.5 Tire Wear", backend: "PM2.5 Tire Wear", unit: "g/mi" },
 ];
 
+// Emission types used for generation (excludes Energy Rate which is consumption-only)
+const GENERATION_EMISSION_TYPES = EMISSION_TYPES.filter((et) => et.value !== "Energy Rate");
+
+// For Electricity fuel type, CO2 and NOx are excluded
+const ELECTRICITY_EXCLUDED = new Set(["CO2 Emissions", "NOx"]);
+
 const VEHICLE_COLORS = [
   "#1f77b4", "#ff7f0e", "#2ca02c", "#d62728", "#9467bd",
   "#8c564b", "#e377c2", "#7f7f7f", "#bcbd22", "#17becf",
@@ -145,8 +151,9 @@ export default function EnergyConsumptionAndEmissionRates() {
   const [loadedCount, setLoadedCount] = useState(0);
   const [totalCount, setTotalCount] = useState(0);
 
-  // Track last-fetched params to skip redundant requests
-  const lastFetchRef = useRef({ fuelType: null, emissionType: null, vehicleAge: null, city: null });
+  // Generation complete flag — persists progress bar at 100% and disables controls
+  const [generated, setGenerated] = useState(false);
+
   const abortRef = useRef(null);
 
   // Derived params
@@ -156,106 +163,117 @@ export default function EnergyConsumptionAndEmissionRates() {
   const rawCity = classificationState.city || classificationState.cityInput;
   const city = CITY_NAME_MAP[rawCity] || rawCity;
   const selectedEmissionTypeObj = EMISSION_TYPES.find((et) => et.value === emissionType || et.label === emissionType) || {};
-  const emissionBackend = selectedEmissionTypeObj.backend || "";
 
   const ageOptions = useMemo(() => Array.from({ length: 41 }, (_, i) => i), []);
 
-  // Filter emission types based on fuel (Electricity hides CO2 and NOx)
+  // Filter emission types based on selected fuel type (Electricity hides CO2 and NOx)
   const availableEmissionTypes = useMemo(() => {
-    const forbidden = fuelType === "Electricity" ? new Set(["CO2 Emissions", "NOx"]) : new Set();
+    const forbidden = fuelType === "Electricity" ? ELECTRICITY_EXCLUDED : new Set();
     return EMISSION_TYPES.filter((et) => et.value !== "Energy Rate" && !forbidden.has(et.backend));
   }, [fuelType]);
 
-  // Clear invalid emission type when fuel changes to Electricity
-  const prevFuelTypeRef = useRef(fuelType);
-  useEffect(() => {
-    if (!emissionType) {
-      prevFuelTypeRef.current = fuelType;
-      return;
-    }
-    if (prevFuelTypeRef.current !== fuelType) {
-      const currentObj = EMISSION_TYPES.find((et) => et.value === emissionType);
-      const forbidden = fuelType === "Electricity" ? new Set(["CO2 Emissions", "NOx"]) : new Set();
-      if ((currentObj && forbidden.has(currentObj.backend)) || emissionType === "Energy Rate") {
-        setConsumptionAndEmissionState({ EmissionType: "" });
-      }
-    }
-    prevFuelTypeRef.current = fuelType;
-  }, [fuelType, emissionType, setConsumptionAndEmissionState]);
-
-  // Manual fetch triggered by Generate button
+  // Generate ALL combinations at once
   const handleGenerate = useCallback(() => {
-    if (!fuelType || !emissionType || !vehicleAge || !city || !emissionBackend) return;
+    if (!vehicleAge || !city) return;
 
     // Abort in-flight requests
     if (abortRef.current) abortRef.current.abort();
     const controller = new AbortController();
     abortRef.current = controller;
 
-    // Determine which vehicles to fetch: only pinned vehicle, or all if none pinned
-    const currentPinned = pinnedVehicleRef.current;
-    const isInitialLoad = !lastFetchRef.current.fuelType;
-    const vehiclesToFetch = (currentPinned && !isInitialLoad) ? [currentPinned] : VEHICLE_TYPES;
+    // Clear previous data
+    setVehicleData(() => ({}));
 
-    // Clear previous data for vehicles being fetched
-    setVehicleData((prev) => {
-      if (!prev) return {};
-      const preserved = {};
-      Object.entries(prev).forEach(([k]) => {
-        const vt = k.replace(/_Consumption$|_Selected$/, "");
-        if (!vehiclesToFetch.includes(vt)) preserved[k] = prev[k];
+    // Calculate total calls:
+    // Consumption: 5 fuel types × 13 vehicles = 65
+    // Emissions: for each fuel type, applicable emission types × 13 vehicles
+    let totalCalls = 0;
+    const promises = [];
+
+    FUEL_TYPES.forEach((ft) => {
+      // Consumption calls: one per vehicle per fuel type
+      VEHICLE_TYPES.forEach((vt) => {
+        totalCalls++;
       });
-      return preserved;
+
+      // Emission calls: per emission type per vehicle
+      const emissionTypes = ft === "Electricity"
+        ? GENERATION_EMISSION_TYPES.filter((et) => !ELECTRICITY_EXCLUDED.has(et.backend))
+        : GENERATION_EMISSION_TYPES;
+      emissionTypes.forEach((et) => {
+        VEHICLE_TYPES.forEach((vt) => {
+          totalCalls++;
+        });
+      });
     });
 
-    const total = vehiclesToFetch.length * 2;
-    setTotalCount(total);
+    setTotalCount(totalCalls);
     setLoadedCount(0);
     setLoading(true);
+    setGenerated(false);
 
-    const promises = [];
-    vehiclesToFetch.forEach((vt) => {
-      promises.push(
-        fetchConsumption(vt, fuelType, vehicleAge, city, controller.signal)
-          .then((data) => {
-            if (!controller.signal.aborted) {
-              setVehicleData((prev) => ({ ...prev, [`${vt}_Consumption`]: data }));
-              setLoadedCount((c) => c + 1);
-            }
-          })
-          .catch((err) => {
-            if (!controller.signal.aborted) {
-              console.error(`Consumption failed for ${vt}:`, err.message);
-              setLoadedCount((c) => c + 1);
-            }
-          })
-      );
-      promises.push(
-        fetchEmissions(vt, fuelType, vehicleAge, city, emissionBackend, emissionType, controller.signal)
-          .then((data) => {
-            if (!controller.signal.aborted) {
-              setVehicleData((prev) => ({ ...prev, [`${vt}_Selected`]: data }));
-              setLoadedCount((c) => c + 1);
-            }
-          })
-          .catch((err) => {
-            if (!controller.signal.aborted) {
-              console.error(`Emission failed for ${vt}:`, err.message);
-              setLoadedCount((c) => c + 1);
-            }
-          })
-      );
+    // Fire all requests
+    FUEL_TYPES.forEach((ft) => {
+      // Consumption: keyed as "{fuelType}|{vehicleType}_Consumption"
+      VEHICLE_TYPES.forEach((vt) => {
+        promises.push(
+          fetchConsumption(vt, ft, vehicleAge, city, controller.signal)
+            .then((data) => {
+              if (!controller.signal.aborted) {
+                const key = `${ft}|${vt}_Consumption`;
+                setVehicleData((prev) => ({ ...prev, [key]: data }));
+                setLoadedCount((c) => c + 1);
+              }
+            })
+            .catch((err) => {
+              if (!controller.signal.aborted) {
+                console.error(`Consumption failed for ${ft}/${vt}:`, err.message);
+                setLoadedCount((c) => c + 1);
+              }
+            })
+        );
+      });
+
+      // Emissions: keyed as "{fuelType}|{emissionType}|{vehicleType}_Selected"
+      const emissionTypes = ft === "Electricity"
+        ? GENERATION_EMISSION_TYPES.filter((et) => !ELECTRICITY_EXCLUDED.has(et.backend))
+        : GENERATION_EMISSION_TYPES;
+      emissionTypes.forEach((et) => {
+        VEHICLE_TYPES.forEach((vt) => {
+          promises.push(
+            fetchEmissions(vt, ft, vehicleAge, city, et.backend, et.label, controller.signal)
+              .then((data) => {
+                if (!controller.signal.aborted) {
+                  const key = `${ft}|${et.value}|${vt}_Selected`;
+                  setVehicleData((prev) => ({ ...prev, [key]: data }));
+                  setLoadedCount((c) => c + 1);
+                }
+              })
+              .catch((err) => {
+                if (!controller.signal.aborted) {
+                  console.error(`Emission failed for ${ft}/${et.value}/${vt}:`, err.message);
+                  setLoadedCount((c) => c + 1);
+                }
+              })
+          );
+        });
+      });
     });
 
     Promise.allSettled(promises).then(() => {
       if (!controller.signal.aborted) {
         setLoading(false);
-        lastFetchRef.current = { fuelType, emissionType, vehicleAge, city };
+        setGenerated(true);
+        // Set default selections to first fuel and first emission type
+        setConsumptionAndEmissionState({
+          FuelType: FUEL_TYPES[0],
+          EmissionType: GENERATION_EMISSION_TYPES[0].value,
+        });
       }
     });
-  }, [fuelType, emissionType, vehicleAge, city, emissionBackend, setVehicleData]);
+  }, [vehicleAge, city, setVehicleData, setConsumptionAndEmissionState]);
 
-  // Build chart datasets from vehicleData (pure derivation, no intermediate state)
+  // Build chart datasets from vehicleData keyed by current fuelType + emissionType
   const { consumptionChartData, emissionChartData, consumptionUnit, emissionUnit, consumptionYMax, emissionYMax } = useMemo(() => {
     const colorMap = {};
     VEHICLE_TYPES.forEach((t, i) => {
@@ -267,15 +285,18 @@ export default function EnergyConsumptionAndEmissionRates() {
     let cUnit = "units";
     let eUnit = "units";
 
-    Object.entries(vehicleData).forEach(([key, data]) => {
-      const vehicleType = key.replace(/_Consumption$|_Selected$/, "");
-      const baseColor = colorMap[vehicleType] || "#000";
-      const isActive = activeVehicle === vehicleType;
-      const isDimmed = activeVehicle && !isActive;
-      const color = isDimmed ? baseColor + "99" : baseColor;
+    if (generated && fuelType) {
+      // Consumption: read from "{fuelType}|{vehicleType}_Consumption"
+      VEHICLE_TYPES.forEach((vt) => {
+        const key = `${fuelType}|${vt}_Consumption`;
+        const data = vehicleData[key];
+        if (!data?.results?.length) return;
 
-      if (key.endsWith("_Consumption")) {
-        if (!data.results?.length) return;
+        const baseColor = colorMap[vt] || "#000";
+        const isActive = activeVehicle === vt;
+        const isDimmed = activeVehicle && !isActive;
+        const color = isDimmed ? baseColor + "99" : baseColor;
+
         const seen = new Set();
         const points = data.results
           .map((r) => ({ x: r.speed, y: r.consumption }))
@@ -288,7 +309,7 @@ export default function EnergyConsumptionAndEmissionRates() {
           .sort((a, b) => a.x - b.x);
         if (data.unit) cUnit = data.unit;
         cDatasets.push({
-          label: vehicleType,
+          label: vt,
           data: points,
           borderColor: color,
           backgroundColor: "transparent",
@@ -298,34 +319,49 @@ export default function EnergyConsumptionAndEmissionRates() {
           borderWidth: isActive ? 3 : isDimmed ? 0.5 : 1,
           parsing: { xAxisKey: "x", yAxisKey: "y" },
           order: isActive ? 0 : 1,
-          vehicleType,
+          vehicleType: vt,
           _baseColor: baseColor,
         });
-      } else {
-        let actual = data;
-        if (data?.["0"] && !data.results) actual = data["0"];
-        if (!actual?.results) return;
-        const points = actual.results
-          .map((r) => ({ x: r.speed, y: r.prediction }))
-          .filter((p) => p.x >= 0 && p.y != null)
-          .sort((a, b) => a.x - b.x);
-        if (actual.unit) eUnit = actual.unit;
-        eDatasets.push({
-          label: vehicleType,
-          data: points,
-          borderColor: color,
-          backgroundColor: "transparent",
-          tension: 0.3,
-          pointRadius: 0,
-          pointHoverRadius: isActive ? 4 : 0,
-          borderWidth: isActive ? 3 : isDimmed ? 0.5 : 1,
-          parsing: { xAxisKey: "x", yAxisKey: "y" },
-          order: isActive ? 0 : 1,
-          vehicleType,
-          _baseColor: baseColor,
+      });
+
+      // Emissions: read from "{fuelType}|{emissionType}|{vehicleType}_Selected"
+      if (emissionType) {
+        VEHICLE_TYPES.forEach((vt) => {
+          const key = `${fuelType}|${emissionType}|${vt}_Selected`;
+          let data = vehicleData[key];
+          if (!data) return;
+
+          let actual = data;
+          if (data?.["0"] && !data.results) actual = data["0"];
+          if (!actual?.results) return;
+
+          const baseColor = colorMap[vt] || "#000";
+          const isActive = activeVehicle === vt;
+          const isDimmed = activeVehicle && !isActive;
+          const color = isDimmed ? baseColor + "99" : baseColor;
+
+          const points = actual.results
+            .map((r) => ({ x: r.speed, y: r.prediction }))
+            .filter((p) => p.x >= 0 && p.y != null)
+            .sort((a, b) => a.x - b.x);
+          if (actual.unit) eUnit = actual.unit;
+          eDatasets.push({
+            label: vt,
+            data: points,
+            borderColor: color,
+            backgroundColor: "transparent",
+            tension: 0.3,
+            pointRadius: 0,
+            pointHoverRadius: isActive ? 4 : 0,
+            borderWidth: isActive ? 3 : isDimmed ? 0.5 : 1,
+            parsing: { xAxisKey: "x", yAxisKey: "y" },
+            order: isActive ? 0 : 1,
+            vehicleType: vt,
+            _baseColor: baseColor,
+          });
         });
       }
-    });
+    }
 
     // Compute y-max for square grid calculation
     let cYMax = 0;
@@ -341,16 +377,16 @@ export default function EnergyConsumptionAndEmissionRates() {
       consumptionYMax: Math.ceil(cYMax) || 60,
       emissionYMax: Math.ceil(eYMax) || 60,
     };
-  }, [vehicleData, activeVehicle]);
+  }, [vehicleData, activeVehicle, fuelType, emissionType, generated]);
 
   // Dynamic axis labels
   const consumptionYAxisLabel = fuelType === "Electricity" ? "Energy Rate" : "Fuel Consumption Rate";
   const consumptionYAxisText = `${fuelType || consumptionYAxisLabel} (${consumptionUnit})`;
   const emissionYAxisText = `${emissionType || "Selected Emission Type"} (${emissionUnit})`;
 
-  // Imperative chart hover — highlights hovered line, fades others (like R1/R2/R3)
+  // Imperative chart hover — highlights hovered line, fades others
   const handleChartHover = useCallback((_event, elements, chart) => {
-    if (pinnedVehicleRef.current) return; // don't override pinned selection
+    if (pinnedVehicleRef.current) return;
     if (elements.length > 0) {
       const hoverIdx = elements[0].datasetIndex;
       chart.canvas.style.cursor = "pointer";
@@ -360,7 +396,7 @@ export default function EnergyConsumptionAndEmissionRates() {
           ds.borderColor = base;
           ds.borderWidth = 2.5;
         } else {
-          ds.borderColor = base + "99"; // ~60% opacity
+          ds.borderColor = base + "99";
           ds.borderWidth = 1;
         }
       });
@@ -369,7 +405,7 @@ export default function EnergyConsumptionAndEmissionRates() {
       chart.canvas.style.cursor = "default";
       chart.data.datasets.forEach((ds) => {
         const base = ds._baseColor;
-        ds.borderColor = base + "B3"; // ~70% opacity
+        ds.borderColor = base + "B3";
         ds.borderWidth = 1.5;
       });
       chart.update("none");
@@ -389,7 +425,6 @@ export default function EnergyConsumptionAndEmissionRates() {
   // Linear interpolation helper for continuous tooltip values
   const interpolateY = useCallback((data, x) => {
     if (!data || data.length < 2) return null;
-    // Data is sorted by x (speed)
     for (let i = 0; i < data.length - 1; i++) {
       if (x >= data[i].x && x <= data[i + 1].x) {
         const x0 = data[i].x, y0 = data[i].y;
@@ -399,12 +434,11 @@ export default function EnergyConsumptionAndEmissionRates() {
         return y0 + t * (y1 - y0);
       }
     }
-    // Outside range: return nearest endpoint
     if (x < data[0].x) return data[0].y;
     return data[data.length - 1].y;
   }, []);
 
-  // Chart options builder with dynamic y-axis step sizing (niceStepSize / square grid)
+  // Chart options builder
   const buildOptions = useCallback(
     (yAxisText, xMax, yMax, aspectOverride) => {
       const xRange = xMax || 70;
@@ -414,7 +448,6 @@ export default function EnergyConsumptionAndEmissionRates() {
       const effectiveYMax = yMax || 60;
       const targetCells = Math.round(xCells * aspectFactor);
       const rawYStep = effectiveYMax / targetCells;
-      // Snap to a "nice" step that covers small decimals through thousands
       const niceSteps = [0.01, 0.02, 0.05, 0.1, 0.2, 0.5, 1, 2, 5, 10, 20, 25, 50, 100, 200, 250, 500, 1000];
       const yStep = niceSteps.find((s) => s >= rawYStep) || rawYStep;
 
@@ -450,7 +483,6 @@ export default function EnergyConsumptionAndEmissionRates() {
                     `Value: ${yValue?.toFixed(4) ?? "\u2014"}`,
                   ];
                 }
-                // Fallback to actual data point
                 return [
                   `Speed: ${item.parsed?.x} mph`,
                   `Value: ${item.parsed?.y?.toFixed(4) ?? "\u2014"}`,
@@ -522,15 +554,25 @@ export default function EnergyConsumptionAndEmissionRates() {
   const emissionOptions = useMemo(() => buildOptions(emissionYAxisText, undefined, emissionYMax, 1.0), [buildOptions, emissionYAxisText, emissionYMax]);
 
   const hasData = consumptionChartData.datasets.length > 0 || emissionChartData.datasets.length > 0;
-  const allParamsSet = !!(fuelType && emissionType && vehicleAge);
+  const canGenerate = !!vehicleAge && !loading && !generated;
 
-  // Key for chart recreation — forces react-chartjs-2 to destroy/recreate when params change
+  // Chart key for recreation
   const chartKey = `${fuelType}|${emissionType}|${vehicleAge}|${city}`;
 
   const statesList = ["Atlanta", "Los Angeles", "Seattle", "NewYork"];
 
+  // Progress percentage
+  const progressPct = totalCount > 0 ? Math.round((loadedCount / totalCount) * 100) : 0;
+  const showProgressBar = loading || generated;
+
   return (
     <div className="flex flex-col gap-4 pt-4 px-6">
+      {/* Page title */}
+      <div className="mb-1">
+        <h1 className="text-2xl font-bold text-gray-800">Vehicle Energy Consumption and Emission Rates</h1>
+        <p className="text-sm text-gray-500 mt-1">Generate and explore consumption and emission predictions across all vehicle types.</p>
+      </div>
+
       {/* Parameter controls */}
       <div className="flex items-end gap-4 flex-wrap">
         <div className="flex flex-col gap-1">
@@ -538,7 +580,8 @@ export default function EnergyConsumptionAndEmissionRates() {
           <select
             value={fuelType}
             onChange={(e) => setConsumptionAndEmissionState({ FuelType: e.target.value })}
-            className="border rounded px-2 py-1.5 text-sm w-56"
+            disabled={!generated}
+            className={`border rounded px-2 py-1.5 text-sm w-56 ${!generated ? "bg-gray-100 text-gray-500" : ""}`}
           >
             <option value="">Select Fuel Type</option>
             {FUEL_TYPES.map((ft) => (
@@ -552,7 +595,8 @@ export default function EnergyConsumptionAndEmissionRates() {
           <select
             value={selectedEmissionTypeObj.value || ""}
             onChange={(e) => setConsumptionAndEmissionState({ EmissionType: e.target.value })}
-            className="border rounded px-2 py-1.5 text-sm w-44"
+            disabled={!generated}
+            className={`border rounded px-2 py-1.5 text-sm w-44 ${!generated ? "bg-gray-100 text-gray-500" : ""}`}
           >
             <option value="">Select Emission Type</option>
             {availableEmissionTypes.map((et) => (
@@ -566,7 +610,8 @@ export default function EnergyConsumptionAndEmissionRates() {
           <select
             value={vehicleAge}
             onChange={(e) => setConsumptionAndEmissionState({ VehicleAge: e.target.value })}
-            className="border rounded px-2 py-1.5 text-sm w-28"
+            disabled={generated}
+            className={`border rounded px-2 py-1.5 text-sm w-28 ${generated ? "bg-gray-100 text-gray-500" : ""}`}
           >
             <option value="">Vehicle Age</option>
             {ageOptions.map((n) => (
@@ -588,34 +633,34 @@ export default function EnergyConsumptionAndEmissionRates() {
         {/* Generate button */}
         <button
           type="button"
-          disabled={!allParamsSet || loading}
+          disabled={!canGenerate}
           onClick={handleGenerate}
           className={`px-5 py-1.5 rounded-lg text-sm font-semibold transition-all duration-200 shadow-sm whitespace-nowrap
-            ${!allParamsSet || loading
+            ${!canGenerate
               ? "bg-gray-300 text-gray-500 cursor-not-allowed"
               : "bg-green-600 hover:bg-green-700 text-white cursor-pointer hover:shadow-md active:scale-[0.98]"}`}
         >
-          {loading ? "Generating..." : "Generate"}
+          {loading ? "Generating..." : generated ? "Generated" : "Generate"}
         </button>
 
-        {/* Loading progress bar */}
-        {loading && totalCount > 0 && (
+        {/* Progress bar — visible during loading AND after generation (persists at 100%) */}
+        {showProgressBar && (
           <div className="flex items-center gap-2 ml-2 min-w-[180px]">
             <div className="flex-1 h-3 bg-gray-200 rounded-full overflow-hidden">
               <div
-                className="h-full bg-blue-600 rounded-full transition-all duration-300 ease-out"
-                style={{ width: `${(loadedCount / totalCount) * 100}%` }}
+                className={`h-full rounded-full transition-all duration-300 ease-out ${generated ? "bg-green-500" : "bg-blue-600"}`}
+                style={{ width: `${generated ? 100 : progressPct}%` }}
               />
             </div>
-            <span className="text-xs text-gray-500 whitespace-nowrap">{Math.round((loadedCount / totalCount) * 100)}%</span>
+            <span className="text-xs text-gray-500 whitespace-nowrap">{generated ? "100%" : `${progressPct}%`}</span>
           </div>
         )}
       </div>
 
       {/* Charts + Legend */}
-      {!allParamsSet && !hasData ? (
+      {!hasData && !generated ? (
         <div className="flex items-center justify-center h-64 text-gray-400 text-sm border border-dashed border-gray-300 rounded-lg mt-2">
-          Select fuel type, emission type, and vehicle age to generate charts
+          Select vehicle age and click Generate to create predictions for all fuel and emission type combinations
         </div>
       ) : (
         <div className="grid grid-cols-10 gap-4 mt-1 items-start">
@@ -657,7 +702,7 @@ export default function EnergyConsumptionAndEmissionRates() {
             </div>
           </div>
 
-          {/* Interactive legend — col-span-2, click to pin-highlight, hover to preview */}
+          {/* Interactive legend — col-span-2 */}
           <div
             className="col-span-2 flex flex-col gap-0.5 px-3 py-2 border border-gray-500 rounded-xl bg-white overflow-hidden min-w-0 shadow-md self-center"
           >
