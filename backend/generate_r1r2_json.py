@@ -256,44 +256,37 @@ def compute_hourly_emissions(state, year, fleet_df, models):
                 "Speed": hourly_speeds,
             })
 
-            # Predict each emission type
+            # Predict each emission type independently so one failure
+            # doesn't skip others (e.g. CO2/NOx models lack Electricity)
+            vol_arr = np.array(hourly_volumes)
+
+            for em_key, em_model, scale, metric_key in [
+                ("CO2",       "CO2",       1e6, "CO2"),
+                ("NOx",       "NOx",       1e3, "NOx"),
+                ("PM2.5B",    "PM25Brake", 1.0, "PM2.5B"),
+                ("PM2.5T",    "PM25Tire",  1.0, "PM2.5T"),
+            ]:
+                try:
+                    rates = predict_batch(models[em_model], inputs)
+                    rates = np.nan_to_num(np.maximum(rates, 0))
+                    metrics[metric_key] += rates * vol_arr * fraction / scale
+                except Exception:
+                    pass  # Model doesn't support this fuel type
+
+            # Energy → fuel consumption (separate try so it always runs)
             try:
-                # CO2 (g/mile -> tons: /1e6)
-                co2_rates = predict_batch(models["CO2"], inputs)
-                co2_rates = np.maximum(co2_rates, 0)
-                metrics["CO2"] += co2_rates * np.array(hourly_volumes) * fraction / 1e6
-
-                # NOx (g/mile -> kg: /1e3)
-                nox_rates = predict_batch(models["NOx"], inputs)
-                nox_rates = np.maximum(nox_rates, 0)
-                metrics["NOx"] += nox_rates * np.array(hourly_volumes) * fraction / 1e3
-
-                # PM2.5 Brake (g/mile -> gm)
-                brake_rates = predict_batch(models["PM25Brake"], inputs)
-                brake_rates = np.maximum(brake_rates, 0)
-                metrics["PM2.5B"] += brake_rates * np.array(hourly_volumes) * fraction
-
-                # PM2.5 Tire (g/mile -> gm)
-                tire_rates = predict_batch(models["PM25Tire"], inputs)
-                tire_rates = np.maximum(tire_rates, 0)
-                metrics["PM2.5T"] += tire_rates * np.array(hourly_volumes) * fraction
-
-                # Energy (kJ/mile total energy)
                 energy_rates = predict_batch(models["Energy"], inputs)
-                energy_rates = np.maximum(energy_rates, 0)
+                energy_rates = np.nan_to_num(np.maximum(energy_rates, 0))
 
-                # Convert energy to fuel consumption
                 fuel_key = fuel_to_metric.get(ftype)
                 if fuel_key and ftype in FUEL_ENERGY_KJ_PER_UNIT:
                     kj_per_unit = FUEL_ENERGY_KJ_PER_UNIT[ftype]
-                    fuel_consumption = energy_rates / kj_per_unit * np.array(hourly_volumes) * fraction
+                    fuel_consumption = energy_rates / kj_per_unit * vol_arr * fraction
                     if fuel_key == "Electricity":
                         fuel_consumption /= 1000.0  # kWh -> MWh
                     metrics[fuel_key] += fuel_consumption
-
-            except Exception as e:
-                # Skip vehicle-fuel combos the model can't handle
-                continue
+            except Exception:
+                pass
 
         tracts_data[tract_id] = {k: [round(v, 6) for v in vals] for k, vals in metrics.items()}
 
