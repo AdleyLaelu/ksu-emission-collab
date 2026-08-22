@@ -1,6 +1,5 @@
 import React, { useMemo, useState, useEffect, useRef, useCallback } from "react";
 import useAppStore from "../useAppStore";
-import { API_URL } from "../config";
 import { Line } from "react-chartjs-2";
 import {
   Chart as ChartJS,
@@ -67,6 +66,15 @@ const CITY_NAME_MAP = {
   Seattle: "Seattle",
 };
 
+// Map city names to state codes used in the pregenerated JSON filenames
+const CITY_TO_STATE = {
+  Atlanta: "GA",
+  "Los Angeles": "CA",
+  LosAngeles: "CA",
+  NewYork: "NY",
+  Seattle: "WA",
+};
+
 // Inline zoom toolbar — sits in the chart header row, no absolute positioning
 const ZoomToolbar = ({ chartRef }) => (
   <div className="flex bg-white rounded border border-gray-300 shadow-sm overflow-hidden select-none shrink-0">
@@ -76,55 +84,6 @@ const ZoomToolbar = ({ chartRef }) => (
   </div>
 );
 
-// Robust JSON parse — backend sometimes returns NaN tokens
-function parseRobustJSON(text) {
-  try {
-    return JSON.parse(text);
-  } catch {
-    return JSON.parse(text.replace(/\bNaN\b/g, "null"));
-  }
-}
-
-async function fetchConsumption(vehicleType, fuelType, vehicleAge, city, signal) {
-  const res = await fetch(`${API_URL}/predict_consumption`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ fuelType, vehicleAge, city, vehicleType }),
-    signal,
-  });
-  if (!res.ok) throw new Error(`Consumption API error ${res.status}`);
-  const data = parseRobustJSON(await res.text());
-  if (!Array.isArray(data)) throw new Error("Consumption response is not an array");
-  const results = data.map((item) => ({
-    speed: item.speed,
-    consumption: item.fuel_consumption ?? item.energy_consumption_mwh_mile,
-    unit: item.fuel_unit || item.energy_unit,
-  }));
-  return {
-    results,
-    unit: results[0]?.unit || "units",
-    emissionType: "Fuel Consumption",
-  };
-}
-
-async function fetchEmissions(vehicleType, fuelType, vehicleAge, city, emissionBackend, emissionLabel, signal) {
-  const res = await fetch(`${API_URL}/predict_emissions`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ City: city, FuelType: fuelType, VehicleType: vehicleType, Age: parseInt(vehicleAge), EmissionType: emissionBackend }),
-    signal,
-  });
-  if (!res.ok) throw new Error(`Emission API error ${res.status}`);
-  const data = parseRobustJSON(await res.text());
-  if (!Array.isArray(data)) throw new Error("Emissions response is not an array");
-  return {
-    results: data.map((item) => ({ speed: item.Speed, prediction: item.PredictedValue })),
-    unit: data[0]?.Unit || "g/mi",
-    prediction_type: data[0]?.EmissionType || emissionLabel,
-    emissionType: emissionLabel,
-  };
-}
-
 export default function EnergyConsumptionAndEmissionRates() {
   const consumptionChartRef = useRef(null);
   const emissionChartRef = useRef(null);
@@ -133,8 +92,6 @@ export default function EnergyConsumptionAndEmissionRates() {
   const classificationState = useAppStore((s) => s.classificationState);
   const ConsumptionAndEmissionState = useAppStore((s) => s.ConsumptionAndEmission);
   const setConsumptionAndEmissionState = useAppStore((s) => s.setConsumptionAndEmission);
-  const vehicleData = useAppStore((s) => s.vehicleData);
-  const setVehicleData = useAppStore((s) => s.setVehicleData);
 
   // Interactive legend state
   const [hoveredVehicle, setHoveredVehicle] = useState(null);
@@ -142,26 +99,21 @@ export default function EnergyConsumptionAndEmissionRates() {
   const pinnedVehicleRef = useRef(null);
   useEffect(() => {
     pinnedVehicleRef.current = pinnedVehicle;
-    console.log("[Pin] pinnedVehicle changed to:", pinnedVehicle);
   }, [pinnedVehicle]);
   const activeVehicle = hoveredVehicle || pinnedVehicle;
 
-  // Loading progress
-  const [loading, setLoading] = useState(false);
-  const [loadedCount, setLoadedCount] = useState(0);
-  const [totalCount, setTotalCount] = useState(0);
-
-  // Generation complete flag — persists progress bar at 100% and disables controls
-  const [generated, setGenerated] = useState(false);
-
-  const abortRef = useRef(null);
+  // Pre-generated data cache: { [stateCode]: jsonData }
+  const [pregenData, setPregenData] = useState({});
+  const [loadingPregen, setLoadingPregen] = useState(false);
+  const [pregenError, setPregenError] = useState(null);
 
   // Derived params
   const fuelType = ConsumptionAndEmissionState.FuelType || "";
   const emissionType = ConsumptionAndEmissionState.EmissionType || "";
-  const vehicleAge = ConsumptionAndEmissionState.VehicleAge || "";
+  const vehicleAge = ConsumptionAndEmissionState.VehicleAge ?? "";
   const rawCity = classificationState.city || classificationState.cityInput;
   const city = CITY_NAME_MAP[rawCity] || rawCity;
+  const stateCode = CITY_TO_STATE[city] || "GA";
   const selectedEmissionTypeObj = EMISSION_TYPES.find((et) => et.value === emissionType || et.label === emissionType) || {};
 
   const ageOptions = useMemo(() => Array.from({ length: 41 }, (_, i) => i), []);
@@ -172,108 +124,52 @@ export default function EnergyConsumptionAndEmissionRates() {
     return EMISSION_TYPES.filter((et) => et.value !== "Energy Rate" && !forbidden.has(et.backend));
   }, [fuelType]);
 
-  // Generate ALL combinations at once
-  const handleGenerate = useCallback(() => {
-    if (!vehicleAge || !city) return;
-
-    // Abort in-flight requests
-    if (abortRef.current) abortRef.current.abort();
-    const controller = new AbortController();
-    abortRef.current = controller;
-
-    // Clear previous data
-    setVehicleData(() => ({}));
-
-    // Calculate total calls:
-    // Consumption: 5 fuel types × 13 vehicles = 65
-    // Emissions: for each fuel type, applicable emission types × 13 vehicles
-    let totalCalls = 0;
-    const promises = [];
-
-    FUEL_TYPES.forEach((ft) => {
-      // Consumption calls: one per vehicle per fuel type
-      VEHICLE_TYPES.forEach((vt) => {
-        totalCalls++;
-      });
-
-      // Emission calls: per emission type per vehicle
-      const emissionTypes = ft === "Electricity"
-        ? GENERATION_EMISSION_TYPES.filter((et) => !ELECTRICITY_EXCLUDED.has(et.backend))
-        : GENERATION_EMISSION_TYPES;
-      emissionTypes.forEach((et) => {
-        VEHICLE_TYPES.forEach((vt) => {
-          totalCalls++;
-        });
-      });
-    });
-
-    setTotalCount(totalCalls);
-    setLoadedCount(0);
-    setLoading(true);
-    setGenerated(false);
-
-    // Fire all requests
-    FUEL_TYPES.forEach((ft) => {
-      // Consumption: keyed as "{fuelType}|{vehicleType}_Consumption"
-      VEHICLE_TYPES.forEach((vt) => {
-        promises.push(
-          fetchConsumption(vt, ft, vehicleAge, city, controller.signal)
-            .then((data) => {
-              if (!controller.signal.aborted) {
-                const key = `${ft}|${vt}_Consumption`;
-                setVehicleData((prev) => ({ ...prev, [key]: data }));
-                setLoadedCount((c) => c + 1);
-              }
-            })
-            .catch((err) => {
-              if (!controller.signal.aborted) {
-                console.error(`Consumption failed for ${ft}/${vt}:`, err.message);
-                setLoadedCount((c) => c + 1);
-              }
-            })
-        );
-      });
-
-      // Emissions: keyed as "{fuelType}|{emissionType}|{vehicleType}_Selected"
-      const emissionTypes = ft === "Electricity"
-        ? GENERATION_EMISSION_TYPES.filter((et) => !ELECTRICITY_EXCLUDED.has(et.backend))
-        : GENERATION_EMISSION_TYPES;
-      emissionTypes.forEach((et) => {
-        VEHICLE_TYPES.forEach((vt) => {
-          promises.push(
-            fetchEmissions(vt, ft, vehicleAge, city, et.backend, et.label, controller.signal)
-              .then((data) => {
-                if (!controller.signal.aborted) {
-                  const key = `${ft}|${et.value}|${vt}_Selected`;
-                  setVehicleData((prev) => ({ ...prev, [key]: data }));
-                  setLoadedCount((c) => c + 1);
-                }
-              })
-              .catch((err) => {
-                if (!controller.signal.aborted) {
-                  console.error(`Emission failed for ${ft}/${et.value}/${vt}:`, err.message);
-                  setLoadedCount((c) => c + 1);
-                }
-              })
-          );
-        });
-      });
-    });
-
-    Promise.allSettled(promises).then(() => {
-      if (!controller.signal.aborted) {
-        setLoading(false);
-        setGenerated(true);
-        // Set default selections to first fuel and first emission type
-        setConsumptionAndEmissionState({
-          FuelType: FUEL_TYPES[0],
-          EmissionType: GENERATION_EMISSION_TYPES[0].value,
-        });
+  // Auto-correct emission type when switching to Electricity fuel
+  useEffect(() => {
+    if (fuelType === "Electricity" && selectedEmissionTypeObj.backend && ELECTRICITY_EXCLUDED.has(selectedEmissionTypeObj.backend)) {
+      const firstAvailable = availableEmissionTypes[0];
+      if (firstAvailable) {
+        setConsumptionAndEmissionState({ EmissionType: firstAvailable.value });
       }
-    });
-  }, [vehicleAge, city, setVehicleData, setConsumptionAndEmissionState]);
+    }
+  }, [fuelType, selectedEmissionTypeObj.backend, availableEmissionTypes, setConsumptionAndEmissionState]);
 
-  // Build chart datasets from vehicleData keyed by current fuelType + emissionType
+  // Load pre-generated JSON when state changes
+  useEffect(() => {
+    if (!stateCode || pregenData[stateCode]) return;
+
+    setLoadingPregen(true);
+    setPregenError(null);
+
+    fetch(`${import.meta.env.BASE_URL}pregenerated/${stateCode}.json`)
+      .then((res) => {
+        if (!res.ok) throw new Error(`Failed to load pregenerated data for ${stateCode}`);
+        return res.json();
+      })
+      .then((data) => {
+        setPregenData((prev) => ({ ...prev, [stateCode]: data }));
+        setLoadingPregen(false);
+
+        // Set defaults if not already set
+        if (!fuelType) {
+          setConsumptionAndEmissionState({ FuelType: FUEL_TYPES[0] });
+        }
+        if (!emissionType) {
+          setConsumptionAndEmissionState({ EmissionType: GENERATION_EMISSION_TYPES[0].value });
+        }
+      })
+      .catch((err) => {
+        console.error("Failed to load pregenerated data:", err);
+        setPregenError(err.message);
+        setLoadingPregen(false);
+      });
+  }, [stateCode]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // The current state's data
+  const stateData = pregenData[stateCode] || null;
+  const dataReady = !!stateData && vehicleAge !== "";
+
+  // Build chart datasets from pre-generated data
   const { consumptionChartData, emissionChartData, consumptionUnit, emissionUnit, consumptionYMax, emissionYMax } = useMemo(() => {
     const colorMap = {};
     VEHICLE_TYPES.forEach((t, i) => {
@@ -285,29 +181,26 @@ export default function EnergyConsumptionAndEmissionRates() {
     let cUnit = "units";
     let eUnit = "units";
 
-    if (generated && fuelType) {
-      // Consumption: read from "{fuelType}|{vehicleType}_Consumption"
-      VEHICLE_TYPES.forEach((vt) => {
-        const key = `${fuelType}|${vt}_Consumption`;
-        const data = vehicleData[key];
-        if (!data?.results?.length) return;
+    if (dataReady && fuelType) {
+      const ageStr = String(vehicleAge);
 
+      // Consumption: lookup from pregenerated data
+      VEHICLE_TYPES.forEach((vt) => {
+        const consKey = `${fuelType}|${vt}`;
+        const consEntry = stateData.consumption?.[consKey];
+        if (!consEntry?.ages?.[ageStr]) return;
+
+        const speedValues = consEntry.ages[ageStr];
         const baseColor = colorMap[vt] || "#000";
         const isActive = activeVehicle === vt;
         const isDimmed = activeVehicle && !isActive;
         const color = isDimmed ? baseColor + "99" : baseColor;
 
-        const seen = new Set();
-        const points = data.results
-          .map((r) => ({ x: r.speed, y: r.consumption }))
-          .filter((p) => {
-            if (p.x < 0 || p.y == null) return false;
-            if (seen.has(p.x)) return false;
-            seen.add(p.x);
-            return true;
-          })
-          .sort((a, b) => a.x - b.x);
-        if (data.unit) cUnit = data.unit;
+        const points = speedValues
+          .map((v, speed) => ({ x: speed, y: v }))
+          .filter((p) => p.y != null);
+
+        if (consEntry.unit) cUnit = consEntry.unit;
         cDatasets.push({
           label: vt,
           data: points,
@@ -324,27 +217,28 @@ export default function EnergyConsumptionAndEmissionRates() {
         });
       });
 
-      // Emissions: read from "{fuelType}|{emissionType}|{vehicleType}_Selected"
-      if (emissionType) {
+      // Emissions: lookup from pregenerated data
+      if (emissionType && selectedEmissionTypeObj.backend) {
+        const emBackend = selectedEmissionTypeObj.backend;
         VEHICLE_TYPES.forEach((vt) => {
-          const key = `${fuelType}|${emissionType}|${vt}_Selected`;
-          let data = vehicleData[key];
-          if (!data) return;
+          // Skip electricity-excluded combinations
+          if (fuelType === "Electricity" && ELECTRICITY_EXCLUDED.has(emBackend)) return;
 
-          let actual = data;
-          if (data?.["0"] && !data.results) actual = data["0"];
-          if (!actual?.results) return;
+          const emKey = `${fuelType}|${emBackend}|${vt}`;
+          const emEntry = stateData.emissions?.[emKey];
+          if (!emEntry?.ages?.[ageStr]) return;
 
+          const speedValues = emEntry.ages[ageStr];
           const baseColor = colorMap[vt] || "#000";
           const isActive = activeVehicle === vt;
           const isDimmed = activeVehicle && !isActive;
           const color = isDimmed ? baseColor + "99" : baseColor;
 
-          const points = actual.results
-            .map((r) => ({ x: r.speed, y: r.prediction }))
-            .filter((p) => p.x >= 0 && p.y != null)
-            .sort((a, b) => a.x - b.x);
-          if (actual.unit) eUnit = actual.unit;
+          const points = speedValues
+            .map((v, speed) => ({ x: speed, y: v }))
+            .filter((p) => p.y != null);
+
+          if (emEntry.unit) eUnit = emEntry.unit;
           eDatasets.push({
             label: vt,
             data: points,
@@ -377,7 +271,7 @@ export default function EnergyConsumptionAndEmissionRates() {
       consumptionYMax: Math.ceil(cYMax) || 60,
       emissionYMax: Math.ceil(eYMax) || 60,
     };
-  }, [vehicleData, activeVehicle, fuelType, emissionType, generated]);
+  }, [stateData, activeVehicle, fuelType, emissionType, vehicleAge, dataReady, selectedEmissionTypeObj.backend]);
 
   // Dynamic axis labels
   const consumptionYAxisLabel = fuelType === "Electricity" ? "Energy Rate" : "Fuel Consumption Rate";
@@ -554,34 +448,44 @@ export default function EnergyConsumptionAndEmissionRates() {
   const emissionOptions = useMemo(() => buildOptions(emissionYAxisText, undefined, emissionYMax, 1.0), [buildOptions, emissionYAxisText, emissionYMax]);
 
   const hasData = consumptionChartData.datasets.length > 0 || emissionChartData.datasets.length > 0;
-  const canGenerate = !!vehicleAge && !loading && !generated;
 
   // Chart key for recreation
-  const chartKey = `${fuelType}|${emissionType}|${vehicleAge}|${city}`;
+  const chartKey = `${fuelType}|${emissionType}|${vehicleAge}|${stateCode}`;
 
   const statesList = ["Atlanta", "Los Angeles", "Seattle", "NewYork"];
-
-  // Progress percentage
-  const progressPct = totalCount > 0 ? Math.round((loadedCount / totalCount) * 100) : 0;
-  const showProgressBar = loading || generated;
 
   return (
     <div className="flex flex-col gap-4 pt-4 px-6">
       {/* Page title */}
       <div className="mb-1">
         <h1 className="text-2xl font-bold text-gray-800">Vehicle Energy Consumption and Emission Rates</h1>
-        <p className="text-sm text-gray-500 mt-1">Generate and explore consumption and emission predictions across all vehicle types.</p>
+        <p className="text-sm text-gray-500 mt-1">Explore consumption and emission predictions across all vehicle types. Select parameters below to view charts instantly.</p>
       </div>
 
       {/* Parameter controls */}
       <div className="flex items-end gap-4 flex-wrap">
         <div className="flex flex-col gap-1">
+          <label className="text-xs font-medium text-gray-600">Vehicle Age</label>
+          <select
+            value={vehicleAge}
+            onChange={(e) => setConsumptionAndEmissionState({ VehicleAge: e.target.value })}
+            disabled={loadingPregen}
+            className={`border rounded px-2 py-1.5 text-sm w-28 ${loadingPregen ? "bg-gray-100 text-gray-500" : ""}`}
+          >
+            <option value="">Vehicle Age</option>
+            {ageOptions.map((n) => (
+              <option key={n} value={n}>{n}</option>
+            ))}
+          </select>
+        </div>
+
+        <div className="flex flex-col gap-1">
           <label className="text-xs font-medium text-gray-600">Fuel Type</label>
           <select
             value={fuelType}
             onChange={(e) => setConsumptionAndEmissionState({ FuelType: e.target.value })}
-            disabled={!generated}
-            className={`border rounded px-2 py-1.5 text-sm w-56 ${!generated ? "bg-gray-100 text-gray-500" : ""}`}
+            disabled={loadingPregen}
+            className={`border rounded px-2 py-1.5 text-sm w-56 ${loadingPregen ? "bg-gray-100 text-gray-500" : ""}`}
           >
             <option value="">Select Fuel Type</option>
             {FUEL_TYPES.map((ft) => (
@@ -595,27 +499,12 @@ export default function EnergyConsumptionAndEmissionRates() {
           <select
             value={selectedEmissionTypeObj.value || ""}
             onChange={(e) => setConsumptionAndEmissionState({ EmissionType: e.target.value })}
-            disabled={!generated}
-            className={`border rounded px-2 py-1.5 text-sm w-44 ${!generated ? "bg-gray-100 text-gray-500" : ""}`}
+            disabled={loadingPregen}
+            className={`border rounded px-2 py-1.5 text-sm w-44 ${loadingPregen ? "bg-gray-100 text-gray-500" : ""}`}
           >
             <option value="">Select Emission Type</option>
             {availableEmissionTypes.map((et) => (
               <option key={et.value} value={et.value}>{et.label}</option>
-            ))}
-          </select>
-        </div>
-
-        <div className="flex flex-col gap-1">
-          <label className="text-xs font-medium text-gray-600">Vehicle Age</label>
-          <select
-            value={vehicleAge}
-            onChange={(e) => setConsumptionAndEmissionState({ VehicleAge: e.target.value })}
-            disabled={generated}
-            className={`border rounded px-2 py-1.5 text-sm w-28 ${generated ? "bg-gray-100 text-gray-500" : ""}`}
-          >
-            <option value="">Vehicle Age</option>
-            {ageOptions.map((n) => (
-              <option key={n} value={n}>{n}</option>
             ))}
           </select>
         </div>
@@ -630,37 +519,21 @@ export default function EnergyConsumptionAndEmissionRates() {
           </select>
         </div>
 
-        {/* Generate button */}
-        <button
-          type="button"
-          disabled={!canGenerate}
-          onClick={handleGenerate}
-          className={`px-5 py-1.5 rounded-lg text-sm font-semibold transition-all duration-200 shadow-sm whitespace-nowrap
-            ${!canGenerate
-              ? "bg-gray-300 text-gray-500 cursor-not-allowed"
-              : "bg-green-600 hover:bg-green-700 text-white cursor-pointer hover:shadow-md active:scale-[0.98]"}`}
-        >
-          {loading ? "Generating..." : generated ? "Generated" : "Generate"}
-        </button>
-
-        {/* Progress bar — visible during loading AND after generation (persists at 100%) */}
-        {showProgressBar && (
-          <div className="flex items-center gap-2 ml-2 min-w-[180px]">
-            <div className="flex-1 h-3 bg-gray-200 rounded-full overflow-hidden">
-              <div
-                className={`h-full rounded-full transition-all duration-300 ease-out ${generated ? "bg-green-500" : "bg-blue-600"}`}
-                style={{ width: `${generated ? 100 : progressPct}%` }}
-              />
-            </div>
-            <span className="text-xs text-gray-500 whitespace-nowrap">{generated ? "100%" : `${progressPct}%`}</span>
-          </div>
+        {/* Loading indicator for initial JSON fetch */}
+        {loadingPregen && (
+          <span className="text-xs text-blue-500 font-medium self-center">Loading data...</span>
+        )}
+        {pregenError && (
+          <span className="text-xs text-red-500 font-medium self-center">Error: {pregenError}</span>
         )}
       </div>
 
       {/* Charts + Legend */}
-      {!hasData && !generated ? (
+      {!hasData ? (
         <div className="flex items-center justify-center h-64 text-gray-400 text-sm border border-dashed border-gray-300 rounded-lg mt-2">
-          Select vehicle age and click Generate to create predictions for all fuel and emission type combinations
+          {loadingPregen
+            ? "Loading pre-generated prediction data..."
+            : "Select vehicle age, fuel type, and emission type to view predictions instantly"}
         </div>
       ) : (
         <div className="grid grid-cols-10 gap-4 mt-1 items-start">
