@@ -92,6 +92,23 @@ def predict_batch(model_info, df_inputs):
     return result.flatten()
 
 
+def normalize_fuel_type(ftype):
+    """Normalize fuel type names from DB to match model-trained categories."""
+    if not ftype or not isinstance(ftype, str):
+        return ftype
+    # Map common variants to the canonical model-trained names
+    FUEL_ALIASES = {
+        "compressed natural gas (cng)": "Compressed Natural Gas (CNG)",
+        "compressed natural gas - cng": "Compressed Natural Gas (CNG)",
+        "ethanol (e-85)": "Ethanol (E-85)",
+        "ethanol - e-85": "Ethanol (E-85)",
+        "diesel fuel": "Diesel Fuel",
+        "gasoline": "Gasoline",
+        "electricity": "Electricity",
+    }
+    return FUEL_ALIASES.get(ftype.strip().lower(), ftype)
+
+
 def get_vehicle_fleet():
     """Get vehicle fleet composition (proportions) from the database."""
     conn = sqlite3.connect(DB_FILE)
@@ -103,6 +120,9 @@ def get_vehicle_fleet():
         conn
     )
     conn.close()
+
+    # Normalize fuel type names to match model-trained categories
+    df["fuel_type"] = df["fuel_type"].apply(normalize_fuel_type)
 
     total = df["count"].sum()
     df["fraction"] = df["count"] / total
@@ -144,8 +164,12 @@ def load_tract_dataframes(fmt, source, path):
             if not fname.endswith(".csv"):
                 continue
             tract_id = fname.replace("tract=", "").replace(".csv", "")
-            df = pd.read_csv(os.path.join(csv_dir, fname))
-            tracts.append((tract_id, df))
+            try:
+                df = pd.read_csv(os.path.join(csv_dir, fname))
+                tracts.append((tract_id, df))
+            except Exception as e:
+                print(f"    Warning: skipping {fname}: {e}")
+                continue
     return tracts
 
 
