@@ -16,21 +16,6 @@ import InteractiveTractMap from "./InteractiveTractMap";
 
 registerAllModules();
 
-// ABM Configuration
-const ABM_AVAILABLE_YEARS = [2020, 2030, 2033, 2040, 2050];
-const ABM_MIN_YEAR = 2020;
-const ABM_MAX_YEAR = 2050;
-
-const isABMAvailable = (city, year) => {
-  if (!city || !year) return false;
-  const normalizedCity = city.toLowerCase().trim();
-  const yearNum = parseInt(year, 10);
-  return normalizedCity === "atlanta" && yearNum >= ABM_MIN_YEAR && yearNum <= ABM_MAX_YEAR;
-};
-
-// eslint-disable-next-line no-unused-vars
-const isExactABMYear = (year) => ABM_AVAILABLE_YEARS.includes(parseInt(year, 10));
-
 function ProjectedDemand() {
   const [showTable, setShowTable] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -51,7 +36,6 @@ function ProjectedDemand() {
   const theme = useAppStore((s) => s.theme);
   const classificationState = useAppStore((s) => s.classificationState);
   const penetrationState = useAppStore((s) => s.penetrationState);
-  const setPenetrationState = useAppStore((s) => s.setPenetrationState);
   const projectedDemandState = useAppStore((s) => s.projectedDemandState);
   const setProjectedDemandState = useAppStore((s) => s.setProjectedDemandState);
   const trafficState = useAppStore((s) => s.trafficVolumeState);
@@ -60,6 +44,20 @@ function ProjectedDemand() {
   const trafficMode = useAppStore((s) => s.trafficMode);
   const isABM = trafficMode === "ABM";
   const isMFD = trafficMode === "MFD";
+
+  const fileInputRef = React.useRef();
+
+  // Per-year uploads tracking
+  const yearUploads = projectedDemandState.yearUploads || {};
+  const selectedYear = projectedDemandState.selectedYear || null;
+
+  // Generate year list from baseYear+1 to endYear
+  const baseYear = parseInt(classificationState.baseYear, 10);
+  const endYear = parseInt(penetrationState.projectedYear, 10);
+  const yearList = useMemo(() => {
+    if (!baseYear || !endYear || endYear <= baseYear) return [];
+    return Array.from({ length: endYear - baseYear }, (_, i) => baseYear + i + 1);
+  }, [baseYear, endYear]);
 
   useEffect(() => {
     if (projectedDemandState.speedEstimated) setShowTable(true);
@@ -74,39 +72,7 @@ function ProjectedDemand() {
     return map;
   }, [trafficChartData]);
 
-  const currentYear = penetrationState.projectedYear || "";
-  const isDataStale = trafficChartData && chartYear && chartYear !== currentYear;
-
-  // File Upload Logic (MFD mode)
-  const loadSheet = (file, keyHeaders, keyData) => {
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      const data = e.target.result;
-      const wb = file.name.endsWith(".csv")
-        ? XLSX.read(data, { type: "string" })
-        : XLSX.read(data, { type: "binary" });
-      const ws = wb.Sheets[wb.SheetNames[0]];
-      const parsed = XLSX.utils.sheet_to_json(ws, { header: 1 });
-
-      if (parsed.length) {
-        setProjectedDemandState({
-          [keyHeaders]: parsed[0],
-          [keyData]: parsed.slice(1),
-          projectedTrafficVolumeFile: file,
-        });
-      } else {
-        setProjectedDemandState({
-          [keyHeaders]: [],
-          [keyData]: [],
-          projectedTrafficVolumeFile: null,
-        });
-      }
-    };
-    file.name.endsWith(".csv") ? reader.readAsText(file) : reader.readAsBinaryString(file);
-  };
-
-  const statesList = ["", "Atlanta", "Los Angeles", "Seattle", "NewYork"];
+  const isDataStale = trafficChartData && chartYear && chartYear !== String(selectedYear);
 
   const cityNameMapping = {
     LosAngeles: "Los Angeles", "Los Angeles": "Los Angeles",
@@ -116,47 +82,49 @@ function ProjectedDemand() {
 
   const rawCityName = (classificationState.city || classificationState.cityInput || "").trim();
   const mappedCity = cityNameMapping[rawCityName] || rawCityName;
-  const year = penetrationState.projectedYear || classificationState.baseYear || "";
-
-  // ABM availability for the projected year
-  // eslint-disable-next-line no-unused-vars
-  const abmAvailableForYear = isABMAvailable(mappedCity, year);
-
 
   const hasChartData = trafficChartData && !isDataStale;
   const yearCache = projectedDemandState.yearCache || {};
 
-  // Restore from cache when year changes
+  // Restore from cache when selected year changes
   useEffect(() => {
-    const selectedYear = penetrationState.projectedYear;
     if (!selectedYear) return;
     const cached = yearCache[selectedYear];
     if (cached) {
       setTrafficChartData(cached.chartData);
-      setChartYear(selectedYear);
+      setChartYear(String(selectedYear));
       setMethodUsed(cached.methodUsed);
       setShowTable(true);
       setProjectedDemandState({
         speedEstimated: true,
         abmProjectedFile: cached.file,
       });
+    } else {
+      // Clear previous year's data when switching to an uncached year
+      setTrafficChartData(null);
+      setChartYear(null);
+      setShowTable(false);
+      setProjectedDemandState({
+        speedEstimated: false,
+        abmProjectedFile: null,
+      });
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [penetrationState.projectedYear]);
+  }, [selectedYear]);
 
   // Save to cache helper
-  const saveToCache = (selectedYear, file, chartData, method) => {
+  const saveToCache = (yr, file, chartData, method) => {
     setProjectedDemandState({
       yearCache: {
         ...useAppStore.getState().projectedDemandState.yearCache,
-        [selectedYear]: { file, chartData, methodUsed: method },
+        [yr]: { file, chartData, methodUsed: method },
       },
     });
   };
 
-  // ABM mode: upload handler for projected year
-  const handleABMProjectedUpload = async (file, selectedYear) => {
-    if (!file || !selectedYear || !mappedCity) return;
+  // ABM mode: upload handler for selected year
+  const handleABMProjectedUpload = async (file, yr) => {
+    if (!file || !yr || !mappedCity) return;
 
     setTrafficChartData(null);
     setChartYear(null);
@@ -168,7 +136,7 @@ function ProjectedDemand() {
       const formData = new FormData();
       formData.append("file", file);
       formData.append("city_name", mappedCity);
-      formData.append("year", selectedYear);
+      formData.append("year", yr);
 
       const abmRes = await fetch(`${API_URL}/process/traffic/abm/upload`, {
         method: "POST",
@@ -182,15 +150,23 @@ function ProjectedDemand() {
       setMethodUsed("Import Traffic Data");
       notify(`Processed ${abmData.tracts_processed} tracts`);
 
-      const dataUrl = `${API_URL}/plot/traffic/data/${encodeURIComponent(mappedCity)}/${encodeURIComponent(selectedYear)}?source=abm`;
+      const dataUrl = `${API_URL}/plot/traffic/data/${encodeURIComponent(mappedCity)}/${encodeURIComponent(yr)}?source=abm`;
       const dataRes = await fetch(dataUrl);
       if (!dataRes.ok) throw new Error("Failed to fetch chart data");
       const chartJson = await dataRes.json();
 
       setTrafficChartData(chartJson);
-      setChartYear(selectedYear);
+      setChartYear(String(yr));
       setProjectedDemandState({ speedEstimated: true });
-      saveToCache(selectedYear, file, chartJson, "Import Traffic Data");
+      saveToCache(yr, file, chartJson, "Import Traffic Data");
+
+      // Track in yearUploads
+      setProjectedDemandState({
+        yearUploads: {
+          ...useAppStore.getState().projectedDemandState.yearUploads,
+          [yr]: { file, chartData: chartJson, methodUsed: "Import Traffic Data" },
+        },
+      });
     } catch (err) {
       console.error("ABM projected upload error:", err);
       notify(err.message || "Failed to process ABM data");
@@ -200,72 +176,122 @@ function ProjectedDemand() {
     }
   };
 
-  // MFD mode: process traffic data and fetch interactive chart when projected volume file is uploaded
-  const projectedVolumeFile = projectedDemandState.projectedTrafficVolumeFile;
-  useEffect(() => {
-    if (!isMFD) return;
-    const selectedYear = penetrationState.projectedYear;
-    if (!selectedYear || !mappedCity) return;
+  // File Upload Logic (MFD mode)
+  const loadSheet = (file, yr) => {
+    if (!file || !yr) return;
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const data = e.target.result;
+      const wb = file.name.endsWith(".csv")
+        ? XLSX.read(data, { type: "string" })
+        : XLSX.read(data, { type: "binary" });
+      const ws = wb.Sheets[wb.SheetNames[0]];
+      const parsed = XLSX.utils.sheet_to_json(ws, { header: 1 });
 
-    // Check cache first
-    const cached = yearCache[selectedYear];
-    if (cached?.chartData) return;
-    if (chartYear === selectedYear && trafficChartData) return;
+      if (parsed.length) {
+        setProjectedDemandState({
+          projectedTrafficVolumeHeaders: parsed[0],
+          projectedTrafficVolumeData: parsed.slice(1),
+          projectedTrafficVolumeFile: file,
+          yearUploads: {
+            ...useAppStore.getState().projectedDemandState.yearUploads,
+            [yr]: { file, headers: parsed[0], data: parsed.slice(1) },
+          },
+        });
+        // Trigger MFD processing
+        processMFDForYear(file, yr);
+      } else {
+        setProjectedDemandState({
+          projectedTrafficVolumeHeaders: [],
+          projectedTrafficVolumeData: [],
+          projectedTrafficVolumeFile: null,
+        });
+      }
+    };
+    file.name.endsWith(".csv") ? reader.readAsText(file) : reader.readAsBinaryString(file);
+  };
+
+  // MFD mode: process traffic data for a specific year
+  const processMFDForYear = async (volumeFile, yr) => {
+    if (!yr || !mappedCity) return;
 
     const mfdParamsFile = trafficState.trafficMFTParametersFile;
-    if (!mfdParamsFile || !projectedVolumeFile) return;
+    if (!mfdParamsFile || !volumeFile) return;
 
     setTrafficChartData(null);
     setChartYear(null);
     setShowTable(true);
     setProjectedDemandState({ speedEstimated: true });
     setMethodUsed("Model Traffic Dynamics");
+    setIsLoading(true);
 
-    let cancelled = false;
-    const processMFD = async () => {
-      setIsLoading(true);
-      try {
-        const formData = new FormData();
-        formData.append("parameters_file", mfdParamsFile);
-        formData.append("traffic_volume_file", projectedVolumeFile);
-        formData.append("city_name", mappedCity);
-        formData.append("year", selectedYear);
+    try {
+      const formData = new FormData();
+      formData.append("parameters_file", mfdParamsFile);
+      formData.append("traffic_volume_file", volumeFile);
+      formData.append("city_name", mappedCity);
+      formData.append("year", yr);
 
-        const processRes = await fetch(`${API_URL}/process/traffic`, {
-          method: "POST",
-          body: formData,
-        });
-        if (!processRes.ok) {
-          const errData = await processRes.json().catch(() => ({}));
-          console.error("MFD processing failed for projected year:", errData);
-          notify("Processing failed: " + (errData.error || errData.message || "Unknown error"));
-          return;
-        }
-        if (cancelled) return;
-
-        const dataUrl = `${API_URL}/plot/traffic/data/${encodeURIComponent(mappedCity)}/${encodeURIComponent(selectedYear)}?source=mfd`;
-        const dataRes = await fetch(dataUrl);
-        if (!dataRes.ok) return;
-        const chartJson = await dataRes.json();
-        if (cancelled) return;
-        setTrafficChartData(chartJson);
-        setChartYear(selectedYear);
-        saveToCache(selectedYear, mfdParamsFile, chartJson, "Model Traffic Dynamics");
-      } catch (err) {
-        if (cancelled) return;
-        console.error("MFD projected demand processing error:", err);
-      } finally {
-        if (!cancelled) setIsLoading(false);
+      const processRes = await fetch(`${API_URL}/process/traffic`, {
+        method: "POST",
+        body: formData,
+      });
+      if (!processRes.ok) {
+        const errData = await processRes.json().catch(() => ({}));
+        console.error("MFD processing failed for projected year:", errData);
+        notify("Processing failed: " + (errData.error || errData.message || "Unknown error"));
+        return;
       }
-    };
 
-    processMFD();
-    return () => { cancelled = true; };
+      const dataUrl = `${API_URL}/plot/traffic/data/${encodeURIComponent(mappedCity)}/${encodeURIComponent(yr)}?source=mfd`;
+      const dataRes = await fetch(dataUrl);
+      if (!dataRes.ok) return;
+      const chartJson = await dataRes.json();
+      setTrafficChartData(chartJson);
+      setChartYear(String(yr));
+      saveToCache(yr, mfdParamsFile, chartJson, "Model Traffic Dynamics");
+    } catch (err) {
+      console.error("MFD projected demand processing error:", err);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Handle file upload for ABM or MFD based on selected year
+  const handleFileUpload = (e) => {
+    const file = e.target.files?.[0];
+    if (!file || !selectedYear) return;
+
+    if (isABM) {
+      setProjectedDemandState({ abmProjectedFile: file });
+      handleABMProjectedUpload(file, selectedYear);
+    } else if (isMFD) {
+      loadSheet(file, selectedYear);
+    }
+
+    if (fileInputRef.current) fileInputRef.current.value = "";
+  };
+
+  // When selected year changes for MFD, load cached data
+  useEffect(() => {
+    if (!isMFD || !selectedYear) return;
+    const upload = yearUploads[selectedYear];
+    if (upload?.headers) {
+      setProjectedDemandState({
+        projectedTrafficVolumeHeaders: upload.headers,
+        projectedTrafficVolumeData: upload.data,
+        projectedTrafficVolumeFile: upload.file,
+      });
+    }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [penetrationState.projectedYear, mappedCity, isMFD, projectedVolumeFile]);
+  }, [selectedYear, isMFD]);
 
   return (
     <div className="flex flex-col pt-4 w-full">
+      <div className="mb-4 pb-3 border-b border-gray-200">
+        <h2 className={`text-2xl font-bold tracking-tight ${theme === "dark" ? "text-white" : "text-gray-800"}`}>Projected Demand Data</h2>
+        <p className={`text-sm mt-1 ${theme === "dark" ? "text-gray-400" : "text-gray-500"}`}>Upload projected traffic demand data for each year from base year to end year.</p>
+      </div>
       <div className="w-full flex flex-col gap-6">
 
         {/* Mode indicator (read-only, locked from Step 2) */}
@@ -284,109 +310,129 @@ function ProjectedDemand() {
           </div>
         </div>
 
-        <form className="flex items-end gap-4 p-2 rounded flex-wrap">
-          {/* Step 1: Pick projected year first */}
-          <div className="flex flex-col gap-1">
-            <label className="text-xs font-medium text-gray-600">Projected Year</label>
+        {/* Base Year + End Year + City row (all disabled/gray) */}
+        <div className="flex flex-row gap-4 items-end">
+          {/* Base Year — disabled */}
+          <div className="flex flex-col gap-1 min-w-[80px] max-w-[100px]">
+            <label className="text-xs font-medium text-gray-600">Base Year</label>
+            <select
+              value={classificationState.baseYear || ""}
+              disabled
+              className={`bg-gray-300 text-gray-600 rounded px-2 py-1 w-full h-[32px] ${
+                theme === "dark" ? "border-gray-700" : "border-white"
+              }`}
+            >
+              <option>{classificationState.baseYear || "Base Year"}</option>
+            </select>
+          </div>
+          {/* End Year — disabled */}
+          <div className="flex flex-col gap-1 min-w-[80px] max-w-[100px]">
+            <label className="text-xs font-medium text-gray-600">End Year</label>
             <select
               value={penetrationState.projectedYear || ""}
-              onChange={(e) => {
-                const newYear = e.target.value;
-                setPenetrationState({ projectedYear: newYear });
-                // Don't clear if cached; the restore effect will handle it
-                const cached = (useAppStore.getState().projectedDemandState.yearCache || {})[newYear];
-                if (!cached) {
-                  setProjectedDemandState({ speedEstimated: false, abmProjectedFile: null });
-                  setTrafficChartData(null);
-                  setChartYear(null);
-                }
-              }}
-              className="border rounded px-2 py-1 w-28 h-10"
+              disabled
+              className={`bg-gray-300 text-gray-600 rounded px-2 py-1 w-full h-[32px] ${
+                theme === "dark" ? "border-gray-700" : "border-white"
+              }`}
             >
-              <option value="">Select Year</option>
-              {classificationState.baseYear &&
-                Array.from({ length: 30 }, (_, i) => parseInt(classificationState.baseYear) + i + 1).map((yr) => (
-                  <option key={yr} value={yr}>{yr}</option>
-                ))}
+              <option>{penetrationState.projectedYear || "End Year"}</option>
             </select>
           </div>
-
-          <div className="flex flex-col gap-1">
+          {/* City — disabled */}
+          <div className="flex flex-col gap-1 min-w-[120px] max-w-[180px]">
             <label className="text-xs font-medium text-gray-600">City</label>
             <select
-              value={mappedCity}
               disabled
-              className="bg-gray-200 text-gray-600 rounded px-2 h-10 min-w-[90px] border border-gray-300 font-semibold text-base"
+              className={`bg-gray-300 text-gray-600 rounded px-2 py-1 w-full h-[32px] ${
+                theme === "dark" ? "border-gray-700" : "border-white"
+              }`}
             >
-              <option value="">City</option>
-              {statesList.slice(1).map((st) => (
-                <option key={st} value={st}>{st}</option>
-              ))}
+              <option>{classificationState.city || "City"}</option>
             </select>
           </div>
+        </div>
 
-          {/* Step 2: Show upload button only after year is selected */}
-          {penetrationState.projectedYear && isABM && (
-            <div className="flex flex-col gap-1">
-              <label className="text-xs font-medium text-gray-600">Traffic Data for {penetrationState.projectedYear}</label>
-              <label className="flex items-center bg-blue-500 hover:bg-blue-600 text-white font-semibold px-4 rounded cursor-pointer h-10 whitespace-nowrap gap-2 text-sm">
-                {projectedDemandState.abmProjectedFile
-                  ? projectedDemandState.abmProjectedFile.name
-                  : `Upload Traffic Data (${penetrationState.projectedYear})`}
-                <CloudUpload className="w-4 h-4" />
+        {/* Year list box + Upload button */}
+        {yearList.length > 0 && (
+          <>
+            {/* Year list box */}
+            <div className={`border rounded-lg overflow-hidden ${theme === "dark" ? "border-gray-700" : "border-gray-300"}`} style={{ maxWidth: 420 }}>
+              <div className="overflow-y-auto" style={{ maxHeight: 180 }}>
+                {yearList.map((year) => {
+                  const isUploaded = !!yearUploads[year];
+                  const isSelected = selectedYear === year;
+                  return (
+                    <div
+                      key={year}
+                      onClick={() => setProjectedDemandState({ selectedYear: year })}
+                      className={`flex items-center gap-3 px-4 py-2.5 cursor-pointer border-b last:border-b-0 transition-colors text-sm
+                        ${isSelected
+                          ? (theme === "dark" ? "bg-blue-900/40 border-blue-700" : "bg-blue-50 border-blue-200")
+                          : (theme === "dark" ? "border-gray-700 hover:bg-gray-800" : "border-gray-100 hover:bg-gray-50")
+                        }`}
+                    >
+                      <span className={`text-base ${isUploaded ? "text-green-600 font-bold" : "text-gray-400"}`}>
+                        {isUploaded ? "\u2713" : "\u25CB"}
+                      </span>
+                      <span className={`font-medium ${
+                        isUploaded
+                          ? (theme === "dark" ? "text-green-400" : "text-green-700")
+                          : (theme === "dark" ? "text-gray-300" : "text-gray-600")
+                      }`}>
+                        {year} Projected Demand Data
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Upload button */}
+            <div className="flex w-full justify-end">
+              <label
+                className={`flex items-center font-bold px-5 py-2.5 rounded-lg text-sm transition-all duration-200 whitespace-nowrap shadow-md
+                  ${!selectedYear ? "opacity-40 cursor-not-allowed" : "cursor-pointer hover:shadow-lg hover:scale-[1.02] active:scale-[0.98]"}
+                  ${theme === "dark"
+                    ? "bg-blue-600 hover:bg-blue-500 text-white"
+                    : "bg-blue-700 hover:bg-blue-800 text-white"
+                  }`}
+              >
+                <span className="flex items-center gap-2 justify-center">
+                  Upload Data
+                  <CloudUpload className="w-4 h-4" />
+                  {selectedYear && <span className="font-normal ml-1">({selectedYear})</span>}
+                </span>
                 <input
                   type="file"
-                  accept=".csv"
-                  onChange={(e) => {
-                    const file = e.target.files[0];
-                    if (!file) return;
-                    setProjectedDemandState({ abmProjectedFile: file });
-                    handleABMProjectedUpload(file, penetrationState.projectedYear);
-                  }}
+                  ref={fileInputRef}
+                  accept={isABM ? ".csv" : ".xlsx,.xls,.csv"}
+                  onChange={handleFileUpload}
+                  disabled={!selectedYear}
                   className="hidden"
                 />
               </label>
             </div>
-          )}
-
-          {penetrationState.projectedYear && isMFD && (
-            <div className="flex flex-col gap-1">
-              <label className="text-xs font-medium text-gray-600">Projected Traffic Volume for {penetrationState.projectedYear}</label>
-              <label className="flex items-center bg-blue-500 hover:bg-blue-600 text-white font-semibold px-4 rounded cursor-pointer h-10 whitespace-nowrap gap-2 text-sm">
-                {projectedDemandState.projectedTrafficVolumeFile
-                  ? projectedDemandState.projectedTrafficVolumeFile.name
-                  : `Upload Data (${penetrationState.projectedYear})`}
-                <CloudUpload className="w-4 h-4" />
-                <input
-                  type="file"
-                  accept=".xlsx,.xls,.csv"
-                  onChange={(e) => loadSheet(e.target.files[0], "projectedTrafficVolumeHeaders", "projectedTrafficVolumeData")}
-                  className="hidden"
-                />
-              </label>
-            </div>
-          )}
-        </form>
+          </>
+        )}
 
         {/* Prompt to upload when year is selected but no file yet */}
-        {penetrationState.projectedYear && isABM && !projectedDemandState.abmProjectedFile && !isLoading && (
+        {selectedYear && !yearUploads[selectedYear] && !isLoading && !hasChartData && (
           <div className="text-sm text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-4 py-2">
-            Please upload traffic data for year {penetrationState.projectedYear}.{" "}
-            <a href="/ABM_template.csv" download className="underline font-medium hover:text-amber-900">Download template</a>
+            Please upload traffic data for year {selectedYear}.
+            {isABM && (
+              <>
+                {" "}
+                <a href="/ABM_template.csv" download className="underline font-medium hover:text-amber-900">Download template</a>
+              </>
+            )}
           </div>
         )}
-        {penetrationState.projectedYear && isMFD && !projectedDemandState.projectedTrafficVolumeFile && !isLoading && !hasChartData && (
-          <div className="text-sm text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-4 py-2">
-            Please upload projected traffic volume data for year {penetrationState.projectedYear}.
-          </div>
-        )}
-
 
         {/* Loading indicator */}
         {isLoading && (
           <div className="flex items-center gap-2 px-4 py-2 text-sm text-blue-700">
             <span className="animate-spin inline-block w-4 h-4 border-2 border-blue-500 border-t-transparent rounded-full" />
-            Loading traffic data for year {penetrationState.projectedYear}...
+            Loading traffic data for year {selectedYear}...
           </div>
         )}
 
@@ -440,8 +486,6 @@ function ProjectedDemand() {
             </div>
           </div>
         )}
-
-        {/* Static image fallback removed: interactive chart is now always used */}
 
         {/* MFD: Uploaded data table */}
         {isMFD && showTable && projectedDemandState.speedEstimated && projectedDemandState.projectedTrafficVolumeData?.length > 0 ? (

@@ -126,28 +126,28 @@ const FinalResultsPage = ({ resultsSelection, setResultsSelection }) => {
       <div className="flex flex-row items-end gap-4 flex-wrap">
 
         <div className="flex flex-col gap-1">
-          <label className="text-sm font-medium text-gray-600">Vehicle / Grid</label>
+          <label className="text-sm font-medium text-gray-600">Vehicle / Power Grid</label>
           <select
             value={resultsSelection}
             onChange={(e) => setResultsSelection(e.target.value)}
             className="border rounded px-3 py-2 w-44 text-sm"
           >
-            <option value="">Select Vehicle/Grid</option>
+            <option value="">Vehicle/Power Grid</option>
             <option value="VEHICLE">Vehicle</option>
-            <option value="GRID">Grid</option>
+            <option value="GRID">Power Grid</option>
           </select>
         </div>
 
         {showVehicle && (
           <div className="flex flex-col gap-1">
-            <label className="text-sm font-medium text-gray-600">Daily / Annual</label>
+            <label className="text-sm font-medium text-gray-600">Hourly / Monthly</label>
             <select
               value={dailyAnnualSelection}
               onChange={(e) => setDailyAnnualSelection(e.target.value)}
               className="border rounded px-3 py-2 w-40 text-sm"
             >
-              <option value="DAILY">Daily</option>
-              <option value="ANNUAL">Annual</option>
+              <option value="DAILY">Hourly</option>
+              <option value="ANNUAL">Monthly</option>
             </select>
           </div>
         )}
@@ -231,9 +231,9 @@ const FinalResultsPage = ({ resultsSelection, setResultsSelection }) => {
                     const charts = [];
                     if (showVehicle) {
                       const c1 = consumptionChartRef.current?.getChart();
-                      if (c1) charts.push({ chart: c1, title: `${fuelType} Consumption (${chartMode === "R1" ? "Daily" : "Annual"})` });
+                      if (c1) charts.push({ chart: c1, title: `${fuelType} Consumption (${chartMode === "R1" ? "Hourly" : "Annual"})` });
                       const c2 = emissionChartRef.current?.getChart();
-                      if (c2) charts.push({ chart: c2, title: `${emissionType} Emission (${chartMode === "R1" ? "Daily" : "Annual"})` });
+                      if (c2) charts.push({ chart: c2, title: `${emissionType} Emission (${chartMode === "R1" ? "Hourly" : "Annual"})` });
                     } else {
                       const c1 = co2ChartRef.current?.getChart();
                       if (c1) charts.push({ chart: c1, title: "CO\u2082 Emission" });

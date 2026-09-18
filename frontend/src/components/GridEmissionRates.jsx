@@ -236,7 +236,7 @@ const GridEmissionRates = ({ activeStep, isResults }) => {
                     <svg width="22" height="8" style={{ flexShrink: 0 }}>
                       <line x1="0" y1="4" x2="22" y2="4" stroke={SCENARIO_COLORS[idx % SCENARIO_COLORS.length]} strokeWidth={isSelected ? 2.5 : 1.5} strokeLinecap="round" />
                     </svg>
-                    <span className={`text-[11px] text-left whitespace-nowrap ${isSelected ? "font-bold text-gray-900" : "font-bold text-gray-700"}`}>{name}</span>
+                    <span className={`text-[11px] text-left ${isSelected ? "font-bold text-gray-900" : "font-bold text-gray-700"}`}>{name}</span>
                   </button>
                 );
               })}

@@ -1,0 +1,429 @@
+================================================================================
+COMPREHENSIVE MODEL VALIDATION REPORT
+================================================================================
+
+Total combo/age/emission evaluations: 6995
+  OK (no flag):  6602
+  Flagged:       393
+
+--------------------------------------------------------------------------------
+TRUE ALL ZERO — ground truth is all zeros (expected for some combos)  (363 cases)
+--------------------------------------------------------------------------------
+
+  [GA]
+    Combination Long-haul Truck         | Electricity                    | age= 5 | CO2        | n= 16 | R²=N/A | MAPE=N/A
+    Combination Long-haul Truck         | Electricity                    | age= 5 | NOx        | n= 16 | R²=N/A | MAPE=N/A
+    Combination Short-haul Truck        | Electricity                    | age= 0 | CO2        | n= 16 | R²=N/A | MAPE=N/A
+    Combination Short-haul Truck        | Electricity                    | age= 0 | NOx        | n= 16 | R²=N/A | MAPE=N/A
+    Combination Short-haul Truck        | Electricity                    | age= 1 | CO2        | n= 16 | R²=N/A | MAPE=N/A
+    Combination Short-haul Truck        | Electricity                    | age= 1 | NOx        | n= 16 | R²=N/A | MAPE=N/A
+    Combination Short-haul Truck        | Electricity                    | age= 2 | CO2        | n= 16 | R²=N/A | MAPE=N/A
+    Combination Short-haul Truck        | Electricity                    | age= 2 | NOx        | n= 16 | R²=N/A | MAPE=N/A
+    Combination Short-haul Truck        | Electricity                    | age= 3 | CO2        | n= 16 | R²=N/A | MAPE=N/A
+    Combination Short-haul Truck        | Electricity                    | age= 3 | NOx        | n= 16 | R²=N/A | MAPE=N/A
+    Combination Short-haul Truck        | Electricity                    | age= 4 | CO2        | n= 16 | R²=N/A | MAPE=N/A
+    Combination Short-haul Truck        | Electricity                    | age= 4 | NOx        | n= 16 | R²=N/A | MAPE=N/A
+    Combination Short-haul Truck        | Electricity                    | age= 5 | CO2        | n= 16 | R²=N/A | MAPE=N/A
+    Combination Short-haul Truck        | Electricity                    | age= 5 | NOx        | n= 16 | R²=N/A | MAPE=N/A
+    Combination Short-haul Truck        | Electricity                    | age= 6 | CO2        | n= 16 | R²=N/A | MAPE=N/A
+    Combination Short-haul Truck        | Electricity                    | age= 6 | NOx        | n= 16 | R²=N/A | MAPE=N/A
+    Combination Short-haul Truck        | Electricity                    | age= 7 | CO2        | n= 16 | R²=N/A | MAPE=N/A
+    Combination Short-haul Truck        | Electricity                    | age= 7 | NOx        | n= 16 | R²=N/A | MAPE=N/A
+    Combination Short-haul Truck        | Electricity                    | age= 8 | CO2        | n= 16 | R²=N/A | MAPE=N/A
+    Combination Short-haul Truck        | Electricity                    | age= 8 | NOx        | n= 16 | R²=N/A | MAPE=N/A
+    Combination Short-haul Truck        | Electricity                    | age= 9 | CO2        | n= 16 | R²=N/A | MAPE=N/A
+    Combination Short-haul Truck        | Electricity                    | age= 9 | NOx        | n= 16 | R²=N/A | MAPE=N/A
+    Light Commercial Truck              | Electricity                    | age= 0 | CO2        | n= 16 | R²=N/A | MAPE=N/A
+    Light Commercial Truck              | Electricity                    | age= 0 | NOx        | n= 16 | R²=N/A | MAPE=N/A
+    Light Commercial Truck              | Electricity                    | age= 1 | CO2        | n= 16 | R²=N/A | MAPE=N/A
+    Light Commercial Truck              | Electricity                    | age= 1 | NOx        | n= 16 | R²=N/A | MAPE=N/A
+    Light Commercial Truck              | Electricity                    | age= 2 | CO2        | n= 16 | R²=N/A | MAPE=N/A
+    Light Commercial Truck              | Electricity                    | age= 2 | NOx        | n= 16 | R²=N/A | MAPE=N/A
+    Light Commercial Truck              | Electricity                    | age= 3 | CO2        | n= 16 | R²=N/A | MAPE=N/A
+    Light Commercial Truck              | Electricity                    | age= 3 | NOx        | n= 16 | R²=N/A | MAPE=N/A
+    Light Commercial Truck              | Electricity                    | age= 4 | CO2        | n= 16 | R²=N/A | MAPE=N/A
+    Light Commercial Truck              | Electricity                    | age= 4 | NOx        | n= 16 | R²=N/A | MAPE=N/A
+    Light Commercial Truck              | Electricity                    | age= 5 | CO2        | n= 16 | R²=N/A | MAPE=N/A
+    Light Commercial Truck              | Electricity                    | age= 5 | NOx        | n= 16 | R²=N/A | MAPE=N/A
+    Light Commercial Truck              | Electricity                    | age= 6 | CO2        | n= 16 | R²=N/A | MAPE=N/A
+    Light Commercial Truck              | Electricity                    | age= 6 | NOx        | n= 16 | R²=N/A | MAPE=N/A
+    Light Commercial Truck              | Electricity                    | age= 7 | CO2        | n= 16 | R²=N/A | MAPE=N/A
+    Light Commercial Truck              | Electricity                    | age= 7 | NOx        | n= 16 | R²=N/A | MAPE=N/A
+    Light Commercial Truck              | Electricity                    | age= 8 | CO2        | n= 16 | R²=N/A | MAPE=N/A
+    Light Commercial Truck              | Electricity                    | age= 8 | NOx        | n= 16 | R²=N/A | MAPE=N/A
+    Light Commercial Truck              | Electricity                    | age= 9 | CO2        | n= 16 | R²=N/A | MAPE=N/A
+    Light Commercial Truck              | Electricity                    | age= 9 | NOx        | n= 16 | R²=N/A | MAPE=N/A
+    Light Commercial Truck              | Electricity                    | age=10 | CO2        | n= 16 | R²=N/A | MAPE=N/A
+    Light Commercial Truck              | Electricity                    | age=10 | NOx        | n= 16 | R²=N/A | MAPE=N/A
+    Light Commercial Truck              | Electricity                    | age=11 | CO2        | n= 16 | R²=N/A | MAPE=N/A
+    Light Commercial Truck              | Electricity                    | age=11 | NOx        | n= 16 | R²=N/A | MAPE=N/A
+    Light Commercial Truck              | Electricity                    | age=12 | CO2        | n= 16 | R²=N/A | MAPE=N/A
+    Light Commercial Truck              | Electricity                    | age=12 | NOx        | n= 16 | R²=N/A | MAPE=N/A
+    Light Commercial Truck              | Electricity                    | age=13 | CO2        | n= 16 | R²=N/A | MAPE=N/A
+    Light Commercial Truck              | Electricity                    | age=13 | NOx        | n= 16 | R²=N/A | MAPE=N/A
+    Light Commercial Truck              | Electricity                    | age=14 | CO2        | n= 16 | R²=N/A | MAPE=N/A
+    Light Commercial Truck              | Electricity                    | age=14 | NOx        | n= 16 | R²=N/A | MAPE=N/A
+    Light Commercial Truck              | Electricity                    | age=15 | CO2        | n= 16 | R²=N/A | MAPE=N/A
+    Light Commercial Truck              | Electricity                    | age=15 | NOx        | n= 16 | R²=N/A | MAPE=N/A
+    Light Commercial Truck              | Electricity                    | age=24 | CO2        | n= 16 | R²=N/A | MAPE=N/A
+    Light Commercial Truck              | Electricity                    | age=24 | NOx        | n= 16 | R²=N/A | MAPE=N/A
+    Light Commercial Truck              | Electricity                    | age=25 | CO2        | n= 16 | R²=N/A | MAPE=N/A
+    Light Commercial Truck              | Electricity                    | age=25 | NOx        | n= 16 | R²=N/A | MAPE=N/A
+    Light Commercial Truck              | Electricity                    | age=26 | CO2        | n= 16 | R²=N/A | MAPE=N/A
+    Light Commercial Truck              | Electricity                    | age=26 | NOx        | n= 16 | R²=N/A | MAPE=N/A
+    Light Commercial Truck              | Electricity                    | age=27 | CO2        | n= 16 | R²=N/A | MAPE=N/A
+    Light Commercial Truck              | Electricity                    | age=27 | NOx        | n= 16 | R²=N/A | MAPE=N/A
+    Light Commercial Truck              | Electricity                    | age=28 | CO2        | n= 16 | R²=N/A | MAPE=N/A
+    Light Commercial Truck              | Electricity                    | age=28 | NOx        | n= 16 | R²=N/A | MAPE=N/A
+    Light Commercial Truck              | Electricity                    | age=29 | CO2        | n= 16 | R²=N/A | MAPE=N/A
+    Light Commercial Truck              | Electricity                    | age=29 | NOx        | n= 16 | R²=N/A | MAPE=N/A
+    Light Commercial Truck              | Electricity                    | age=31 | CO2        | n= 16 | R²=N/A | MAPE=N/A
+    Light Commercial Truck              | Electricity                    | age=31 | NOx        | n= 16 | R²=N/A | MAPE=N/A
+    Light Commercial Truck              | Electricity                    | age=33 | CO2        | n= 16 | R²=N/A | MAPE=N/A
+    Light Commercial Truck              | Electricity                    | age=33 | NOx        | n= 16 | R²=N/A | MAPE=N/A
+    Motor Home                          | Electricity                    | age= 0 | CO2        | n= 16 | R²=N/A | MAPE=N/A
+    Motor Home                          | Electricity                    | age= 0 | NOx        | n= 16 | R²=N/A | MAPE=N/A
+    Motor Home                          | Electricity                    | age= 1 | CO2        | n= 16 | R²=N/A | MAPE=N/A
+    Motor Home                          | Electricity                    | age= 1 | NOx        | n= 16 | R²=N/A | MAPE=N/A
+    Motor Home                          | Electricity                    | age= 2 | CO2        | n= 16 | R²=N/A | MAPE=N/A
+    Motor Home                          | Electricity                    | age= 2 | NOx        | n= 16 | R²=N/A | MAPE=N/A
+    Other Buses                         | Electricity                    | age= 0 | CO2        | n= 16 | R²=N/A | MAPE=N/A
+    Other Buses                         | Electricity                    | age= 0 | NOx        | n= 16 | R²=N/A | MAPE=N/A
+    Other Buses                         | Electricity                    | age= 1 | CO2        | n= 16 | R²=N/A | MAPE=N/A
+    Other Buses                         | Electricity                    | age= 1 | NOx        | n= 16 | R²=N/A | MAPE=N/A
+    Other Buses                         | Electricity                    | age= 2 | CO2        | n= 16 | R²=N/A | MAPE=N/A
+    Other Buses                         | Electricity                    | age= 2 | NOx        | n= 16 | R²=N/A | MAPE=N/A
+    Other Buses                         | Electricity                    | age= 3 | CO2        | n= 16 | R²=N/A | MAPE=N/A
+    Other Buses                         | Electricity                    | age= 3 | NOx        | n= 16 | R²=N/A | MAPE=N/A
+    Other Buses                         | Electricity                    | age= 4 | CO2        | n= 16 | R²=N/A | MAPE=N/A
+    Other Buses                         | Electricity                    | age= 4 | NOx        | n= 16 | R²=N/A | MAPE=N/A
+    Other Buses                         | Electricity                    | age= 5 | CO2        | n= 16 | R²=N/A | MAPE=N/A
+    Other Buses                         | Electricity                    | age= 5 | NOx        | n= 16 | R²=N/A | MAPE=N/A
+    Other Buses                         | Electricity                    | age= 6 | CO2        | n= 16 | R²=N/A | MAPE=N/A
+    Other Buses                         | Electricity                    | age= 6 | NOx        | n= 16 | R²=N/A | MAPE=N/A
+    Other Buses                         | Electricity                    | age= 7 | CO2        | n= 16 | R²=N/A | MAPE=N/A
+    Other Buses                         | Electricity                    | age= 7 | NOx        | n= 16 | R²=N/A | MAPE=N/A
+    Other Buses                         | Electricity                    | age= 8 | CO2        | n= 16 | R²=N/A | MAPE=N/A
+    Other Buses                         | Electricity                    | age= 8 | NOx        | n= 16 | R²=N/A | MAPE=N/A
+    Other Buses                         | Electricity                    | age= 9 | CO2        | n= 16 | R²=N/A | MAPE=N/A
+    Other Buses                         | Electricity                    | age= 9 | NOx        | n= 16 | R²=N/A | MAPE=N/A
+    Other Buses                         | Electricity                    | age=10 | CO2        | n= 16 | R²=N/A | MAPE=N/A
+    Other Buses                         | Electricity                    | age=10 | NOx        | n= 16 | R²=N/A | MAPE=N/A
+    Other Buses                         | Electricity                    | age=11 | CO2        | n= 16 | R²=N/A | MAPE=N/A
+    Other Buses                         | Electricity                    | age=11 | NOx        | n= 16 | R²=N/A | MAPE=N/A
+    Other Buses                         | Electricity                    | age=12 | CO2        | n= 16 | R²=N/A | MAPE=N/A
+    Other Buses                         | Electricity                    | age=12 | NOx        | n= 16 | R²=N/A | MAPE=N/A
+    Other Buses                         | Electricity                    | age=13 | CO2        | n= 16 | R²=N/A | MAPE=N/A
+    Other Buses                         | Electricity                    | age=13 | NOx        | n= 16 | R²=N/A | MAPE=N/A
+    Other Buses                         | Electricity                    | age=14 | CO2        | n= 16 | R²=N/A | MAPE=N/A
+    Other Buses                         | Electricity                    | age=14 | NOx        | n= 16 | R²=N/A | MAPE=N/A
+    Other Buses                         | Electricity                    | age=16 | CO2        | n= 16 | R²=N/A | MAPE=N/A
+    Other Buses                         | Electricity                    | age=16 | NOx        | n= 16 | R²=N/A | MAPE=N/A
+    Other Buses                         | Electricity                    | age=24 | CO2        | n= 16 | R²=N/A | MAPE=N/A
+    Other Buses                         | Electricity                    | age=24 | NOx        | n= 16 | R²=N/A | MAPE=N/A
+    Other Buses                         | Electricity                    | age=28 | CO2        | n= 16 | R²=N/A | MAPE=N/A
+    Other Buses                         | Electricity                    | age=28 | NOx        | n= 16 | R²=N/A | MAPE=N/A
+    Other Buses                         | Electricity                    | age=30 | CO2        | n= 16 | R²=N/A | MAPE=N/A
+    Other Buses                         | Electricity                    | age=30 | NOx        | n= 16 | R²=N/A | MAPE=N/A
+    Other Buses                         | Electricity                    | age=31 | CO2        | n= 16 | R²=N/A | MAPE=N/A
+    Other Buses                         | Electricity                    | age=31 | NOx        | n= 16 | R²=N/A | MAPE=N/A
+    Passenger Car                       | Electricity                    | age= 0 | CO2        | n= 16 | R²=N/A | MAPE=N/A
+    Passenger Car                       | Electricity                    | age= 0 | NOx        | n= 16 | R²=N/A | MAPE=N/A
+    Passenger Car                       | Electricity                    | age= 1 | CO2        | n= 16 | R²=N/A | MAPE=N/A
+    Passenger Car                       | Electricity                    | age= 1 | NOx        | n= 16 | R²=N/A | MAPE=N/A
+    Passenger Car                       | Electricity                    | age= 2 | CO2        | n= 16 | R²=N/A | MAPE=N/A
+    Passenger Car                       | Electricity                    | age= 2 | NOx        | n= 16 | R²=N/A | MAPE=N/A
+    Passenger Car                       | Electricity                    | age= 3 | CO2        | n= 16 | R²=N/A | MAPE=N/A
+    Passenger Car                       | Electricity                    | age= 3 | NOx        | n= 16 | R²=N/A | MAPE=N/A
+    Passenger Car                       | Electricity                    | age= 4 | CO2        | n= 16 | R²=N/A | MAPE=N/A
+    Passenger Car                       | Electricity                    | age= 4 | NOx        | n= 16 | R²=N/A | MAPE=N/A
+    Passenger Car                       | Electricity                    | age= 5 | CO2        | n= 16 | R²=N/A | MAPE=N/A
+    Passenger Car                       | Electricity                    | age= 5 | NOx        | n= 16 | R²=N/A | MAPE=N/A
+    Passenger Car                       | Electricity                    | age= 6 | CO2        | n= 16 | R²=N/A | MAPE=N/A
+    Passenger Car                       | Electricity                    | age= 6 | NOx        | n= 16 | R²=N/A | MAPE=N/A
+    Passenger Car                       | Electricity                    | age= 7 | CO2        | n= 16 | R²=N/A | MAPE=N/A
+    Passenger Car                       | Electricity                    | age= 7 | NOx        | n= 16 | R²=N/A | MAPE=N/A
+    Passenger Car                       | Electricity                    | age= 8 | CO2        | n= 16 | R²=N/A | MAPE=N/A
+    Passenger Car                       | Electricity                    | age= 8 | NOx        | n= 16 | R²=N/A | MAPE=N/A
+    Passenger Car                       | Electricity                    | age= 9 | CO2        | n= 16 | R²=N/A | MAPE=N/A
+    Passenger Car                       | Electricity                    | age= 9 | NOx        | n= 16 | R²=N/A | MAPE=N/A
+    Passenger Car                       | Electricity                    | age=10 | CO2        | n= 16 | R²=N/A | MAPE=N/A
+    Passenger Car                       | Electricity                    | age=10 | NOx        | n= 16 | R²=N/A | MAPE=N/A
+    Passenger Car                       | Electricity                    | age=11 | CO2        | n= 16 | R²=N/A | MAPE=N/A
+    Passenger Car                       | Electricity                    | age=11 | NOx        | n= 16 | R²=N/A | MAPE=N/A
+    Passenger Car                       | Electricity                    | age=12 | CO2        | n= 16 | R²=N/A | MAPE=N/A
+    Passenger Car                       | Electricity                    | age=12 | NOx        | n= 16 | R²=N/A | MAPE=N/A
+    Passenger Car                       | Electricity                    | age=13 | CO2        | n= 16 | R²=N/A | MAPE=N/A
+    Passenger Car                       | Electricity                    | age=13 | NOx        | n= 16 | R²=N/A | MAPE=N/A
+    Passenger Car                       | Electricity                    | age=14 | CO2        | n= 16 | R²=N/A | MAPE=N/A
+    Passenger Car                       | Electricity                    | age=14 | NOx        | n= 16 | R²=N/A | MAPE=N/A
+    Passenger Car                       | Electricity                    | age=15 | CO2        | n= 16 | R²=N/A | MAPE=N/A
+    Passenger Car                       | Electricity                    | age=15 | NOx        | n= 16 | R²=N/A | MAPE=N/A
+    Passenger Car                       | Electricity                    | age=16 | CO2        | n= 16 | R²=N/A | MAPE=N/A
+    Passenger Car                       | Electricity                    | age=16 | NOx        | n= 16 | R²=N/A | MAPE=N/A
+    Passenger Car                       | Electricity                    | age=17 | CO2        | n= 16 | R²=N/A | MAPE=N/A
+    Passenger Car                       | Electricity                    | age=17 | NOx        | n= 16 | R²=N/A | MAPE=N/A
+    Passenger Car                       | Electricity                    | age=18 | CO2        | n= 16 | R²=N/A | MAPE=N/A
+    Passenger Car                       | Electricity                    | age=18 | NOx        | n= 16 | R²=N/A | MAPE=N/A
+    Passenger Car                       | Electricity                    | age=19 | CO2        | n= 16 | R²=N/A | MAPE=N/A
+    Passenger Car                       | Electricity                    | age=19 | NOx        | n= 16 | R²=N/A | MAPE=N/A
+    Passenger Car                       | Electricity                    | age=20 | CO2        | n= 16 | R²=N/A | MAPE=N/A
+    Passenger Car                       | Electricity                    | age=20 | NOx        | n= 16 | R²=N/A | MAPE=N/A
+    Passenger Car                       | Electricity                    | age=21 | CO2        | n= 16 | R²=N/A | MAPE=N/A
+    Passenger Car                       | Electricity                    | age=21 | NOx        | n= 16 | R²=N/A | MAPE=N/A
+    Passenger Car                       | Electricity                    | age=22 | CO2        | n= 16 | R²=N/A | MAPE=N/A
+    Passenger Car                       | Electricity                    | age=22 | NOx        | n= 16 | R²=N/A | MAPE=N/A
+    Passenger Car                       | Electricity                    | age=23 | CO2        | n= 16 | R²=N/A | MAPE=N/A
+    Passenger Car                       | Electricity                    | age=23 | NOx        | n= 16 | R²=N/A | MAPE=N/A
+    Passenger Car                       | Electricity                    | age=24 | CO2        | n= 16 | R²=N/A | MAPE=N/A
+    Passenger Car                       | Electricity                    | age=24 | NOx        | n= 16 | R²=N/A | MAPE=N/A
+    Passenger Car                       | Electricity                    | age=25 | CO2        | n= 16 | R²=N/A | MAPE=N/A
+    Passenger Car                       | Electricity                    | age=25 | NOx        | n= 16 | R²=N/A | MAPE=N/A
+    Passenger Car                       | Electricity                    | age=26 | CO2        | n= 16 | R²=N/A | MAPE=N/A
+    Passenger Car                       | Electricity                    | age=26 | NOx        | n= 16 | R²=N/A | MAPE=N/A
+    Passenger Truck                     | Electricity                    | age= 0 | CO2        | n= 16 | R²=N/A | MAPE=N/A
+    Passenger Truck                     | Electricity                    | age= 0 | NOx        | n= 16 | R²=N/A | MAPE=N/A
+    Passenger Truck                     | Electricity                    | age= 1 | CO2        | n= 16 | R²=N/A | MAPE=N/A
+    Passenger Truck                     | Electricity                    | age= 1 | NOx        | n= 16 | R²=N/A | MAPE=N/A
+    Passenger Truck                     | Electricity                    | age= 2 | CO2        | n= 16 | R²=N/A | MAPE=N/A
+    Passenger Truck                     | Electricity                    | age= 2 | NOx        | n= 16 | R²=N/A | MAPE=N/A
+    Passenger Truck                     | Electricity                    | age= 3 | CO2        | n= 16 | R²=N/A | MAPE=N/A
+    Passenger Truck                     | Electricity                    | age= 3 | NOx        | n= 16 | R²=N/A | MAPE=N/A
+    Passenger Truck                     | Electricity                    | age= 4 | CO2        | n= 16 | R²=N/A | MAPE=N/A
+    Passenger Truck                     | Electricity                    | age= 4 | NOx        | n= 16 | R²=N/A | MAPE=N/A
+    Passenger Truck                     | Electricity                    | age= 5 | CO2        | n= 16 | R²=N/A | MAPE=N/A
+    Passenger Truck                     | Electricity                    | age= 5 | NOx        | n= 16 | R²=N/A | MAPE=N/A
+    Passenger Truck                     | Electricity                    | age= 6 | CO2        | n= 16 | R²=N/A | MAPE=N/A
+    Passenger Truck                     | Electricity                    | age= 6 | NOx        | n= 16 | R²=N/A | MAPE=N/A
+    Passenger Truck                     | Electricity                    | age= 7 | CO2        | n= 16 | R²=N/A | MAPE=N/A
+    Passenger Truck                     | Electricity                    | age= 7 | NOx        | n= 16 | R²=N/A | MAPE=N/A
+    Passenger Truck                     | Electricity                    | age= 8 | CO2        | n= 16 | R²=N/A | MAPE=N/A
+    Passenger Truck                     | Electricity                    | age= 8 | NOx        | n= 16 | R²=N/A | MAPE=N/A
+    Passenger Truck                     | Electricity                    | age= 9 | CO2        | n= 16 | R²=N/A | MAPE=N/A
+    Passenger Truck                     | Electricity                    | age= 9 | NOx        | n= 16 | R²=N/A | MAPE=N/A
+    Passenger Truck                     | Electricity                    | age=10 | CO2        | n= 16 | R²=N/A | MAPE=N/A
+    Passenger Truck                     | Electricity                    | age=10 | NOx        | n= 16 | R²=N/A | MAPE=N/A
+    Passenger Truck                     | Electricity                    | age=11 | CO2        | n= 16 | R²=N/A | MAPE=N/A
+    Passenger Truck                     | Electricity                    | age=11 | NOx        | n= 16 | R²=N/A | MAPE=N/A
+    Passenger Truck                     | Electricity                    | age=12 | CO2        | n= 16 | R²=N/A | MAPE=N/A
+    Passenger Truck                     | Electricity                    | age=12 | NOx        | n= 16 | R²=N/A | MAPE=N/A
+    Passenger Truck                     | Electricity                    | age=13 | CO2        | n= 16 | R²=N/A | MAPE=N/A
+    Passenger Truck                     | Electricity                    | age=13 | NOx        | n= 16 | R²=N/A | MAPE=N/A
+    Passenger Truck                     | Electricity                    | age=14 | CO2        | n= 16 | R²=N/A | MAPE=N/A
+    Passenger Truck                     | Electricity                    | age=14 | NOx        | n= 16 | R²=N/A | MAPE=N/A
+    Passenger Truck                     | Electricity                    | age=15 | CO2        | n= 16 | R²=N/A | MAPE=N/A
+    Passenger Truck                     | Electricity                    | age=15 | NOx        | n= 16 | R²=N/A | MAPE=N/A
+    Passenger Truck                     | Electricity                    | age=24 | CO2        | n= 16 | R²=N/A | MAPE=N/A
+    Passenger Truck                     | Electricity                    | age=24 | NOx        | n= 16 | R²=N/A | MAPE=N/A
+    Passenger Truck                     | Electricity                    | age=25 | CO2        | n= 16 | R²=N/A | MAPE=N/A
+    Passenger Truck                     | Electricity                    | age=25 | NOx        | n= 16 | R²=N/A | MAPE=N/A
+    Passenger Truck                     | Electricity                    | age=26 | CO2        | n= 16 | R²=N/A | MAPE=N/A
+    Passenger Truck                     | Electricity                    | age=26 | NOx        | n= 16 | R²=N/A | MAPE=N/A
+    Passenger Truck                     | Electricity                    | age=27 | CO2        | n= 16 | R²=N/A | MAPE=N/A
+    Passenger Truck                     | Electricity                    | age=27 | NOx        | n= 16 | R²=N/A | MAPE=N/A
+    Passenger Truck                     | Electricity                    | age=28 | CO2        | n= 16 | R²=N/A | MAPE=N/A
+    Passenger Truck                     | Electricity                    | age=28 | NOx        | n= 16 | R²=N/A | MAPE=N/A
+    Passenger Truck                     | Electricity                    | age=29 | CO2        | n= 16 | R²=N/A | MAPE=N/A
+    Passenger Truck                     | Electricity                    | age=29 | NOx        | n= 16 | R²=N/A | MAPE=N/A
+    Passenger Truck                     | Electricity                    | age=30 | CO2        | n= 16 | R²=N/A | MAPE=N/A
+    Passenger Truck                     | Electricity                    | age=30 | NOx        | n= 16 | R²=N/A | MAPE=N/A
+    Passenger Truck                     | Electricity                    | age=31 | CO2        | n= 16 | R²=N/A | MAPE=N/A
+    Passenger Truck                     | Electricity                    | age=31 | NOx        | n= 16 | R²=N/A | MAPE=N/A
+    Passenger Truck                     | Electricity                    | age=32 | CO2        | n= 16 | R²=N/A | MAPE=N/A
+    Passenger Truck                     | Electricity                    | age=32 | NOx        | n= 16 | R²=N/A | MAPE=N/A
+    Passenger Truck                     | Electricity                    | age=33 | CO2        | n= 16 | R²=N/A | MAPE=N/A
+    Passenger Truck                     | Electricity                    | age=33 | NOx        | n= 16 | R²=N/A | MAPE=N/A
+    Refuse Truck                        | Electricity                    | age= 0 | CO2        | n= 16 | R²=N/A | MAPE=N/A
+    Refuse Truck                        | Electricity                    | age= 0 | NOx        | n= 16 | R²=N/A | MAPE=N/A
+    Refuse Truck                        | Electricity                    | age= 1 | CO2        | n= 16 | R²=N/A | MAPE=N/A
+    Refuse Truck                        | Electricity                    | age= 1 | NOx        | n= 16 | R²=N/A | MAPE=N/A
+    Refuse Truck                        | Electricity                    | age= 2 | CO2        | n= 16 | R²=N/A | MAPE=N/A
+    Refuse Truck                        | Electricity                    | age= 2 | NOx        | n= 16 | R²=N/A | MAPE=N/A
+    Refuse Truck                        | Electricity                    | age= 7 | CO2        | n= 16 | R²=N/A | MAPE=N/A
+    Refuse Truck                        | Electricity                    | age= 7 | NOx        | n= 16 | R²=N/A | MAPE=N/A
+    Refuse Truck                        | Electricity                    | age= 8 | CO2        | n= 16 | R²=N/A | MAPE=N/A
+    Refuse Truck                        | Electricity                    | age= 8 | NOx        | n= 16 | R²=N/A | MAPE=N/A
+    Refuse Truck                        | Electricity                    | age= 9 | CO2        | n= 16 | R²=N/A | MAPE=N/A
+    Refuse Truck                        | Electricity                    | age= 9 | NOx        | n= 16 | R²=N/A | MAPE=N/A
+    School Bus                          | Electricity                    | age= 0 | CO2        | n= 16 | R²=N/A | MAPE=N/A
+    School Bus                          | Electricity                    | age= 0 | NOx        | n= 16 | R²=N/A | MAPE=N/A
+    School Bus                          | Electricity                    | age= 1 | CO2        | n= 16 | R²=N/A | MAPE=N/A
+    School Bus                          | Electricity                    | age= 1 | NOx        | n= 16 | R²=N/A | MAPE=N/A
+    School Bus                          | Electricity                    | age= 2 | CO2        | n= 16 | R²=N/A | MAPE=N/A
+    School Bus                          | Electricity                    | age= 2 | NOx        | n= 16 | R²=N/A | MAPE=N/A
+    School Bus                          | Electricity                    | age= 3 | CO2        | n= 16 | R²=N/A | MAPE=N/A
+    School Bus                          | Electricity                    | age= 3 | NOx        | n= 16 | R²=N/A | MAPE=N/A
+    School Bus                          | Electricity                    | age= 4 | CO2        | n= 16 | R²=N/A | MAPE=N/A
+    School Bus                          | Electricity                    | age= 4 | NOx        | n= 16 | R²=N/A | MAPE=N/A
+    School Bus                          | Electricity                    | age= 5 | CO2        | n= 16 | R²=N/A | MAPE=N/A
+    School Bus                          | Electricity                    | age= 5 | NOx        | n= 16 | R²=N/A | MAPE=N/A
+    School Bus                          | Electricity                    | age= 6 | CO2        | n= 16 | R²=N/A | MAPE=N/A
+    School Bus                          | Electricity                    | age= 6 | NOx        | n= 16 | R²=N/A | MAPE=N/A
+    School Bus                          | Electricity                    | age= 7 | CO2        | n= 16 | R²=N/A | MAPE=N/A
+    School Bus                          | Electricity                    | age= 7 | NOx        | n= 16 | R²=N/A | MAPE=N/A
+    School Bus                          | Electricity                    | age= 8 | CO2        | n= 16 | R²=N/A | MAPE=N/A
+    School Bus                          | Electricity                    | age= 8 | NOx        | n= 16 | R²=N/A | MAPE=N/A
+    School Bus                          | Electricity                    | age= 9 | CO2        | n= 16 | R²=N/A | MAPE=N/A
+    School Bus                          | Electricity                    | age= 9 | NOx        | n= 16 | R²=N/A | MAPE=N/A
+    School Bus                          | Electricity                    | age=10 | CO2        | n= 16 | R²=N/A | MAPE=N/A
+    School Bus                          | Electricity                    | age=10 | NOx        | n= 16 | R²=N/A | MAPE=N/A
+    Single Unit Long-haul Truck         | Electricity                    | age= 0 | CO2        | n= 16 | R²=N/A | MAPE=N/A
+    Single Unit Long-haul Truck         | Electricity                    | age= 0 | NOx        | n= 16 | R²=N/A | MAPE=N/A
+    Single Unit Long-haul Truck         | Electricity                    | age= 1 | CO2        | n= 16 | R²=N/A | MAPE=N/A
+    Single Unit Long-haul Truck         | Electricity                    | age= 1 | NOx        | n= 16 | R²=N/A | MAPE=N/A
+    Single Unit Long-haul Truck         | Electricity                    | age= 2 | CO2        | n= 16 | R²=N/A | MAPE=N/A
+    Single Unit Long-haul Truck         | Electricity                    | age= 2 | NOx        | n= 16 | R²=N/A | MAPE=N/A
+    Single Unit Long-haul Truck         | Electricity                    | age= 3 | CO2        | n= 16 | R²=N/A | MAPE=N/A
+    Single Unit Long-haul Truck         | Electricity                    | age= 3 | NOx        | n= 16 | R²=N/A | MAPE=N/A
+    Single Unit Long-haul Truck         | Electricity                    | age= 4 | CO2        | n= 16 | R²=N/A | MAPE=N/A
+    Single Unit Long-haul Truck         | Electricity                    | age= 4 | NOx        | n= 16 | R²=N/A | MAPE=N/A
+    Single Unit Long-haul Truck         | Electricity                    | age= 5 | CO2        | n= 16 | R²=N/A | MAPE=N/A
+    Single Unit Long-haul Truck         | Electricity                    | age= 5 | NOx        | n= 16 | R²=N/A | MAPE=N/A
+    Single Unit Long-haul Truck         | Electricity                    | age= 6 | CO2        | n= 16 | R²=N/A | MAPE=N/A
+    Single Unit Long-haul Truck         | Electricity                    | age= 6 | NOx        | n= 16 | R²=N/A | MAPE=N/A
+    Single Unit Long-haul Truck         | Electricity                    | age= 8 | CO2        | n= 16 | R²=N/A | MAPE=N/A
+    Single Unit Long-haul Truck         | Electricity                    | age= 8 | NOx        | n= 16 | R²=N/A | MAPE=N/A
+    Single Unit Long-haul Truck         | Electricity                    | age= 9 | CO2        | n= 16 | R²=N/A | MAPE=N/A
+    Single Unit Long-haul Truck         | Electricity                    | age= 9 | NOx        | n= 16 | R²=N/A | MAPE=N/A
+    Single Unit Long-haul Truck         | Electricity                    | age=10 | CO2        | n= 16 | R²=N/A | MAPE=N/A
+    Single Unit Long-haul Truck         | Electricity                    | age=10 | NOx        | n= 16 | R²=N/A | MAPE=N/A
+    Single Unit Long-haul Truck         | Electricity                    | age=11 | CO2        | n= 16 | R²=N/A | MAPE=N/A
+    Single Unit Long-haul Truck         | Electricity                    | age=11 | NOx        | n= 16 | R²=N/A | MAPE=N/A
+    Single Unit Long-haul Truck         | Electricity                    | age=15 | CO2        | n= 16 | R²=N/A | MAPE=N/A
+    Single Unit Long-haul Truck         | Electricity                    | age=15 | NOx        | n= 16 | R²=N/A | MAPE=N/A
+    Single Unit Long-haul Truck         | Electricity                    | age=16 | CO2        | n= 16 | R²=N/A | MAPE=N/A
+    Single Unit Long-haul Truck         | Electricity                    | age=16 | NOx        | n= 16 | R²=N/A | MAPE=N/A
+    Single Unit Short-haul Truck        | Electricity                    | age= 0 | CO2        | n= 16 | R²=N/A | MAPE=N/A
+    Single Unit Short-haul Truck        | Electricity                    | age= 0 | NOx        | n= 16 | R²=N/A | MAPE=N/A
+    Single Unit Short-haul Truck        | Electricity                    | age= 1 | CO2        | n= 16 | R²=N/A | MAPE=N/A
+    Single Unit Short-haul Truck        | Electricity                    | age= 1 | NOx        | n= 16 | R²=N/A | MAPE=N/A
+    Single Unit Short-haul Truck        | Electricity                    | age= 2 | CO2        | n= 16 | R²=N/A | MAPE=N/A
+    Single Unit Short-haul Truck        | Electricity                    | age= 2 | NOx        | n= 16 | R²=N/A | MAPE=N/A
+    Single Unit Short-haul Truck        | Electricity                    | age= 3 | CO2        | n= 16 | R²=N/A | MAPE=N/A
+    Single Unit Short-haul Truck        | Electricity                    | age= 3 | NOx        | n= 16 | R²=N/A | MAPE=N/A
+    Single Unit Short-haul Truck        | Electricity                    | age= 4 | CO2        | n= 16 | R²=N/A | MAPE=N/A
+    Single Unit Short-haul Truck        | Electricity                    | age= 4 | NOx        | n= 16 | R²=N/A | MAPE=N/A
+    Single Unit Short-haul Truck        | Electricity                    | age= 5 | CO2        | n= 16 | R²=N/A | MAPE=N/A
+    Single Unit Short-haul Truck        | Electricity                    | age= 5 | NOx        | n= 16 | R²=N/A | MAPE=N/A
+    Single Unit Short-haul Truck        | Electricity                    | age= 6 | CO2        | n= 16 | R²=N/A | MAPE=N/A
+    Single Unit Short-haul Truck        | Electricity                    | age= 6 | NOx        | n= 16 | R²=N/A | MAPE=N/A
+    Single Unit Short-haul Truck        | Electricity                    | age= 8 | CO2        | n= 16 | R²=N/A | MAPE=N/A
+    Single Unit Short-haul Truck        | Electricity                    | age= 8 | NOx        | n= 16 | R²=N/A | MAPE=N/A
+    Single Unit Short-haul Truck        | Electricity                    | age= 9 | CO2        | n= 16 | R²=N/A | MAPE=N/A
+    Single Unit Short-haul Truck        | Electricity                    | age= 9 | NOx        | n= 16 | R²=N/A | MAPE=N/A
+    Single Unit Short-haul Truck        | Electricity                    | age=10 | CO2        | n= 16 | R²=N/A | MAPE=N/A
+    Single Unit Short-haul Truck        | Electricity                    | age=10 | NOx        | n= 16 | R²=N/A | MAPE=N/A
+    Single Unit Short-haul Truck        | Electricity                    | age=11 | CO2        | n= 16 | R²=N/A | MAPE=N/A
+    Single Unit Short-haul Truck        | Electricity                    | age=11 | NOx        | n= 16 | R²=N/A | MAPE=N/A
+    Single Unit Short-haul Truck        | Electricity                    | age=15 | CO2        | n= 16 | R²=N/A | MAPE=N/A
+    Single Unit Short-haul Truck        | Electricity                    | age=15 | NOx        | n= 16 | R²=N/A | MAPE=N/A
+    Single Unit Short-haul Truck        | Electricity                    | age=16 | CO2        | n= 16 | R²=N/A | MAPE=N/A
+    Single Unit Short-haul Truck        | Electricity                    | age=16 | NOx        | n= 16 | R²=N/A | MAPE=N/A
+    Transit Bus                         | Diesel Fuel                    | age=37 | CO2        | n= 16 | R²=N/A | MAPE=N/A
+    Transit Bus                         | Diesel Fuel                    | age=37 | Energy     | n= 16 | R²=N/A | MAPE=N/A
+    Transit Bus                         | Diesel Fuel                    | age=37 | NOx        | n= 16 | R²=N/A | MAPE=N/A
+    Transit Bus                         | Diesel Fuel                    | age=37 | PM25Brake  | n= 16 | R²=N/A | MAPE=N/A
+    Transit Bus                         | Diesel Fuel                    | age=37 | PM25Tire   | n= 16 | R²=N/A | MAPE=N/A
+    Transit Bus                         | Diesel Fuel                    | age=39 | CO2        | n= 16 | R²=N/A | MAPE=N/A
+    Transit Bus                         | Diesel Fuel                    | age=39 | Energy     | n= 16 | R²=N/A | MAPE=N/A
+    Transit Bus                         | Diesel Fuel                    | age=39 | NOx        | n= 16 | R²=N/A | MAPE=N/A
+    Transit Bus                         | Diesel Fuel                    | age=39 | PM25Brake  | n= 16 | R²=N/A | MAPE=N/A
+    Transit Bus                         | Diesel Fuel                    | age=39 | PM25Tire   | n= 16 | R²=N/A | MAPE=N/A
+    Transit Bus                         | Electricity                    | age= 0 | CO2        | n= 16 | R²=N/A | MAPE=N/A
+    Transit Bus                         | Electricity                    | age= 0 | NOx        | n= 16 | R²=N/A | MAPE=N/A
+    Transit Bus                         | Electricity                    | age= 1 | CO2        | n= 16 | R²=N/A | MAPE=N/A
+    Transit Bus                         | Electricity                    | age= 1 | NOx        | n= 16 | R²=N/A | MAPE=N/A
+    Transit Bus                         | Electricity                    | age= 2 | CO2        | n= 16 | R²=N/A | MAPE=N/A
+    Transit Bus                         | Electricity                    | age= 2 | NOx        | n= 16 | R²=N/A | MAPE=N/A
+    Transit Bus                         | Electricity                    | age= 3 | CO2        | n= 16 | R²=N/A | MAPE=N/A
+    Transit Bus                         | Electricity                    | age= 3 | NOx        | n= 16 | R²=N/A | MAPE=N/A
+    Transit Bus                         | Electricity                    | age= 4 | CO2        | n= 16 | R²=N/A | MAPE=N/A
+    Transit Bus                         | Electricity                    | age= 4 | NOx        | n= 16 | R²=N/A | MAPE=N/A
+    Transit Bus                         | Electricity                    | age= 5 | CO2        | n= 16 | R²=N/A | MAPE=N/A
+    Transit Bus                         | Electricity                    | age= 5 | NOx        | n= 16 | R²=N/A | MAPE=N/A
+    Transit Bus                         | Electricity                    | age= 6 | CO2        | n= 16 | R²=N/A | MAPE=N/A
+    Transit Bus                         | Electricity                    | age= 6 | NOx        | n= 16 | R²=N/A | MAPE=N/A
+    Transit Bus                         | Electricity                    | age= 7 | CO2        | n= 16 | R²=N/A | MAPE=N/A
+    Transit Bus                         | Electricity                    | age= 7 | NOx        | n= 16 | R²=N/A | MAPE=N/A
+    Transit Bus                         | Electricity                    | age= 8 | CO2        | n= 16 | R²=N/A | MAPE=N/A
+    Transit Bus                         | Electricity                    | age= 8 | NOx        | n= 16 | R²=N/A | MAPE=N/A
+    Transit Bus                         | Electricity                    | age= 9 | CO2        | n= 16 | R²=N/A | MAPE=N/A
+    Transit Bus                         | Electricity                    | age= 9 | NOx        | n= 16 | R²=N/A | MAPE=N/A
+    Transit Bus                         | Electricity                    | age=10 | CO2        | n= 16 | R²=N/A | MAPE=N/A
+    Transit Bus                         | Electricity                    | age=10 | NOx        | n= 16 | R²=N/A | MAPE=N/A
+    Transit Bus                         | Electricity                    | age=11 | CO2        | n= 16 | R²=N/A | MAPE=N/A
+    Transit Bus                         | Electricity                    | age=11 | NOx        | n= 16 | R²=N/A | MAPE=N/A
+    Transit Bus                         | Electricity                    | age=12 | CO2        | n= 16 | R²=N/A | MAPE=N/A
+    Transit Bus                         | Electricity                    | age=12 | NOx        | n= 16 | R²=N/A | MAPE=N/A
+    Transit Bus                         | Electricity                    | age=13 | CO2        | n= 16 | R²=N/A | MAPE=N/A
+    Transit Bus                         | Electricity                    | age=13 | NOx        | n= 16 | R²=N/A | MAPE=N/A
+    Transit Bus                         | Electricity                    | age=14 | CO2        | n= 16 | R²=N/A | MAPE=N/A
+    Transit Bus                         | Electricity                    | age=14 | NOx        | n= 16 | R²=N/A | MAPE=N/A
+    Transit Bus                         | Electricity                    | age=16 | CO2        | n= 16 | R²=N/A | MAPE=N/A
+    Transit Bus                         | Electricity                    | age=16 | NOx        | n= 16 | R²=N/A | MAPE=N/A
+    Transit Bus                         | Electricity                    | age=24 | CO2        | n= 16 | R²=N/A | MAPE=N/A
+    Transit Bus                         | Electricity                    | age=24 | NOx        | n= 16 | R²=N/A | MAPE=N/A
+    Transit Bus                         | Electricity                    | age=28 | CO2        | n= 16 | R²=N/A | MAPE=N/A
+    Transit Bus                         | Electricity                    | age=28 | NOx        | n= 16 | R²=N/A | MAPE=N/A
+    Transit Bus                         | Electricity                    | age=30 | CO2        | n= 16 | R²=N/A | MAPE=N/A
+    Transit Bus                         | Electricity                    | age=30 | NOx        | n= 16 | R²=N/A | MAPE=N/A
+    Transit Bus                         | Electricity                    | age=31 | CO2        | n= 16 | R²=N/A | MAPE=N/A
+    Transit Bus                         | Electricity                    | age=31 | NOx        | n= 16 | R²=N/A | MAPE=N/A
+    Transit Bus                         | Gasoline                       | age=37 | CO2        | n= 16 | R²=N/A | MAPE=N/A
+    Transit Bus                         | Gasoline                       | age=37 | Energy     | n= 16 | R²=N/A | MAPE=N/A
+    Transit Bus                         | Gasoline                       | age=37 | NOx        | n= 16 | R²=N/A | MAPE=N/A
+    Transit Bus                         | Gasoline                       | age=37 | PM25Brake  | n= 16 | R²=N/A | MAPE=N/A
+    Transit Bus                         | Gasoline                       | age=37 | PM25Tire   | n= 16 | R²=N/A | MAPE=N/A
+
+--------------------------------------------------------------------------------
+WILDLY OFF — MAPE > 100%  (1 cases)
+--------------------------------------------------------------------------------
+
+  [GA]
+    Refuse Truck                        | Gasoline                       | age=30 | PM25Brake  | n= 16 | R²=0.931 | MAPE=108.2%
+
+--------------------------------------------------------------------------------
+HIGH ERROR — MAPE > 50%  (8 cases)
+--------------------------------------------------------------------------------
+
+  [GA]
+    Light Commercial Truck              | Ethanol (E-85)                 | age= 0 | NOx        | n= 16 | R²=-15.738 | MAPE=68.6%
+    Light Commercial Truck              | Gasoline                       | age= 0 | NOx        | n= 16 | R²=-1.753 | MAPE=62.2%
+    Passenger Truck                     | Ethanol (E-85)                 | age= 0 | NOx        | n= 16 | R²=-12.220 | MAPE=67.5%
+    Passenger Truck                     | Ethanol (E-85)                 | age= 1 | NOx        | n= 16 | R²=-23.998 | MAPE=85.0%
+    Passenger Truck                     | Gasoline                       | age= 0 | NOx        | n= 16 | R²=-7.609 | MAPE=66.4%
+    Refuse Truck                        | Gasoline                       | age=37 | PM25Brake  | n= 16 | R²=0.999 | MAPE=55.4%
+    Single Unit Long-haul Truck         | Gasoline                       | age=27 | PM25Brake  | n= 16 | R²=0.954 | MAPE=67.2%
+    Single Unit Long-haul Truck         | Gasoline                       | age=29 | PM25Brake  | n= 16 | R²=0.807 | MAPE=74.6%
+
+--------------------------------------------------------------------------------
+LOW R² — R² < 0.5  (21 cases)
+--------------------------------------------------------------------------------
+
+  [GA]
+    Light Commercial Truck              | Ethanol (E-85)                 | age= 1 | NOx        | n= 16 | R²=-5.305 | MAPE=31.7%
+    Light Commercial Truck              | Ethanol (E-85)                 | age= 2 | NOx        | n= 16 | R²=0.077 | MAPE=12.4%
+    Light Commercial Truck              | Ethanol (E-85)                 | age= 3 | NOx        | n= 16 | R²=-0.149 | MAPE=22.3%
+    Light Commercial Truck              | Gasoline                       | age= 1 | NOx        | n= 16 | R²=-0.048 | MAPE=33.6%
+    Light Commercial Truck              | Gasoline                       | age= 3 | NOx        | n= 16 | R²=0.261 | MAPE=28.7%
+    Light Commercial Truck              | Gasoline                       | age= 4 | NOx        | n= 16 | R²=0.173 | MAPE=19.1%
+    Light Commercial Truck              | Gasoline                       | age= 5 | NOx        | n= 16 | R²=0.494 | MAPE=13.8%
+    Other Buses                         | Diesel Fuel                    | age= 2 | PM25Brake  | n= 16 | R²=0.397 | MAPE=12.7%
+    Passenger Car                       | Ethanol (E-85)                 | age= 0 | NOx        | n= 16 | R²=-1.061 | MAPE=33.6%
+    Passenger Car                       | Ethanol (E-85)                 | age= 1 | NOx        | n= 16 | R²=-2.309 | MAPE=42.8%
+    Passenger Car                       | Gasoline                       | age= 0 | NOx        | n= 16 | R²=-4.301 | MAPE=46.1%
+    Passenger Car                       | Gasoline                       | age= 1 | NOx        | n= 16 | R²=-5.066 | MAPE=34.8%
+    Passenger Car                       | Gasoline                       | age= 2 | NOx        | n= 16 | R²=0.065 | MAPE=18.6%
+    Passenger Truck                     | Ethanol (E-85)                 | age= 2 | NOx        | n= 16 | R²=-3.632 | MAPE=35.5%
+    Passenger Truck                     | Ethanol (E-85)                 | age= 3 | NOx        | n= 16 | R²=-0.658 | MAPE=21.2%
+    Passenger Truck                     | Ethanol (E-85)                 | age= 9 | NOx        | n= 16 | R²=0.308 | MAPE=16.2%
+    Passenger Truck                     | Gasoline                       | age= 1 | NOx        | n= 16 | R²=-4.388 | MAPE=48.8%
+    Passenger Truck                     | Gasoline                       | age= 3 | NOx        | n= 16 | R²=0.244 | MAPE=14.7%
+    Passenger Truck                     | Gasoline                       | age= 4 | NOx        | n= 16 | R²=0.129 | MAPE=13.9%
+    Passenger Truck                     | Gasoline                       | age= 9 | NOx        | n= 16 | R²=0.457 | MAPE=14.2%
+    Single Unit Short-haul Truck        | Compressed Natural Gas (CNG)   | age= 0 | PM25Brake  | n= 16 | R²=0.485 | MAPE=9.4%
+
+================================================================================
+PER-STATE SUMMARY
+================================================================================
+  GA: 47 vehicle/fuel combos, 6602 OK, 393 flagged, median R²=1.000, median MAPE=0.9%

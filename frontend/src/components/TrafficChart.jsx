@@ -215,13 +215,19 @@ export default function TrafficChart({
           ticks: {
             stepSize: 0.5,
             autoSkip: false,
-            callback: (value) => (Number.isInteger(value) ? value : ""),
-            font: { size: 13 },
+            callback: (value) => {
+              if (!Number.isInteger(value)) return "";
+              if (value === 0 || value === 24) return "12 AM";
+              if (value === 12) return "12 PM";
+              return value < 12 ? `${value} AM` : `${value - 12} PM`;
+            },
+            font: { size: 11 },
             color: "#444",
-            maxRotation: 0,
+            maxRotation: 90,
+            minRotation: 90,
           },
-          title: { display: true, text: "Time (hr)", font: { size: 15 }, color: "#444" },
-          grid: { color: "rgba(0,0,0,0.05)", lineWidth: 0.5, drawTicks: false },
+          title: { display: true, text: "Hour of Day", font: { size: 15 }, color: "#444" },
+          grid: { color: "rgba(0,0,0,0.05)", lineWidth: 0.5, drawTicks: true, tickColor: "#444" },
           border: { color: "#444" },
         },
         y: {

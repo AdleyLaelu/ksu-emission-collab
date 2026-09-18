@@ -1,0 +1,8 @@
+Vehicle Type,Fuel Type,Age,Vehicle Count
+Passenger Truck,Gasoline,5,1200
+Passenger Truck,Diesel,3,350
+Light Commercial Truck,Gasoline,7,800
+Combination long-haul Truck,Diesel,10,150
+Transit Bus,CNG,4,60
+School Bus,Diesel,8,90
+Motorcycle,Gasoline,2,400

@@ -36,6 +36,7 @@ const isExactABMYear = (year) =>
   ABM_AVAILABLE_YEARS.includes(parseInt(year, 10));
 
 function VehicleTrafficVolume() {
+  const theme = useAppStore((s) => s.theme);
   const classificationState = useAppStore((s) => s.classificationState);
   const trafficState = useAppStore((s) => s.trafficVolumeState);
   const setTrafficState = useAppStore((s) => s.setTrafficVolumeState);
@@ -275,6 +276,10 @@ function VehicleTrafficVolume() {
 
   return (
     <div className="flex flex-col pt-4 w-full">
+      <div className="mb-4 pb-3 border-b border-gray-200">
+        <h2 className={`text-2xl font-bold tracking-tight ${theme === "dark" ? "text-white" : "text-gray-800"}`}>Traffic Volume and Speed Data</h2>
+        <p className={`text-sm mt-1 ${theme === "dark" ? "text-gray-400" : "text-gray-500"}`}>Upload traffic volume and speed data to estimate vehicle speeds across census tracts.</p>
+      </div>
       <div className="w-full flex flex-col gap-4">
         {/* === Mode Toggle === */}
         <div className="flex items-center gap-2">
@@ -435,19 +440,17 @@ function VehicleTrafficVolume() {
                 <code className="bg-blue-100 px-1 rounded text-xs">
                   Tract ID
                 </code>
-                , <code className="bg-blue-100 px-1 rounded text-xs">λ</code>,{" "}
-                <code className="bg-blue-100 px-1 rounded text-xs">
-                  v<sub>f</sub>
-                </code>
                 ,{" "}
-                <code className="bg-blue-100 px-1 rounded text-xs">
-                  Q<sub>m</sub>
-                </code>
-                ,{" "}
-                <code className="bg-blue-100 px-1 rounded text-xs">
-                  k<sub>j</sub>
-                </code>
-                , <code className="bg-blue-100 px-1 rounded text-xs">w</code>.
+                shape parameter{" "}
+                <code className="bg-blue-100 px-1 rounded text-xs">(λ)</code>,{" "}
+                network free flow speed{" "}
+                <code className="bg-blue-100 px-1 rounded text-xs">(v<sub>f</sub>)</code>,{" "}
+                network capacity{" "}
+                <code className="bg-blue-100 px-1 rounded text-xs">(Q<sub>m</sub>)</code>,{" "}
+                network jam density{" "}
+                <code className="bg-blue-100 px-1 rounded text-xs">(k<sub>j</sub>)</code>,{" "}
+                backward wave speed{" "}
+                <code className="bg-blue-100 px-1 rounded text-xs">(w)</code>.
                 Processing begins automatically once both files are uploaded.
               </p>
               <div className="flex gap-4 mt-2">

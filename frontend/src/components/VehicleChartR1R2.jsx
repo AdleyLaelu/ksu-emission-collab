@@ -64,6 +64,22 @@ const ZoomToolbar = ({ chartRef }) => {
 
 const FUEL_METRICS = new Set(["CNG", "Diesel", "Electricity", "Ethanol", "Gasoline"]);
 
+const VEHICLE_TYPES = [
+  "Combination Long-haul Truck",
+  "Combination Short-haul Truck",
+  "Light Commercial Truck",
+  "Motorhome - Recreational Vehicle",
+  "Motorcycle",
+  "Other Buses",
+  "Passenger Car",
+  "Passenger Truck",
+  "Refuse Truck",
+  "School Bus",
+  "Single Unit Long-haul Truck",
+  "Single Unit Short-haul Truck",
+  "Transit Bus",
+];
+
 /** Pick a "nice" y-axis step so the chart gets ~5-8 evenly-spaced grid lines. */
 function niceStepSize(maxVal) {
   if (!maxVal || maxVal <= 0) return undefined;
@@ -83,7 +99,7 @@ function niceStepSize(maxVal) {
 // Keyed by mode → metric. Metrics not listed here fall through to niceStepSize().
 const STEP_OVERRIDES = {
   R1: { CNG: 0.2, Electricity: 0.01, Gasoline: 75, CO2: 0.75, "PM2.5T": 3 },
-  R2: { Gasoline: 1500, "PM2.5T": 75 },
+  R2: { Gasoline: 125, "PM2.5T": 6.25 },
 };
 
 const VehicleChartR1R2 = forwardRef(function VehicleChartR1R2({
@@ -120,19 +136,45 @@ const VehicleChartR1R2 = forwardRef(function VehicleChartR1R2({
     );
   }
 
-  const { labels: rawLabels, unit, tracts } = metricData;
+  const { labels: rawLabels, unit, tracts: rawTracts } = metricData;
+
+  const MONTH_ABBRS = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
 
   // Convert 24-hour labels to 12-hour format for R1 (Daily)
   // Data is 0:00–24:00 (25 points, 12 AM to 12 AM)
-  const labels = mode === "R1"
-    ? rawLabels.map((lbl) => {
-        const h = parseInt(lbl, 10);
-        if (isNaN(h)) return lbl;
-        if (h === 0 || h === 24) return "12 AM";
-        if (h === 12) return "12 PM";
-        return h < 12 ? `${h} AM` : `${h - 12} PM`;
-      })
-    : rawLabels;
+  let labels, tracts, tooltipLabels;
+  if (mode === "R1") {
+    labels = rawLabels.map((lbl) => {
+      const h = parseInt(lbl, 10);
+      if (isNaN(h)) return lbl;
+      if (h === 0 || h === 24) return "12 AM";
+      if (h === 12) return "12 PM";
+      return h < 12 ? `${h} AM` : `${h - 12} PM`;
+    });
+    tracts = rawTracts;
+    tooltipLabels = labels;
+  } else {
+    // R2: expand 7 annual values into 84 monthly values
+    const years = rawLabels; // e.g. ["2024","2025",...,"2030"]
+    labels = [];
+    tooltipLabels = [];
+    years.forEach((yr) => {
+      MONTH_ABBRS.forEach((m) => {
+        labels.push(m);
+        tooltipLabels.push(`${m} ${yr}`);
+      });
+    });
+    // Divide each annual value by 12 and repeat for 12 months
+    tracts = {};
+    for (const [id, annualVals] of Object.entries(rawTracts)) {
+      const monthly = [];
+      annualVals.forEach((val) => {
+        const mVal = val / 12;
+        for (let i = 0; i < 12; i++) monthly.push(mVal);
+      });
+      tracts[id] = monthly;
+    }
+  }
   const tractIds = Object.keys(tracts);
 
   // Resolve which tract index is "active" (controlled > internal > external locked > hovered)
@@ -211,7 +253,7 @@ const VehicleChartR1R2 = forwardRef(function VehicleChartR1R2({
   });
 
   const datasets = [...tractDatasets];
-  const xLabel = mode === "R1" ? "Hour of Day" : "Year";
+  const xLabel = mode === "R1" ? "Hour of Day" : "Month";
 
   // Compute y-axis step size
   const isFuel = FUEL_METRICS.has(metric);
@@ -229,7 +271,7 @@ const VehicleChartR1R2 = forwardRef(function VehicleChartR1R2({
 
   const options = {
     responsive: true, maintainAspectRatio: false, animation: false,
-    layout: { padding: { top: 22, right: 24, bottom: 0, left: 0 } },
+    layout: { padding: { top: 22, right: 24, bottom: mode === "R2" ? 30 : 0, left: 0 } },
     hover: { mode: "nearest", intersect: false },
 
     onHover: (_evt, activeElements, chart) => {
@@ -271,12 +313,17 @@ const VehicleChartR1R2 = forwardRef(function VehicleChartR1R2({
         backgroundColor: "#fff", titleColor: "#222", bodyColor: "#222",
         borderColor: "#ccc", borderWidth: 1, displayColors: true,
         callbacks: {
-          title: (items) => items[0]?.label || "",
+          title: (items) => {
+            const idx = items[0]?.dataIndex;
+            return idx != null && tooltipLabels[idx] ? tooltipLabels[idx] : (items[0]?.label || "");
+          },
           label: (item) => {
+            const idx = item.datasetIndex;
+            const vehicleName = VEHICLE_TYPES[idx % VEHICLE_TYPES.length];
             const match = unit.match(/^(.+?)\s*\((.+)\)$/);
             const name = match ? match[1] : unit;
             const uom = match ? match[2] : "";
-            return ` ${item.dataset.label}: ${name} ${item.parsed.y?.toFixed(4)}${uom ? ` (${uom})` : ""}`;
+            return ` ${vehicleName}: ${item.parsed.y?.toFixed(4)}${uom ? ` (${uom})` : ""}`;
           },
           labelColor: (item) => ({ borderColor: item.dataset._baseColor || "#1a1a1a", backgroundColor: item.dataset._baseColor || "#1a1a1a" }),
           labelTextColor: () => "#222",
@@ -290,9 +337,23 @@ const VehicleChartR1R2 = forwardRef(function VehicleChartR1R2({
     scales: {
       x: {
         border: { display: true, color: "#444", width: 1 },
-        grid: { display: true, color: "rgba(169,169,169,0.15)", lineWidth: 0.8, drawTicks: mode === "R1", tickColor: "#444" },
-        ticks: { autoSkip: false, maxTicksLimit: mode === "R2" ? 7 : 25, maxRotation: mode === "R1" ? 90 : 0, minRotation: mode === "R1" ? 90 : 0, font: CHART_FONT, color: "#222", padding: mode === "R1" ? 2 : 4 },
-        title: { display: true, text: xLabel, font: CHART_FONT, color: "#222", padding: { top: 8, bottom: 0 } },
+        grid: { display: true, color: "rgba(169,169,169,0.15)", lineWidth: 0.8, drawTicks: true, tickColor: "#444" },
+        ticks: {
+          autoSkip: false,
+          maxRotation: mode === "R2" ? 90 : 90,
+          minRotation: mode === "R2" ? 90 : 90,
+          font: mode === "R2" ? { ...CHART_FONT, size: 11 } : CHART_FONT,
+          color: "#222",
+          padding: mode === "R1" ? 2 : 6,
+          ...(mode === "R2" ? {
+            callback: function(_value, index) {
+              // Show label every 3 months (Jan, Apr, Jul, Oct)
+              if (index % 3 === 0) return labels[index] || "";
+              return "";
+            },
+          } : { maxTicksLimit: 25 }),
+        },
+        title: { display: mode !== "R2", text: xLabel, font: CHART_FONT, color: "#222", padding: { top: 8, bottom: 0 } },
       },
       xTop: {
         position: "top",
@@ -318,11 +379,40 @@ const VehicleChartR1R2 = forwardRef(function VehicleChartR1R2({
     },
   };
 
+  // Plugin to draw year labels below the month ticks for R2
+  const yearLabelsPlugin = {
+    id: "yearLabels",
+    afterDraw(chart) {
+      const xScale = chart.scales.x;
+      const ctx = chart.ctx;
+      ctx.save();
+      ctx.font = "bold 11px Inter, sans-serif";
+      ctx.fillStyle = "#222";
+      ctx.textAlign = "center";
+      ctx.textBaseline = "top";
+      // Position: just below the longest tick label
+      // xScale.bottom is the bottom of the axis area (after tick labels)
+      const yPos = xScale.bottom + 2;
+      // Draw year centered under each 12-month group
+      const totalTicks = xScale.ticks.length;
+      for (let yearIdx = 0; yearIdx * 12 < totalTicks; yearIdx++) {
+        const startIdx = yearIdx * 12;
+        const endIdx = Math.min(startIdx + 11, totalTicks - 1);
+        const x1 = xScale.getPixelForTick(startIdx);
+        const x2 = xScale.getPixelForTick(endIdx);
+        const centerX = (x1 + x2) / 2;
+        const year = rawLabels[yearIdx] || "";
+        ctx.fillText(year, centerX, yPos);
+      }
+      ctx.restore();
+    },
+  };
+
   return (
     <div className="w-full h-full flex flex-col">
       {/* Chart — fills all remaining height */}
       <div className="relative w-full flex-1 min-h-0 bg-white">
-        <Line ref={chartRef} data={{ labels, datasets }} options={options} plugins={[chartBgPlugin, mode === "R2" ? subGridThirdsYPlugin : subGridPlugin]} />
+        <Line ref={chartRef} data={{ labels, datasets }} options={options} plugins={[chartBgPlugin, mode === "R2" ? subGridThirdsYPlugin : subGridPlugin, ...(mode === "R2" ? [yearLabelsPlugin] : [])]} />
         <ZoomToolbar chartRef={chartRef} />
       </div>
     </div>

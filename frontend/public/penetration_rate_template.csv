@@ -1,0 +1,9 @@
+Vehicle Type,Fuel Type,Age,Vehicle Count
+Passenger Truck,Gasoline,5,1200
+Passenger Truck,Electric,3,350
+Light Commercial Truck,Diesel,7,800
+Light Commercial Truck,Electric,2,450
+Transit Bus,CNG,4,60
+Transit Bus,Electric,1,120
+School Bus,Diesel,8,90
+School Bus,Electric,2,75

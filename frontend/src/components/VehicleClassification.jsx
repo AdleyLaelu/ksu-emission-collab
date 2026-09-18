@@ -1,5 +1,5 @@
 import React from "react";
-import { CloudUpload } from "lucide-react";
+import { CloudUpload, FileSpreadsheet } from "lucide-react";
 import * as XLSX from "xlsx";
 import { HotTable } from "@handsontable/react";
 import "handsontable/dist/handsontable.full.min.css";
@@ -52,8 +52,8 @@ function VehicleClassification({ activeStep }) {
   const verticalSteps = [
     "Vehicle Classification Data",
     "Projected Vehicle Penetration Rate Data",
-    "Traffic Volume and Speed",
-    "Projected Demand",
+    "Traffic Volume and Speed Data",
+    "Projected Demand Data",
   ];
 
   // Pagination state and handlers
@@ -85,13 +85,14 @@ function VehicleClassification({ activeStep }) {
     return [...headers, "Vehicle %"];
   }, [classificationState.classificationHeaders, vehicleCountColIndex]);
 
-  // Total vehicle count for the current page (for percentage calculation)
+  // Total vehicle count across the entire dataset (for percentage calculation)
   const totalVehicleCount = React.useMemo(() => {
     if (vehicleCountColIndex < 0) return 0;
-    return paginatedData.reduce(
+    const allData = classificationState.classificationData || [];
+    return allData.reduce(
       (sum, row) => sum + (parseFloat(row?.[vehicleCountColIndex]) || 0), 0
     );
-  }, [paginatedData, vehicleCountColIndex]);
+  }, [classificationState.classificationData, vehicleCountColIndex]);
 
   // Display data: paginated rows with computed percentage appended
   const displayData = React.useMemo(() => {
@@ -296,12 +297,36 @@ function VehicleClassification({ activeStep }) {
     <div className="flex flex-row items-stretch gap-6 pt-4 w-full">
       {/* Left panel: form + table */}
       <div className="flex-1 flex flex-col">
+        <div className="mb-4 pb-3 border-b border-gray-200">
+          <h2 className={`text-2xl font-bold tracking-tight ${theme === "dark" ? "text-white" : "text-gray-800"}`}>Vehicle Classification Data</h2>
+          <p className={`text-sm mt-1 ${theme === "dark" ? "text-gray-400" : "text-gray-500"}`}>Upload and review vehicle classification records for your selected city and year.</p>
+        </div>
         <div className="w-full flex flex-col gap-6">
+          {/* Guidance */}
+          <div className="bg-green-50 border border-green-200 rounded-lg px-4 py-3 text-sm text-green-800">
+            <p className="font-semibold mb-1">Upload Vehicle Classification Data</p>
+            <p className="text-green-700">
+              Upload a CSV or Excel file with columns:{" "}
+              <code className="bg-green-100 px-1 rounded text-xs">Vehicle Type</code>,{" "}
+              <code className="bg-green-100 px-1 rounded text-xs">Fuel Type</code>,{" "}
+              <code className="bg-green-100 px-1 rounded text-xs">Age</code>,{" "}
+              <code className="bg-green-100 px-1 rounded text-xs">Vehicle Count</code>.
+              Each row represents a vehicle category with its fuel type, age, and count.
+            </p>
+            <a
+              href="/vehicle_classification_template.csv"
+              download="vehicle_classification_template.csv"
+              className="inline-flex items-center gap-1 mt-2 text-green-600 hover:text-green-800 font-medium text-xs underline"
+            >
+              <FileSpreadsheet className="w-3 h-3" />
+              Download template CSV
+            </a>
+          </div>
           <form className="flex flex-col gap-2 md:gap-4 p-2 md:p-4 rounded transition-colors duration-300 w-full min-w-0 overflow-x-auto">
             <div className="flex flex-col md:flex-row gap-2 md:gap-4 w-full">
               {/* Base Year */}
               <div className="flex flex-col gap-1 min-w-[80px] max-w-[100px] w-auto">
-                <label className="text-xs font-medium text-gray-600">
+                <label className="text-xs font-medium text-gray-600 cursor-help" title="The reference year for your vehicle classification data.">
                   Base Year
                 </label>
                 <select
@@ -326,53 +351,9 @@ function VehicleClassification({ activeStep }) {
                   <option value="2030">2030</option>
                 </select>
               </div>
-              {/* Vehicle Type */}
-              <div className="flex flex-col gap-1 flex-1 min-w-0">
-                <label className="text-xs font-medium text-gray-600">
-                  Vehicle Type
-                </label>
-                <select
-                  value={classificationState.vehicleType}
-                  onChange={(e) =>
-                    setClassificationState({ vehicleType: e.target.value })
-                  }
-                  disabled={!classificationState.uploadedFile}
-                  className={`border rounded px-2 py-1 w-full transition-colors duration-300 disabled:opacity-50 disabled:cursor-not-allowed ${
-                    theme === "dark"
-                      ? "bg-[#18181b] text-white border-gray-700"
-                      : "bg-white text-black border-gray-300"
-                  }`}
-                >
-                  <option value="">Vehicle Type</option>
-                  <option value="Combination long-haul Truck">
-                    Combination long-haul Truck
-                  </option>
-                  <option value="Combination short-haul Truck">
-                    Combination short-haul Truck
-                  </option>
-                  <option value="Light Commercial Truck">
-                    Light Commercial Truck
-                  </option>
-                  <option value="Motorhome - Recreational Vehicle">
-                    Motorhome - Recreational Vehicle
-                  </option>
-                  <option value="Motorcycle">Motorcycle</option>
-                  <option value="Other Buses">Other Buses</option>
-                  <option value="Passenger Truck">Passenger Truck</option>
-                  <option value="Refuse Truck">Refuse Truck</option>
-                  <option value="School Bus">School Bus</option>
-                  <option value="Single Unit long-haul Truck">
-                    Single Unit long-haul Truck
-                  </option>
-                  <option value="Single Unit short-haul Truck">
-                    Single Unit short-haul Truck
-                  </option>
-                  <option value="Transit Bus">Transit Bus</option>
-                </select>
-              </div>
               {/* City */}
               <div className="flex flex-col gap-1 flex-1 min-w-0">
-                <label className="text-xs font-medium text-gray-600">
+                <label className="text-xs font-medium text-gray-600 cursor-help" title="The city for which vehicle classification data is being uploaded.">
                   City
                 </label>
                 <select
@@ -446,19 +427,50 @@ function VehicleClassification({ activeStep }) {
               className="flex-1 w-full min-w-0 overflow-auto"
               style={{ minHeight: 320, maxHeight: 480 }}
             >
-              <div className="flex items-center justify-end mb-2">
-                <label className="mr-2 font-semibold">Rows per page:</label>
-                <select
-                  value={rowsPerPage}
-                  onChange={handleRowsPerPageChange}
-                  className="border rounded px-2 py-1"
-                  style={{ width: 80 }}
-                >
-                  <option value={10}>10</option>
-                  <option value={20}>20</option>
-                  <option value={50}>50</option>
-                  <option value={100}>100</option>
-                </select>
+              <div className="flex items-center justify-between mb-2">
+                <div className="flex items-center">
+                  <label className="mr-2 font-semibold">Filter by Vehicle Type:</label>
+                  <select
+                    value={classificationState.vehicleType}
+                    onChange={(e) =>
+                      setClassificationState({ vehicleType: e.target.value })
+                    }
+                    disabled={!classificationState.uploadedFile}
+                    className={`border rounded px-2 py-1 transition-colors duration-300 disabled:opacity-50 disabled:cursor-not-allowed ${
+                      theme === "dark"
+                        ? "bg-[#18181b] text-white border-gray-700"
+                        : "bg-white text-black border-gray-300"
+                    }`}
+                  >
+                    <option value="">Vehicle Type</option>
+                    <option value="Combination long-haul Truck">Combination long-haul Truck</option>
+                    <option value="Combination short-haul Truck">Combination short-haul Truck</option>
+                    <option value="Light Commercial Truck">Light Commercial Truck</option>
+                    <option value="Motorhome - Recreational Vehicle">Motorhome - Recreational Vehicle</option>
+                    <option value="Motorcycle">Motorcycle</option>
+                    <option value="Other Buses">Other Buses</option>
+                    <option value="Passenger Truck">Passenger Truck</option>
+                    <option value="Refuse Truck">Refuse Truck</option>
+                    <option value="School Bus">School Bus</option>
+                    <option value="Single Unit long-haul Truck">Single Unit long-haul Truck</option>
+                    <option value="Single Unit short-haul Truck">Single Unit short-haul Truck</option>
+                    <option value="Transit Bus">Transit Bus</option>
+                  </select>
+                </div>
+                <div className="flex items-center">
+                  <label className="mr-2 font-semibold">Rows per page:</label>
+                  <select
+                    value={rowsPerPage}
+                    onChange={handleRowsPerPageChange}
+                    className="border rounded px-2 py-1"
+                    style={{ width: 80 }}
+                  >
+                    <option value={10}>10</option>
+                    <option value={20}>20</option>
+                    <option value={50}>50</option>
+                    <option value={100}>100</option>
+                  </select>
+                </div>
               </div>
               <HotTable
                 data={displayData}

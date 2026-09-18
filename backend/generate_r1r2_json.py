@@ -197,28 +197,25 @@ def compute_hourly_emissions(state, year, fleet_df, models):
         speeds = df[speed_col].values
         volumes = df[volume_col].values
 
-        # Traffic data has ~96 rows (15-min intervals). Aggregate to 25 hourly points (0:00 to 24:00)
+        # Traffic data has ~96 rows (15-min intervals).
+        # Per Dr. Mahyar: compute emissions for each 15-min interval individually,
+        # then sum every 4 intervals to get hourly values.
         n_points = len(speeds)
         points_per_hour = max(1, n_points // 24)
 
-        hourly_speeds = []
-        hourly_volumes = []
-        for h in range(25):
-            start = h * points_per_hour
-            end = min(start + points_per_hour, n_points)
-            if start >= n_points:
-                # Use last available values
-                hourly_speeds.append(hourly_speeds[-1] if hourly_speeds else 30.0)
-                hourly_volumes.append(hourly_volumes[-1] if hourly_volumes else 0.0)
-            else:
-                chunk_speed = speeds[start:end]
-                chunk_vol = volumes[start:end]
-                avg_speed = np.nanmean(chunk_speed) if len(chunk_speed) > 0 else 30.0
-                sum_vol = np.nansum(chunk_vol) if len(chunk_vol) > 0 else 0.0
-                hourly_speeds.append(max(2.5, float(avg_speed)))  # Min 2.5 mph
-                hourly_volumes.append(float(sum_vol))
+        # Prepare 15-min speeds and volumes (clamp speed min to 2.5 mph)
+        interval_speeds = [max(2.5, float(s)) if np.isfinite(s) else 30.0 for s in speeds]
+        interval_volumes = [float(v) if np.isfinite(v) else 0.0 for v in volumes]
 
-        # For each hour, compute total emissions across all vehicle types
+        # Pad to ensure we have enough intervals for 25 hours
+        n_intervals = 25 * points_per_hour
+        while len(interval_speeds) < n_intervals:
+            interval_speeds.append(interval_speeds[-1] if interval_speeds else 30.0)
+            interval_volumes.append(interval_volumes[-1] if interval_volumes else 0.0)
+
+        # For each 15-min interval, compute emissions then sum into hourly buckets
+        n_intervals_used = min(len(interval_speeds), n_intervals)
+
         metrics = {
             "CO2": np.zeros(25),
             "NOx": np.zeros(25),
@@ -248,18 +245,18 @@ def compute_hourly_emissions(state, year, fleet_df, models):
             if pd.isna(vtype) or pd.isna(ftype):
                 continue
 
-            # Build input DataFrame for all 25 hours
+            # Build input DataFrame for ALL 15-min intervals
             inputs = pd.DataFrame({
-                "Vehicle Type": [vtype] * 25,
-                "Fuel Type": [ftype] * 25,
-                "Age": [5] * 25,  # Average age
-                "Speed": hourly_speeds,
+                "Vehicle Type": [vtype] * n_intervals_used,
+                "Fuel Type": [ftype] * n_intervals_used,
+                "Age": [5] * n_intervals_used,  # Average age
+                "Speed": interval_speeds[:n_intervals_used],
             })
+
+            vol_arr = np.array(interval_volumes[:n_intervals_used])
 
             # Predict each emission type independently so one failure
             # doesn't skip others (e.g. CO2/NOx models lack Electricity)
-            vol_arr = np.array(hourly_volumes)
-
             for em_key, em_model, scale, metric_key in [
                 ("CO2",       "CO2",       1e6, "CO2"),
                 ("NOx",       "NOx",       1e3, "NOx"),
@@ -269,7 +266,12 @@ def compute_hourly_emissions(state, year, fleet_df, models):
                 try:
                     rates = predict_batch(models[em_model], inputs)
                     rates = np.nan_to_num(np.maximum(rates, 0))
-                    metrics[metric_key] += rates * vol_arr * fraction / scale
+                    interval_emissions = rates * vol_arr * fraction / scale
+                    # Sum each group of intervals into hourly buckets
+                    for h in range(25):
+                        start = h * points_per_hour
+                        end = min(start + points_per_hour, n_intervals_used)
+                        metrics[metric_key][h] += np.sum(interval_emissions[start:end])
                 except Exception:
                     pass  # Model doesn't support this fuel type
 
@@ -281,10 +283,14 @@ def compute_hourly_emissions(state, year, fleet_df, models):
                 fuel_key = fuel_to_metric.get(ftype)
                 if fuel_key and ftype in FUEL_ENERGY_KJ_PER_UNIT:
                     kj_per_unit = FUEL_ENERGY_KJ_PER_UNIT[ftype]
-                    fuel_consumption = energy_rates / kj_per_unit * vol_arr * fraction
+                    interval_consumption = energy_rates / kj_per_unit * vol_arr * fraction
                     if fuel_key == "Electricity":
-                        fuel_consumption /= 1000.0  # kWh -> MWh
-                    metrics[fuel_key] += fuel_consumption
+                        interval_consumption /= 1000.0  # kWh -> MWh
+                    # Sum each group of intervals into hourly buckets
+                    for h in range(25):
+                        start = h * points_per_hour
+                        end = min(start + points_per_hour, n_intervals_used)
+                        metrics[fuel_key][h] += np.sum(interval_consumption[start:end])
             except Exception:
                 pass
 
@@ -363,7 +369,8 @@ def build_r2_json(state, fleet_df, models):
             for year in R2_YEARS:
                 if year in yearly_data and tract_id in yearly_data[year]:
                     daily_total = sum(yearly_data[year][tract_id][metric_key])
-                    annual_values.append(round(daily_total, 6))
+                    annual_total = daily_total * 365  # Scale daily to annual
+                    annual_values.append(round(annual_total, 6))
                 else:
                     # Interpolate from nearest available years
                     annual_values.append(0.0)

@@ -19,7 +19,7 @@ from sklearn.metrics import r2_score, mean_squared_error, mean_absolute_error
 
 # ── Config ──────────────────────────────────────────────────────────────────
 MOVES5_DIR = os.path.join(
-    os.path.dirname(__file__), "..", "..", "Emission 1", "MOVES 5 Emission data"
+    os.path.dirname(__file__), "..", "Emission 1 corrected", "MOVES 5 Emission data"
 )
 OUTPUT_DIR = os.path.dirname(__file__)  # backend/
 
@@ -76,10 +76,10 @@ class ModifiedNet(nn.Module):
         self.fc5 = nn.Linear(64, 1)
 
     def forward(self, x):
-        x = torch.relu(self.fc1(x))
-        x = torch.relu(self.fc2(x))
-        x = torch.relu(self.fc3(x))
-        x = torch.relu(self.fc4(x))
+        x = torch.nn.functional.silu(self.fc1(x))
+        x = torch.nn.functional.silu(self.fc2(x))
+        x = torch.nn.functional.silu(self.fc3(x))
+        x = torch.nn.functional.silu(self.fc4(x))
         return self.fc5(x)
 
 
@@ -158,7 +158,7 @@ def train_single_model(df: pd.DataFrame, target_col: str, emission_name: str, st
     patience_counter = 0
     max_patience = 30
 
-    for epoch in range(300):
+    for epoch in range(500):
         model.train()
         epoch_loss = 0.0
         for xb, yb in train_loader:
@@ -197,14 +197,19 @@ def train_single_model(df: pd.DataFrame, target_col: str, emission_name: str, st
     y_pred = target_scaler.inverse_transform(y_pred_scaled)
     y_true = target_scaler.inverse_transform(y_test)
 
-    r2 = r2_score(y_true, y_pred)
-    rmse = np.sqrt(mean_squared_error(y_true, y_pred))
-    mae = mean_absolute_error(y_true, y_pred)
+    # Handle NaN from inverse_transform (skewed data edge cases)
+    valid = np.isfinite(y_pred.ravel()) & np.isfinite(y_true.ravel())
+    y_pred_valid = y_pred[valid].reshape(-1, 1)
+    y_true_valid = y_true[valid].reshape(-1, 1)
+
+    r2 = r2_score(y_true_valid, y_pred_valid)
+    rmse = np.sqrt(mean_squared_error(y_true_valid, y_pred_valid))
+    mae = mean_absolute_error(y_true_valid, y_pred_valid)
 
     # MAPE (avoid division by zero)
-    mask = np.abs(y_true) > 1e-8
+    mask = np.abs(y_true_valid) > 1e-8
     if mask.sum() > 0:
-        mape = np.mean(np.abs((y_true[mask] - y_pred[mask]) / y_true[mask]))
+        mape = np.mean(np.abs((y_true_valid[mask] - y_pred_valid[mask]) / y_true_valid[mask]))
     else:
         mape = 0.0
 
@@ -216,7 +221,7 @@ def train_single_model(df: pd.DataFrame, target_col: str, emission_name: str, st
         "mae": float(mae),
     }
 
-    print(f"  {state}/{emission_name}: features={n_features}, R²={r2:.4f}, RMSE={rmse:.4f}, MAE={mae:.4f}")
+    print(f"  {state}/{emission_name}: features={n_features}, R2={r2:.4f}, RMSE={rmse:.4f}, MAE={mae:.4f}")
 
     # Build checkpoint (same keys as MOVES4 checkpoints)
     checkpoint = {

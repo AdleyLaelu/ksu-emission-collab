@@ -14,8 +14,8 @@ export default function ArrowStepper() {
   const inputSteps = [
     "Vehicle Classification Data",
     "Projected Vehicle Penetration Rate Data",
-    "Traffic Volume and Speed",
-    "Projected Demand",
+    "Traffic Volume and Speed Data",
+    "Projected Demand Data",
   ];
   const analysisSteps = [
     "Vehicle Energy Consumption and Emission Rates",

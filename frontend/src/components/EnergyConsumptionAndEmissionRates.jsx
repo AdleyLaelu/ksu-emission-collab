@@ -150,13 +150,8 @@ export default function EnergyConsumptionAndEmissionRates() {
         setPregenData((prev) => ({ ...prev, [stateCode]: data }));
         setLoadingPregen(false);
 
-        // Set defaults if not already set
-        if (!fuelType) {
-          setConsumptionAndEmissionState({ FuelType: FUEL_TYPES[0] });
-        }
-        if (!emissionType) {
-          setConsumptionAndEmissionState({ EmissionType: GENERATION_EMISSION_TYPES[0].value });
-        }
+        // Fuel type and emission type start as "Select ..." (empty)
+        // User must explicitly choose them
       })
       .catch((err) => {
         console.error("Failed to load pregenerated data:", err);
@@ -198,7 +193,7 @@ export default function EnergyConsumptionAndEmissionRates() {
 
         const points = speedValues
           .map((v, speed) => ({ x: speed, y: v }))
-          .filter((p) => p.y != null);
+          .filter((p) => p.y != null && p.x % 5 === 0);
 
         if (consEntry.unit) cUnit = consEntry.unit;
         cDatasets.push({
@@ -206,7 +201,8 @@ export default function EnergyConsumptionAndEmissionRates() {
           data: points,
           borderColor: color,
           backgroundColor: "transparent",
-          tension: 0.3,
+          tension: 0.4,
+          cubicInterpolationMode: "monotone",
           pointRadius: 0,
           pointHoverRadius: isActive ? 4 : 0,
           borderWidth: isActive ? 3 : isDimmed ? 0.5 : 1,

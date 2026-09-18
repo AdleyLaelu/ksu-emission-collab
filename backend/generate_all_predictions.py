@@ -18,6 +18,7 @@ import warnings
 import numpy as np
 import pandas as pd
 import torch
+from scipy.signal import savgol_filter
 
 # Suppress sklearn NaN warnings (expected for some inverse transforms)
 warnings.filterwarnings("ignore", category=UserWarning, module="sklearn")
@@ -150,6 +151,54 @@ def load_state_models(state):
     return result
 
 
+# ── Post-processing: smooth predictions ─────────────────────────────────
+
+def smooth_predictions(values):
+    """Apply heavy smoothing to produce clean, publication-quality curves.
+
+    Uses two passes: a wide Savitzky-Golay filter followed by a Gaussian
+    kernel to eliminate all per-speed-bin noise from the neural network.
+    """
+    from scipy.ndimage import gaussian_filter1d
+
+    # Replace None with NaN for processing
+    arr = np.array([v if v is not None else np.nan for v in values], dtype=float)
+
+    valid_mask = np.isfinite(arr)
+    n_valid = valid_mask.sum()
+    if n_valid < 7:
+        return values
+
+    # Interpolate NaN gaps before smoothing
+    arr_filled = arr.copy()
+    if np.any(~valid_mask):
+        valid_idx = np.where(valid_mask)[0]
+        arr_filled[~valid_mask] = np.interp(
+            np.where(~valid_mask)[0], valid_idx, arr[valid_mask]
+        )
+
+    # Pass 1: Wide Savitzky-Golay (window=21, polyorder=2)
+    # Covers ~20 mph range, low poly order forces smooth fit
+    window = min(21, n_valid if n_valid % 2 == 1 else n_valid - 1)
+    if window >= 5:
+        arr_filled = savgol_filter(arr_filled, window_length=window, polyorder=2)
+
+    # Pass 2: Gaussian blur (sigma=3) to remove any remaining wiggles
+    arr_filled = gaussian_filter1d(arr_filled, sigma=3)
+
+    # Ensure non-negative
+    arr_filled = np.maximum(arr_filled, 0)
+
+    # Restore original None positions
+    result = []
+    for i, v in enumerate(values):
+        if v is None:
+            result.append(None)
+        else:
+            result.append(round(float(arr_filled[i]), 8))
+    return result
+
+
 # ── Batched prediction — all speeds at once ─────────────────────────────
 
 def predict_batch(model_key, models, model_vehicle, model_fuel, state, age):
@@ -185,7 +234,8 @@ def predict_batch(model_key, models, model_vehicle, model_fuel, state, age):
         preds = target_scaler.inverse_transform(raw.numpy())
 
     import math
-    return [None if math.isnan(p[0]) else float(p[0]) for p in preds]
+    values = [None if math.isnan(p[0]) else float(p[0]) for p in preds]
+    return smooth_predictions(values)
 
 
 # ── Main generation ─────────────────────────────────────────────────────

@@ -9,8 +9,8 @@ import ProjectedDemand from "./ProjectedDemand";
 const steps = [
   "Vehicle Classification Data",
   "Projected Vehicle Penetration Rate Data",
-  "Traffic Volume and Speed",
-  "Projected Demand",
+  "Traffic Volume and Speed Data",
+  "Projected Demand Data",
 ];
 
 // Mode is now read from useAppStore.trafficMode ("ABM" | "MFD" | null)

@@ -65,6 +65,8 @@ const useAppStore = create((set, get) => ({
     penetrationHeaders: [],
     penetrationData: [],     // filtered
     allPenetrationData: [],  // original
+    yearUploads: {},         // { [year]: { file, headers, data } }
+    selectedYear: null,      // currently selected year in the year list
   },
   setPenetrationState: (partial) =>
     set((state) => ({
@@ -132,6 +134,10 @@ const useAppStore = create((set, get) => ({
     abmProjectedFile: null,
     // Cache: { [year]: { file, chartData, methodUsed } }
     yearCache: {},
+    // Per-year upload tracking (like penetrationState.yearUploads)
+    selectedYear: null,
+    // { [year]: { file, chartData, methodUsed } }
+    yearUploads: {},
   },
   setProjectedDemandState: (partial) =>
     set((state) => ({

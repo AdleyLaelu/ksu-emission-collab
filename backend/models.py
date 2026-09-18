@@ -11,10 +11,10 @@ class ModifiedNet(torch.nn.Module):
         self.fc5 = nn.Linear(64, 1)
 
     def forward(self, x):
-        x = torch.relu(self.fc1(x))
-        x = torch.relu(self.fc2(x))
-        x = torch.relu(self.fc3(x))
-        x = torch.relu(self.fc4(x))
+        x = torch.nn.functional.silu(self.fc1(x))
+        x = torch.nn.functional.silu(self.fc2(x))
+        x = torch.nn.functional.silu(self.fc3(x))
+        x = torch.nn.functional.silu(self.fc4(x))
         x = self.fc5(x)
         return x
     
