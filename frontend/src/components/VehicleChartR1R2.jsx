@@ -255,19 +255,10 @@ const VehicleChartR1R2 = forwardRef(function VehicleChartR1R2({
   const datasets = [...tractDatasets];
   const xLabel = mode === "R1" ? "Hour of Day" : "Month";
 
-  // Compute y-axis step size
-  const isFuel = FUEL_METRICS.has(metric);
-  const modeOverrides = STEP_OVERRIDES[mode] || {};
-  let yStepSize;
-  if (modeOverrides[metric] != null) {
-    // R1 fuel overrides (CNG, Electricity, Gasoline)
-    yStepSize = modeOverrides[metric];
-  } else if (mode === "R2" || isFuel) {
-    // R2 all metrics + R1 remaining fuels: compute dynamic step
-    let dataMax = 0;
-    tractIds.forEach(id => tracts[id].forEach(v => { if (v > dataMax) dataMax = v; }));
-    yStepSize = niceStepSize(dataMax);
-  }
+  // Compute y-axis step size — always use dynamic nice steps from data
+  let dataMax = 0;
+  tractIds.forEach(id => tracts[id].forEach(v => { if (v > dataMax) dataMax = v; }));
+  const yStepSize = niceStepSize(dataMax);
 
   const options = {
     responsive: true, maintainAspectRatio: false, animation: false,

@@ -43,12 +43,12 @@ const SCENARIO_COLORS = [
   "steelblue",      // Scenario 4 — High Demand Growth
   "orchid",         // Scenario 5 — Low Natural Gas Prices
   "slateblue",      // Scenario 6 — High Natural Gas Prices
-  "firebrick",      // Scenario 7 — 95% Decarbonization
-  "teal",           // Scenario 8 — 100% Decarbonization
+  "firebrick",      // Scenario 7 — Low RE + High Gas
+  "teal",           // Scenario 8 — High RE + Low Gas
 ];
 
 const EMISSION_LABELS = {
-  CO2: "CO₂ (lb/MWh)",
+  CO2: "CO₂ (ton/MWh)",
   CH4: "CH₄ (lb/MWh)",
   N2O: "N₂O (lb/MWh)",
 };
@@ -126,7 +126,7 @@ const GridChartR3 = forwardRef(function GridChartR3({ emissionType, cityName, sh
   const scenarios = jsonData.scenarios || {};
   const scenarioNames = Object.keys(scenarios);
 
-  // Map truncated JSON keys to full display names
+  // Display names match JSON keys from Prophet forecast data
   const DISPLAY_NAMES = [
     "Mid-case Scenario",
     "Low Renewable Energy and Battery Costs",
@@ -134,10 +134,18 @@ const GridChartR3 = forwardRef(function GridChartR3({ emissionType, cityName, sh
     "High Demand Growth",
     "Low Natural Gas Prices",
     "High Natural Gas Prices",
-    "Low Renewable Energy & Battery Costs + High Gas Prices",
-    "High Renewable Energy & Battery Costs + Low Gas Prices",
+    "Low RE & Battery Costs + High Gas Prices",
+    "High RE & Battery Costs + Low Gas Prices",
   ];
-  const labels = (scenarios[scenarioNames[0]] || []).map((p) => p.date);
+  const rawDates = (scenarios[scenarioNames[0]] || []).map((p) => p.date);
+  const MONTH_ABBRS = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+  // Convert date strings to month abbreviations for display
+  const labels = rawDates.map((d) => {
+    const monthIdx = parseInt(d.substring(5, 7), 10) - 1;
+    return MONTH_ABBRS[monthIdx] || "";
+  });
+  // Extract unique years for the year labels plugin
+  const years = [...new Set(rawDates.map((d) => d.substring(0, 4)))];
 
   // ── Imperative hover helpers ──────────────────────────────────────────────
 
@@ -177,7 +185,16 @@ const GridChartR3 = forwardRef(function GridChartR3({ emissionType, cityName, sh
 
   // ── Dataset styles from selectedIdx ──────────────────────────────────────
 
-  const datasets = scenarioNames.map((name, idx) => {
+  // Compute nice y-axis step for major + minor ticks
+  const allValues = scenarioNames.flatMap((name) => (scenarios[name] || []).map((p) => p.value));
+  const dataMax = Math.max(...allValues);
+  const yRough = dataMax / 6;
+  const yMag = Math.pow(10, Math.floor(Math.log10(yRough || 1)));
+  const yRes = yRough / yMag;
+  const yMajorStep = (yRes <= 1 ? 1 : yRes <= 2 ? 2 : yRes <= 5 ? 5 : 10) * yMag;
+  const yMinorStep = yMajorStep / 2;
+
+  const forecastDatasets = scenarioNames.map((name, idx) => {
     const color = SCENARIO_COLORS[idx % SCENARIO_COLORS.length];
     let borderColor, borderWidth;
 
@@ -204,6 +221,8 @@ const GridChartR3 = forwardRef(function GridChartR3({ emissionType, cityName, sh
     };
   });
 
+  const datasets = forecastDatasets;
+
   const handleSelectIdx = (idx) => {
     const newIdx = selectedIdxRef.current === idx ? null : idx;
     if (isControlled) { onSelect?.(newIdx); } else { selectedIdxRef.current = newIdx; setInternalIdx(newIdx); }
@@ -215,11 +234,37 @@ const GridChartR3 = forwardRef(function GridChartR3({ emissionType, cityName, sh
 
   const yLabel = EMISSION_LABELS[emissionType] || emissionType;
 
+  // Plugin to draw year labels below the x-axis, spaced to avoid overlap
+  const yearLabelsPlugin = {
+    id: "yearLabels",
+    afterDraw(chart) {
+      const xScale = chart.scales.x;
+      const ctx = chart.ctx;
+      ctx.save();
+      ctx.font = "12px Inter, sans-serif";
+      ctx.fillStyle = "#222";
+      ctx.textAlign = "center";
+      ctx.textBaseline = "top";
+      const yPos = xScale.bottom + 8;
+      // Show every 5 years for clean spacing across 26-year range
+      const step = 5;
+      for (let yearIdx = 0; yearIdx < years.length; yearIdx += step) {
+        const startIdx = yearIdx * 12;
+        const endIdx = Math.min(startIdx + 11, labels.length - 1);
+        const x1 = xScale.getPixelForValue(startIdx);
+        const x2 = xScale.getPixelForValue(endIdx);
+        const centerX = (x1 + x2) / 2;
+        ctx.fillText(years[yearIdx], centerX, yPos);
+      }
+      ctx.restore();
+    },
+  };
+
   const options = {
     responsive: true,
     maintainAspectRatio: false,
     animation: false,
-    layout: { padding: { top: 22, right: 24, bottom: 0, left: 0 } },
+    layout: { padding: { top: 22, right: 24, bottom: 40, left: 0 } },
     hover: { mode: "nearest", intersect: false },
 
     onHover: (_evt, activeElements, chart) => {
@@ -253,12 +298,12 @@ const GridChartR3 = forwardRef(function GridChartR3({ emissionType, cityName, sh
         displayColors: true,
         callbacks: {
           title: (items) => {
-            const raw = (items[0]?.label || "").replace(/\s+00:00:00$/, "");
-            const parts = raw.split("-");
-            if (parts.length < 2) return raw;
-            const months = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
-            const monthIdx = parseInt(parts[1], 10) - 1;
-            return `${months[monthIdx] || parts[1]}-${parts[0]}`;
+            const idx = items[0]?.dataIndex;
+            if (idx == null) return items[0]?.label || "";
+            const month = labels[idx] || "";
+            const yearIdx = Math.floor(idx / 12);
+            const year = years[yearIdx] || "";
+            return `${month} ${year}`;
           },
           label: (item) => ` ${item.dataset.label}: ${item.parsed.y?.toFixed(4)}`,
           labelColor: (item) => ({
@@ -284,19 +329,17 @@ const GridChartR3 = forwardRef(function GridChartR3({ emissionType, cityName, sh
           tickColor: "#444",
         },
         ticks: {
-          font: CHART_FONT,
+          font: { ...CHART_FONT, size: 11 },
           color: "#222",
-          maxRotation: 0,
-          padding: 4,
+          maxRotation: 90,
+          minRotation: 90,
+          padding: 6,
           autoSkip: false,
-          callback: (_, index) => {
-            const label = labels[index];
-            if (!label) return "";
-            // label format: "2025-01-01 00:00:00"
-            const year = label.substring(0, 4);
-            const month = label.substring(5, 7);
-            // Show year label on January of each year
-            return month === "01" ? year : "";
+          callback: function(_value, index) {
+            // Show Jan and Jul only (every 6 months)
+            if (index % 12 === 0) return "Jan";
+            if (index % 12 === 6) return "Jul";
+            return "";
           },
         },
         title: { display: false },
@@ -305,13 +348,24 @@ const GridChartR3 = forwardRef(function GridChartR3({ emissionType, cityName, sh
         border: { display: true, color: "#444", width: 1 },
         grid: {
           display: true,
-          color: "rgba(169,169,169,0.15)",
+          color: (ctx) => {
+            const remainder = yMajorStep > 0 ? Math.abs(ctx.tick.value % yMajorStep) : 0;
+            const isMajor = remainder < 1e-10 || Math.abs(remainder - yMajorStep) < 1e-10;
+            return isMajor ? "rgba(169,169,169,0.15)" : "transparent";
+          },
           lineWidth: 0.8,
-          drawTicks: false,
+          drawTicks: true,
+          tickColor: "#444",
         },
         ticks: {
           font: CHART_FONT, color: "#222", padding: 4,
-          ...(emissionType === "CH4" ? { stepSize: 20 } : { maxTicksLimit: 6 }),
+          stepSize: yMinorStep,
+          callback: (value) => {
+            const remainder = yMajorStep > 0 ? Math.abs(value % yMajorStep) : 0;
+            if (remainder < 1e-10 || Math.abs(remainder - yMajorStep) < 1e-10) return value;
+            return "";
+          },
+          maxTicksLimit: 30,
         },
         title: { display: true, text: yLabel, font: CHART_FONT, color: "#222", padding: { top: 0, bottom: 0 } },
       },
@@ -334,7 +388,7 @@ const GridChartR3 = forwardRef(function GridChartR3({ emissionType, cityName, sh
     <div ref={containerRef} className="w-full h-full flex flex-col">
       {/* Chart — fills parent height, fallback 200px when no parent height set */}
       <div className="relative w-full flex-1 bg-white" style={{ minHeight: 280 }}>
-        <Line ref={chartRef} data={{ labels, datasets }} options={options} plugins={[chartBgPlugin, subGridThirdsYPlugin]} />
+        <Line ref={chartRef} data={{ labels, datasets }} options={options} plugins={[chartBgPlugin, subGridThirdsYPlugin, yearLabelsPlugin]} />
         <ZoomToolbar chartRef={chartRef} />
       </div>
 
