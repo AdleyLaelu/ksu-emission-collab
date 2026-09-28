@@ -271,7 +271,7 @@ const VehicleChartR1R2 = forwardRef(function VehicleChartR1R2({
 
   const options = {
     responsive: true, maintainAspectRatio: false, animation: false,
-    layout: { padding: { top: 22, right: 24, bottom: mode === "R2" ? 30 : 0, left: 0 } },
+    layout: { padding: { top: 22, right: 24, bottom: mode === "R2" ? 40 : 0, left: 0 } },
     hover: { mode: "nearest", intersect: false },
 
     onHover: (_evt, activeElements, chart) => {
@@ -386,23 +386,21 @@ const VehicleChartR1R2 = forwardRef(function VehicleChartR1R2({
       const xScale = chart.scales.x;
       const ctx = chart.ctx;
       ctx.save();
-      ctx.font = "bold 11px Inter, sans-serif";
+      ctx.font = "13px Inter, sans-serif";
       ctx.fillStyle = "#222";
       ctx.textAlign = "center";
       ctx.textBaseline = "top";
-      // Position: just below the longest tick label
-      // xScale.bottom is the bottom of the axis area (after tick labels)
-      const yPos = xScale.bottom + 2;
-      // Draw year centered under each 12-month group
-      const totalTicks = xScale.ticks.length;
-      for (let yearIdx = 0; yearIdx * 12 < totalTicks; yearIdx++) {
+      // Position: below the rotated tick labels
+      const yPos = xScale.bottom + 6;
+      // Draw year centered under each 12-month group using rawLabels (years array)
+      for (let yearIdx = 0; yearIdx < rawLabels.length; yearIdx++) {
         const startIdx = yearIdx * 12;
-        const endIdx = Math.min(startIdx + 11, totalTicks - 1);
-        const x1 = xScale.getPixelForTick(startIdx);
-        const x2 = xScale.getPixelForTick(endIdx);
+        const endIdx = Math.min(startIdx + 11, labels.length - 1);
+        // Use getPixelForValue to get position by data index (more reliable than getPixelForTick)
+        const x1 = xScale.getPixelForValue(startIdx);
+        const x2 = xScale.getPixelForValue(endIdx);
         const centerX = (x1 + x2) / 2;
-        const year = rawLabels[yearIdx] || "";
-        ctx.fillText(year, centerX, yPos);
+        ctx.fillText(rawLabels[yearIdx], centerX, yPos);
       }
       ctx.restore();
     },

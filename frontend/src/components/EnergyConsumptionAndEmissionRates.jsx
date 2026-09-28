@@ -259,13 +259,24 @@ export default function EnergyConsumptionAndEmissionRates() {
     let eYMax = 0;
     eDatasets.forEach((ds) => ds.data.forEach((p) => { if (p.y > eYMax) eYMax = p.y; }));
 
+    // Round up yMax to a clean "nice" number at any scale
+    const niceMax = (v) => {
+      if (!v || v <= 0) return 60;
+      const mag = Math.pow(10, Math.floor(Math.log10(v)));
+      const normalized = v / mag; // 1.0 – 9.999...
+      // Snap up to nearest visually clean multiplier
+      const nice = [1, 2, 2.5, 5, 10];
+      const mult = nice.find((n) => n >= normalized - 1e-9) || 10;
+      return parseFloat((mult * mag).toPrecision(10));
+    };
+
     return {
       consumptionChartData: { datasets: cDatasets },
       emissionChartData: { datasets: eDatasets },
       consumptionUnit: cUnit,
       emissionUnit: eUnit,
-      consumptionYMax: Math.ceil(cYMax) || 60,
-      emissionYMax: Math.ceil(eYMax) || 60,
+      consumptionYMax: niceMax(cYMax),
+      emissionYMax: niceMax(eYMax),
     };
   }, [stateData, activeVehicle, fuelType, emissionType, vehicleAge, dataReady, selectedEmissionTypeObj.backend]);
 
@@ -338,8 +349,15 @@ export default function EnergyConsumptionAndEmissionRates() {
       const effectiveYMax = yMax || 60;
       const targetCells = Math.round(xCells * aspectFactor);
       const rawYStep = effectiveYMax / targetCells;
-      const niceSteps = [0.01, 0.02, 0.05, 0.1, 0.2, 0.5, 1, 2, 5, 10, 20, 25, 50, 100, 200, 250, 500, 1000];
+      // Generate nice steps across all magnitudes (0.001 up to 50000)
+      const niceSteps = [];
+      for (let exp = -3; exp <= 4; exp++) {
+        const b = Math.pow(10, exp);
+        [1, 2, 5].forEach((m) => niceSteps.push(m * b));
+      }
       const yStep = niceSteps.find((s) => s >= rawYStep) || rawYStep;
+      // Round max up to a clean multiple of yStep so ticks align perfectly
+      const yAxisMax = parseFloat((Math.ceil(effectiveYMax / yStep) * yStep).toPrecision(10));
 
       return {
         responsive: true,
@@ -412,6 +430,7 @@ export default function EnergyConsumptionAndEmissionRates() {
             type: "linear",
             position: "left",
             min: 0,
+            max: yAxisMax,
             title: { display: true, text: yAxisText, font: { size: 14 }, color: "#222" },
             ticks: {
               stepSize: yStep,

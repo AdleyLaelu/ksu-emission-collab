@@ -280,24 +280,26 @@ const GridChartR3 = forwardRef(function GridChartR3({ emissionType, cityName, sh
           display: true,
           color: "rgba(169,169,169,0.15)",
           lineWidth: 0.8,
-          drawTicks: false,
+          drawTicks: true,
+          tickColor: "#444",
         },
         ticks: {
           font: CHART_FONT,
           color: "#222",
           maxRotation: 0,
           padding: 4,
+          autoSkip: false,
           callback: (_, index) => {
             const label = labels[index];
             if (!label) return "";
             // label format: "2025-01-01 00:00:00"
             const year = label.substring(0, 4);
             const month = label.substring(5, 7);
-            // Show year label only on January of each year
+            // Show year label on January of each year
             return month === "01" ? year : "";
           },
         },
-        title: { display: true, text: "Year", font: CHART_FONT, color: "#222", padding: { top: 0, bottom: 0 } },
+        title: { display: false },
       },
       y: {
         border: { display: true, color: "#444", width: 1 },
