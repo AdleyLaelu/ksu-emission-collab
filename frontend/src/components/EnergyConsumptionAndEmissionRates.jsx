@@ -193,7 +193,7 @@ export default function EnergyConsumptionAndEmissionRates() {
 
         const points = speedValues
           .map((v, speed) => ({ x: speed, y: v }))
-          .filter((p) => p.y != null && p.x % 5 === 0);
+          .filter((p) => p.y != null && p.x >= 2.5 && p.x % 5 === 0);
 
         if (consEntry.unit) cUnit = consEntry.unit;
         cDatasets.push({
@@ -232,7 +232,7 @@ export default function EnergyConsumptionAndEmissionRates() {
 
           const points = speedValues
             .map((v, speed) => ({ x: speed, y: v }))
-            .filter((p) => p.y != null);
+            .filter((p) => p.y != null && p.x >= 2.5);
 
           if (emEntry.unit) eUnit = emEntry.unit;
           eDatasets.push({
@@ -356,6 +356,9 @@ export default function EnergyConsumptionAndEmissionRates() {
         [1, 2, 5].forEach((m) => niceSteps.push(m * b));
       }
       const yStep = niceSteps.find((s) => s >= rawYStep) || rawYStep;
+      // Minor tick step: half of major step for small tick marks between labels
+      const yMinorStep = yStep / 2;
+      const xMinorStep = xStep / 2;
       // Round max up to a clean multiple of yStep so ticks align perfectly
       const yAxisMax = parseFloat((Math.ceil(effectiveYMax / yStep) * yStep).toPrecision(10));
 
@@ -404,7 +407,7 @@ export default function EnergyConsumptionAndEmissionRates() {
             },
           },
           zoom: {
-            limits: { x: { min: 0 }, y: { min: 0 } },
+            limits: { x: { min: 2.5 }, y: { min: 0 } },
             pan: { enabled: true, mode: "x" },
             zoom: { wheel: { enabled: true }, pinch: { enabled: true }, mode: "x" },
           },
@@ -413,17 +416,17 @@ export default function EnergyConsumptionAndEmissionRates() {
         scales: {
           x: {
             type: "linear",
-            min: 0,
+            min: 2.5,
             ...(xMax != null ? { max: xMax } : {}),
             ticks: {
-              stepSize: xStep,
-              callback: (value) => (value % 10 === 0 ? value : ""),
+              stepSize: xMinorStep,
+              callback: (value) => (value % xStep === 0 ? value : ""),
               font: { size: 13 },
               color: "#222",
               autoSkip: false,
             },
             title: { display: true, text: "Speed (mph)", font: { size: 15 }, color: "#222" },
-            grid: { color: "rgba(0,0,0,0.06)", lineWidth: 0.5 },
+            grid: { color: (ctx) => (ctx.tick.value % xStep === 0 ? "rgba(0,0,0,0.06)" : "transparent"), lineWidth: 0.5, drawTicks: true, tickColor: "#444" },
             border: { color: "#444" },
           },
           y: {
@@ -433,12 +436,27 @@ export default function EnergyConsumptionAndEmissionRates() {
             max: yAxisMax,
             title: { display: true, text: yAxisText, font: { size: 14 }, color: "#222" },
             ticks: {
-              stepSize: yStep,
+              stepSize: yMinorStep,
+              callback: (value) => {
+                // Show label only at major tick positions
+                const remainder = yStep > 0 ? Math.abs(value % yStep) : 0;
+                if (remainder < 1e-10 || Math.abs(remainder - yStep) < 1e-10) return value;
+                return "";
+              },
               font: { size: 12 },
               color: "#222",
-              maxTicksLimit: 12,
+              maxTicksLimit: 30,
             },
-            grid: { color: "rgba(0,0,0,0.06)", lineWidth: 0.5 },
+            grid: {
+              color: (ctx) => {
+                const remainder = yStep > 0 ? Math.abs(ctx.tick.value % yStep) : 0;
+                const isMajor = remainder < 1e-10 || Math.abs(remainder - yStep) < 1e-10;
+                return isMajor ? "rgba(0,0,0,0.06)" : "transparent";
+              },
+              lineWidth: 0.5,
+              drawTicks: true,
+              tickColor: "#444",
+            },
             border: { color: "#444" },
           },
           xTop: {

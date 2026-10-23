@@ -12,6 +12,7 @@ import {
 } from "chart.js";
 import zoomPlugin from "chartjs-plugin-zoom";
 import { CITY_TO_STATE, chartBgPlugin, CHART_FONT, subGridThirdsYPlugin } from "../utils/chartConstants";
+import useAppStore from "../useAppStore";
 
 import GA_CO2 from "../assets/r3data/GA_CO2.json";
 import GA_CH4 from "../assets/r3data/GA_CH4.json";
@@ -49,8 +50,8 @@ const SCENARIO_COLORS = [
 
 const EMISSION_LABELS = {
   CO2: "CO₂ (ton/MWh)",
-  CH4: "CH₄ (lb/MWh)",
-  N2O: "N₂O (lb/MWh)",
+  CH4: "CH₄ (g/MWh)",
+  N2O: "N₂O (g/MWh)",
 };
 
 // Resolve any CSS color (named or hex) to rgba via a temporary canvas.
@@ -109,6 +110,11 @@ const GridChartR3 = forwardRef(function GridChartR3({ emissionType, cityName, sh
     return () => document.removeEventListener("mousedown", onClickOutside);
   }, [isControlled, onSelect]);
 
+  // Read the user's selected simulation period from the store
+  // (must be called before any early return to satisfy Rules of Hooks)
+  const userBaseYear = parseInt(useAppStore((s) => s.classificationState.baseYear), 10) || null;
+  const userEndYear = parseInt(useAppStore((s) => s.penetrationState.projectedYear), 10) || null;
+
   const state = CITY_TO_STATE[cityName] || CITY_TO_STATE[cityName?.replace(/\s/g, "")] || null;
   const key = state && emissionType ? `${state}_${emissionType}` : null;
   const jsonData = key ? DATA_MAP[key] : null;
@@ -137,8 +143,26 @@ const GridChartR3 = forwardRef(function GridChartR3({ emissionType, cityName, sh
     "Low RE & Battery Costs + High Gas Prices",
     "High RE & Battery Costs + Low Gas Prices",
   ];
-  const rawDates = (scenarios[scenarioNames[0]] || []).map((p) => p.date);
+  const allDates = (scenarios[scenarioNames[0]] || []).map((p) => p.date);
   const MONTH_ABBRS = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+
+  // Determine the display year range: intersect user period with available data
+  const allYearsSet = [...new Set(allDates.map((d) => parseInt(d.substring(0, 4), 10)))];
+  const dataMinYear = Math.min(...allYearsSet);
+  const dataMaxYear = Math.max(...allYearsSet);
+  // Grid projections start after the base year (baseYear+1) and cap at available data
+  const displayStartYear = userBaseYear ? Math.max(userBaseYear + 1, dataMinYear) : dataMinYear;
+  const displayEndYear = userEndYear ? Math.min(userEndYear, dataMaxYear) : dataMaxYear;
+
+  // Filter date indices to the display range
+  const filteredIndices = allDates.reduce((acc, d, i) => {
+    const y = parseInt(d.substring(0, 4), 10);
+    if (y >= displayStartYear && y <= displayEndYear) acc.push(i);
+    return acc;
+  }, []);
+
+  const rawDates = filteredIndices.map((i) => allDates[i]);
+
   // Convert date strings to month abbreviations for display
   const labels = rawDates.map((d) => {
     const monthIdx = parseInt(d.substring(5, 7), 10) - 1;
@@ -185,8 +209,11 @@ const GridChartR3 = forwardRef(function GridChartR3({ emissionType, cityName, sh
 
   // ── Dataset styles from selectedIdx ──────────────────────────────────────
 
-  // Compute nice y-axis step for major + minor ticks
-  const allValues = scenarioNames.flatMap((name) => (scenarios[name] || []).map((p) => p.value));
+  // Compute nice y-axis step for major + minor ticks (using only filtered data)
+  const allValues = scenarioNames.flatMap((name) => {
+    const pts = scenarios[name] || [];
+    return filteredIndices.map((i) => pts[i]?.value ?? 0);
+  });
   const dataMax = Math.max(...allValues);
   const yRough = dataMax / 6;
   const yMag = Math.pow(10, Math.floor(Math.log10(yRough || 1)));
@@ -211,7 +238,7 @@ const GridChartR3 = forwardRef(function GridChartR3({ emissionType, cityName, sh
 
     return {
       label: name,
-      data: (scenarios[name] || []).map((p) => p.value),
+      data: filteredIndices.map((i) => (scenarios[name] || [])[i]?.value ?? null),
       borderColor,
       backgroundColor: "rgba(0,0,0,0)",
       borderWidth,
@@ -246,9 +273,10 @@ const GridChartR3 = forwardRef(function GridChartR3({ emissionType, cityName, sh
       ctx.textAlign = "center";
       ctx.textBaseline = "top";
       const yPos = xScale.bottom + 8;
-      // Show every 5 years for clean spacing across 26-year range
-      const step = 5;
-      for (let yearIdx = 0; yearIdx < years.length; yearIdx += step) {
+      // Dynamically choose step to avoid overlap: aim for ~5-7 labels max
+      const nYears = years.length;
+      const step = nYears <= 7 ? 1 : nYears <= 14 ? 2 : 5;
+      for (let yearIdx = 0; yearIdx < nYears; yearIdx += step) {
         const startIdx = yearIdx * 12;
         const endIdx = Math.min(startIdx + 11, labels.length - 1);
         const x1 = xScale.getPixelForValue(startIdx);

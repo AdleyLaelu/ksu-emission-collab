@@ -10,10 +10,28 @@ import torch
 import torch.nn as nn
 import io, os
 import json
+from datetime import datetime, timezone
 import uuid
 from models import ModifiedNet
 from report_generator import report_bp
+from sklearn.base import BaseEstimator, TransformerMixin
+
+# LogScaler needed to deserialize some model checkpoints
+class LogScaler(BaseEstimator, TransformerMixin):
+    def fit(self, X, y=None):
+        self._fitted = True
+        return self
+    def transform(self, X):
+        return np.log1p(np.maximum(X, 0))
+    def inverse_transform(self, X):
+        return np.expm1(X)
 import random
+
+def add_age_bin(df):
+    bins = pd.cut(df["Age"], bins=[-1, 2, 25, 100], labels=["young", "mid", "old"])
+    df = df.copy()
+    df["Age_Bin"] = bins.astype(str)
+    return df
 
 # ---------- Allow safe sklearn globals for torch.load ----------
 from sklearn.compose import ColumnTransformer
@@ -205,10 +223,13 @@ def preprocess(payload, numeric_stats):
 
 def load_checkpoint_into(model, path):
     if os.path.exists(path):
+        import sys
+        sys.modules["__main__"].LogScaler = LogScaler
+        sys.modules["__main__"].ModifiedNet = ModifiedNet
         try:
-            ckpt = torch.load(path, map_location="cpu")  # PyTorch 2.6+ tries weights_only=True
+            ckpt = torch.load(path, map_location="cpu", weights_only=False)
         except Exception:
-            ckpt = torch.load(path, map_location="cpu", weights_only=False)  # fallback
+            ckpt = torch.load(path, map_location="cpu")
         if isinstance(ckpt,dict) and "state_dict" in ckpt:
             model.load_state_dict(ckpt["state_dict"], strict=False)
         else:
@@ -230,24 +251,26 @@ for st in STATE_CATS:
     for m in models[st].values(): m.eval()
 
 
-def load_model(file_name, input_features):
+def load_model(file_name, input_features=None):
     base_path = os.path.join(os.path.dirname(__file__), "ml_models")
     model_path = os.path.join(base_path, file_name)
 
-    # Register ModifiedNet to resolve deserialization
+    # Register classes to resolve deserialization
     import sys
     sys.modules["__main__"].ModifiedNet = ModifiedNet
+    sys.modules["__main__"].LogScaler = LogScaler
 
     # Load the checkpoint
     try:
-        checkpoint = torch.load(model_path, map_location=torch.device("cpu"))
-    except Exception:
         checkpoint = torch.load(model_path, map_location=torch.device("cpu"), weights_only=False)
+    except Exception:
+        checkpoint = torch.load(model_path, map_location=torch.device("cpu"))
 
-    # Initialize the model architecture
-    model = ModifiedNet(input_features)
+    # Use input_features from checkpoint if available, fallback to parameter
+    n_features = checkpoint.get("input_features", input_features or 19)
+    model = ModifiedNet(n_features)
     model.load_state_dict(checkpoint["model_state_dict"])
-    model.eval()  
+    model.eval()
 
     return {
         "model": model,
@@ -255,13 +278,13 @@ def load_model(file_name, input_features):
         "target_scaler": checkpoint.get("target_scaler", checkpoint.get("power_transformer", None)),
     }
 
-# Load all models with specific input features
+# Load all models (input_features auto-detected from checkpoint)
 models = {
-    "gaCo2": load_model("best_model_GACO2.pth", input_features=19),
-    "gaTotalEnergyRate": load_model("best_model_GAEnergy.pth", input_features=20),
-    "gaNOx": load_model("best_model_GANOx.pth", input_features=19),
-    "gaPM25BrakeWear": load_model("best_model_GAPM25Brake.pth", input_features=20),
-    "gaPM25TireWear": load_model("best_model_GAPM25Tire.pth", input_features=20),
+    "gaCo2": load_model("best_model_GACO2.pth"),
+    "gaTotalEnergyRate": load_model("best_model_GAEnergy.pth"),
+    "gaNOx": load_model("best_model_GANOx.pth"),
+    "gaPM25BrakeWear": load_model("best_model_GAPM25Brake.pth"),
+    "gaPM25TireWear": load_model("best_model_GAPM25Tire.pth"),
 }
 
 def predict_one(inputs, model_key, models):
@@ -278,6 +301,7 @@ def predict_one(inputs, model_key, models):
     target_scaler = model_info["target_scaler"]
 
     df = pd.DataFrame([inputs])
+    df = add_age_bin(df)
     processed_input = preprocessor.transform(df)
 
     if hasattr(processed_input, "toarray"):
@@ -301,6 +325,7 @@ def predict_ones(inputs, model_key):
     target_scaler = model_info["target_scaler"]
 
     df = pd.DataFrame([inputs])
+    df = add_age_bin(df)
     processed_input = preprocessor.transform(df)
     if hasattr(processed_input, "toarray"):
         input_tensor = torch.tensor(processed_input.toarray(), dtype=torch.float32)
@@ -632,6 +657,7 @@ def upload_vehicle_data(type):
             "vehicle_type": "data_vehicle_type",
             "Fuel Type": "fuel_type",
             "Vehicle Count": "vehicle_count",
+            "Age": "age",
             "penetration": "age"
         }, inplace=True)
         # Add metadata for vehicle_classification
@@ -640,7 +666,7 @@ def upload_vehicle_data(type):
         if main_vehicle_type and "vehicle_type" not in df.columns:
             df["vehicle_type"] = main_vehicle_type
         if main_year and "BaseYear" not in df.columns:
-            df["BaseYear"] = main_year
+            df["BaseYear"] = int(main_year)
         df["transaction_id"] = transaction_id
         df["user_id"] = user_id
         # Keep relevant columns for vehicle_classification_data
@@ -687,6 +713,33 @@ def upload_vehicle_data(type):
         df["user_id"] = user_id
 
     save_to_db_data(type, df)
+
+    # Track VR (vehicle classification) uploads in manifest
+    if type == "vehicle_classification" and main_city and main_year:
+        try:
+            vc_state = CITY_TO_STATE.get(main_city)
+            if vc_state:
+                base_dir = os.path.dirname(os.path.abspath(__file__))
+                manifest_path = os.path.join(base_dir, "Combined_sheet_output_speed", vc_state, "manifest.json")
+                manifest = {}
+                if os.path.exists(manifest_path):
+                    try:
+                        with open(manifest_path) as mf:
+                            manifest = json.load(mf)
+                    except (json.JSONDecodeError, IOError):
+                        manifest = {}
+                manifest.setdefault("vrUploads", {})
+                manifest["vrUploads"][str(main_year)] = {
+                    "uploadedAt": datetime.now(timezone.utc).isoformat(),
+                    "source": "user_upload",
+                    "rowCount": len(df),
+                }
+                manifest["vrAnchorYears"] = sorted(int(y) for y in manifest["vrUploads"].keys())
+                with open(manifest_path, "w") as mf:
+                    json.dump(manifest, mf, indent=2)
+                print(f"[INFO] VR upload tracked in manifest: {vc_state}/{main_year} ({len(df)} rows)")
+        except Exception as e:
+            print(f"[WARN] Failed to track VR upload in manifest: {e}")
 
     return jsonify({
         "status": "ok",
@@ -1015,11 +1068,12 @@ def predict_consumption():
         if vehicle_type and vehicle_type not in VEHICLE_CATS:
             return jsonify({"error": f"Invalid vehicle_type: {vehicle_type}"}), 400
         
+        # MOVES-standard Lower Heating Values (LHV) — EPA-420-R-21-006, Table 4-1
         KJ_PER_UNIT = {
-            "Gasoline": 123462.432,                
-            "Diesel Fuel": 138451.739,
-            "Ethanol - E-85": 85729.28,
-            "Compressed Natural Gas - CNG": 124854.529,
+            "Gasoline": 120238.0,
+            "Diesel Fuel": 137381.0,
+            "Ethanol - E-85": 81800.0,
+            "Compressed Natural Gas - CNG": 120238.0,  # 1 GGE = 1 gal gasoline energy
             "Electricity": 3600.0
         }
 
@@ -1053,7 +1107,8 @@ def predict_consumption():
             except Exception as e:
                 return jsonify({"error": f"Prediction failed at speed {speed}: {str(e)}"}), 400
 
-            energy_kj_per_mile = (consumptions * 3600) / 62.1371
+            # Model output is already in kJ/mile (MOVES "Total Energy" unit)
+            energy_kj_per_mile = consumptions
             
             kj_per_unit = KJ_PER_UNIT.get(fuel_type)
             if not kj_per_unit:
@@ -1330,6 +1385,46 @@ def process_traffic_abm_upload_route():
 
         print(f"[INFO] ABM upload processing complete. {len(processed_data)} tracts. Output: {output_file}")
 
+        # Update manifest.json to track this upload
+        manifest_path = os.path.join(output_dir, "manifest.json")
+        manifest = {}
+        if os.path.exists(manifest_path):
+            try:
+                with open(manifest_path) as mf:
+                    manifest = json.load(mf)
+            except (json.JSONDecodeError, IOError):
+                manifest = {}
+
+        manifest["state"] = state
+        # Write to both legacy "uploads" and new "abmUploads" keys
+        abm_entry = {
+            "file": f"{state}_{year}_ABM.xlsx",
+            "uploadedAt": datetime.now(timezone.utc).isoformat(),
+            "source": "user_upload",
+            "tractCount": len(processed_data),
+            "tractIds": sorted(list(tract_ids)),
+        }
+        manifest.setdefault("uploads", {})
+        manifest["uploads"][str(year_int)] = abm_entry
+        manifest.setdefault("abmUploads", {})
+        manifest["abmUploads"][str(year_int)] = abm_entry
+
+        base_year = request.form.get("base_year")
+        end_year = request.form.get("end_year")
+        if base_year:
+            manifest["baseYear"] = int(base_year)
+        if end_year:
+            manifest["endYear"] = int(end_year)
+
+        # Auto-derive endYear from max ABM upload year only if no explicit endYear is set
+        if not manifest.get("endYear"):
+            all_abm_years = [int(y) for y in manifest.get("uploads", {}).keys()]
+            if all_abm_years:
+                manifest["endYear"] = max(all_abm_years)
+
+        with open(manifest_path, "w") as mf:
+            json.dump(manifest, mf, indent=2)
+
         return jsonify({
             "status": "success",
             "message": f"ABM data processed for {city_name} ({year})",
@@ -1520,6 +1615,275 @@ def plot_traffic_route(city_name, year):
         print(f"[ERROR] /plot/traffic: {str(e)}")
         return jsonify({"status": "error", "message": f"An unexpected error occurred: {str(e)}"}), 500
 
-    
+# ---------- Generated Results Directory ----------
+GENERATED_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "generated")
+os.makedirs(GENERATED_DIR, exist_ok=True)
+
+# ---------- Per-state generation lock ----------
+import threading
+_generation_locks = {}
+_generation_locks_mu = threading.Lock()
+
+def get_generation_lock(state):
+    with _generation_locks_mu:
+        if state not in _generation_locks:
+            _generation_locks[state] = threading.Lock()
+        return _generation_locks[state]
+
+
+# ---------- Generate Results Endpoint ----------
+@app.route("/api/generate-results", methods=["POST"])
+def generate_results():
+    """Trigger R1/R2 (and grid emissions) generation for a state.
+    Expects JSON body: {"state": "GA"} or query param ?state=GA.
+    Writes results to backend/generated/{state}/ with a version token.
+    """
+    data = request.get_json(silent=True) or {}
+    state = data.get("state") or request.args.get("state")
+    if not state or state not in ["GA", "CA", "NY", "WA"]:
+        return jsonify({"status": "error", "message": "Missing or invalid 'state' parameter"}), 400
+
+    # If the frontend sends an explicit endYear, update the manifest before generating
+    req_end_year = data.get("endYear")
+    if req_end_year:
+        try:
+            req_end_year = int(req_end_year)
+            manifest_path = os.path.join(
+                os.path.dirname(os.path.abspath(__file__)),
+                "Combined_sheet_output_speed", state, "manifest.json"
+            )
+            if os.path.exists(manifest_path):
+                with open(manifest_path) as mf:
+                    manifest = json.load(mf)
+                manifest["endYear"] = req_end_year
+                with open(manifest_path, "w") as mf:
+                    json.dump(manifest, mf, indent=2)
+                print(f"[INFO] Updated manifest endYear to {req_end_year} for {state}")
+        except (ValueError, TypeError):
+            pass
+
+    # Per-state generation lock — return 409 if already running
+    lock = get_generation_lock(state)
+    if not lock.acquire(blocking=False):
+        return jsonify({"status": "busy", "message": f"Generation already in progress for {state}"}), 409
+
+    state_output_dir = os.path.join(GENERATED_DIR, state)
+    os.makedirs(state_output_dir, exist_ok=True)
+
+    # Write a "generating" marker to prevent serving stale data
+    version_token = datetime.now(timezone.utc).isoformat()
+    status_path = os.path.join(state_output_dir, "_status.json")
+    with open(status_path, "w") as f:
+        json.dump({"status": "generating", "startedAt": version_token}, f)
+
+    try:
+        # Import generation module
+        from generate_r1r2_json import generate_for_state
+
+        print(f"[INFO] Generating R1/R2 for {state}...")
+        result = generate_for_state(state, output_dir=state_output_dir)
+
+        # Also generate grid emissions if R2 was produced
+        if result.get("r2"):
+            try:
+                from generate_grid_emissions_json import generate_grid_emissions_for_state
+                print(f"[INFO] Generating grid emissions for {state}...")
+                generate_grid_emissions_for_state(state, r2_dir=state_output_dir,
+                                                  output_dir=state_output_dir)
+            except ImportError:
+                print("[WARN] generate_grid_emissions_json not importable, skipping grid emissions")
+            except Exception as e:
+                print(f"[WARN] Grid emissions generation failed: {e}")
+                result.setdefault("errors", []).append(f"Grid emissions: {str(e)}")
+
+        # Post-generation freshness check: see if inputs changed during generation
+        completed_at = datetime.now(timezone.utc).isoformat()
+        post_gen_stale = False
+        try:
+            manifest_path = os.path.join(
+                os.path.dirname(os.path.abspath(__file__)),
+                "Combined_sheet_output_speed", state, "manifest.json"
+            )
+            if os.path.exists(manifest_path):
+                with open(manifest_path) as mf:
+                    manifest = json.load(mf)
+                for year_str, info in manifest.get("uploads", {}).items():
+                    if info.get("uploadedAt", "") > version_token:
+                        post_gen_stale = True
+                        break
+                if not post_gen_stale:
+                    for year_str, info in manifest.get("vrUploads", {}).items():
+                        if info.get("uploadedAt", "") > version_token:
+                            post_gen_stale = True
+                            break
+        except Exception:
+            pass
+
+        # Write success status
+        status_obj = {
+            "status": "ready",
+            "version": version_token,
+            "completedAt": completed_at,
+            "r1": os.path.basename(result["r1"]) if result.get("r1") else None,
+            "r2": os.path.basename(result["r2"]) if result.get("r2") else None,
+            "errors": result.get("errors", []),
+        }
+        if post_gen_stale:
+            status_obj["stale"] = True
+            status_obj["staleReasons"] = ["Inputs changed during generation"]
+        with open(status_path, "w") as f:
+            json.dump(status_obj, f, indent=2)
+
+        return jsonify({
+            "status": "success",
+            "version": version_token,
+            "r1": bool(result.get("r1")),
+            "r2": bool(result.get("r2")),
+            "errors": result.get("errors", []),
+            "stale": post_gen_stale,
+        }), 200
+
+    except Exception as e:
+        # Mark generation as failed
+        with open(status_path, "w") as f:
+            json.dump({
+                "status": "failed",
+                "version": version_token,
+                "error": str(e),
+                "failedAt": datetime.now(timezone.utc).isoformat(),
+            }, f, indent=2)
+        print(f"[ERROR] Generation failed for {state}: {e}")
+        return jsonify({"status": "error", "message": str(e)}), 500
+    finally:
+        lock.release()
+
+
+# ---------- Serve Generated Results ----------
+@app.route("/api/generated/<state>/<filename>", methods=["GET"])
+def serve_generated(state, filename):
+    """Serve a generated JSON file for a state, but only if generation succeeded."""
+    if state not in ["GA", "CA", "NY", "WA"]:
+        return jsonify({"status": "error", "message": "Invalid state"}), 400
+
+    state_dir = os.path.join(GENERATED_DIR, state)
+    status_path = os.path.join(state_dir, "_status.json")
+
+    # Check generation status — refuse to serve stale/failed data
+    if os.path.exists(status_path):
+        with open(status_path) as f:
+            status = json.load(f)
+        if status.get("status") == "generating":
+            return jsonify({"status": "error", "message": "Generation in progress"}), 409
+        if status.get("status") == "failed":
+            return jsonify({"status": "error", "message": "Generation failed",
+                            "error": status.get("error")}), 500
+    else:
+        return jsonify({"status": "error", "message": "No results generated yet"}), 404
+
+    # Serve the requested file
+    file_path = os.path.join(state_dir, filename)
+    if not os.path.exists(file_path):
+        return jsonify({"status": "error", "message": f"File {filename} not found"}), 404
+
+    # Prevent path traversal
+    real_file = os.path.realpath(file_path)
+    real_dir = os.path.realpath(state_dir)
+    if not real_file.startswith(real_dir):
+        return jsonify({"status": "error", "message": "Invalid path"}), 400
+
+    return send_file(file_path, mimetype="application/json")
+
+
+@app.route("/api/generated/<state>/_status.json", methods=["GET"])
+def serve_generation_status(state):
+    """Get the generation status for a state.
+    Compares manifest against generated R2 to detect staleness."""
+    if state not in ["GA", "CA", "NY", "WA"]:
+        return jsonify({"status": "error", "message": "Invalid state"}), 400
+
+    state_dir = os.path.join(GENERATED_DIR, state)
+    status_path = os.path.join(state_dir, "_status.json")
+
+    if not os.path.exists(status_path):
+        return jsonify({"status": "none", "message": "No results generated yet"}), 200
+
+    with open(status_path) as f:
+        status_data = json.load(f)
+
+    # Check if generated results are stale relative to the current manifest
+    if status_data.get("status") == "ready":
+        manifest_path = os.path.join(
+            os.path.dirname(os.path.abspath(__file__)),
+            "Combined_sheet_output_speed", state, "manifest.json"
+        )
+        r2_path = os.path.join(state_dir, f"{state}_R2.json")
+        stale = False
+        stale_reasons = []
+
+        try:
+            if os.path.exists(manifest_path) and os.path.exists(r2_path):
+                with open(manifest_path) as mf:
+                    manifest = json.load(mf)
+                with open(r2_path) as rf:
+                    r2_meta = json.load(rf).get("meta", {})
+
+                gen_range = r2_meta.get("yearRange", [])
+                manifest_end = manifest.get("endYear")
+                manifest_base = manifest.get("baseYear")
+
+                # Check if year range matches
+                if manifest_end and gen_range and manifest_end != gen_range[-1]:
+                    stale = True
+                    stale_reasons.append(
+                        f"End year changed: manifest says {manifest_end}, "
+                        f"results cover up to {gen_range[-1]}"
+                    )
+                if manifest_base and gen_range and manifest_base != gen_range[0]:
+                    stale = True
+                    stale_reasons.append(
+                        f"Base year changed: manifest says {manifest_base}, "
+                        f"results start at {gen_range[0]}"
+                    )
+
+                # Check if any ABM upload is newer than generation
+                completed_at = status_data.get("completedAt", "")
+                for year_str, info in manifest.get("uploads", {}).items():
+                    uploaded_at = info.get("uploadedAt", "")
+                    if uploaded_at > completed_at:
+                        stale = True
+                        stale_reasons.append(
+                            f"ABM year {year_str} uploaded after results were generated"
+                        )
+
+                # Check if any VR upload is newer than generation
+                for year_str, info in manifest.get("vrUploads", {}).items():
+                    uploaded_at = info.get("uploadedAt", "")
+                    if uploaded_at > completed_at:
+                        stale = True
+                        stale_reasons.append(
+                            f"Vehicle classification year {year_str} uploaded after results were generated"
+                        )
+
+                # Check VR anchor years mismatch
+                manifest_vr_anchors = manifest.get("vrAnchorYears", [])
+                r2_vr_anchors = r2_meta.get("vrAnchorYears", [])
+                if manifest_vr_anchors and manifest_vr_anchors != r2_vr_anchors:
+                    stale = True
+                    stale_reasons.append(
+                        f"VR anchor years changed: manifest has {manifest_vr_anchors}, "
+                        f"results used {r2_vr_anchors}"
+                    )
+
+                if stale:
+                    status_data["stale"] = True
+                    status_data["staleReasons"] = stale_reasons
+                else:
+                    status_data["stale"] = False
+        except (json.JSONDecodeError, IOError, KeyError):
+            pass  # If we can't check, don't block — just serve the status as-is
+
+    return jsonify(status_data), 200
+
+
 if __name__=="__main__":
     app.run(host="0.0.0.0", port=5003, debug=True, use_reloader=True)

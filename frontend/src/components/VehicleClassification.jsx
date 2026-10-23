@@ -520,7 +520,7 @@ function VehicleClassification({ activeStep }) {
         </div>
       </div>
 
-      {/* Right panel: only map image if available */}
+      {/* Right panel: city map */}
       <div className="flex flex-col gap-4 w-64 shrink-0">
         {classificationState.city && cityImages[classificationState.city] && (
           <img

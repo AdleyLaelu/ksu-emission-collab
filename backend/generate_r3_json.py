@@ -6,8 +6,8 @@ Writes to:   frontend/src/assets/r3data/{STATE}_{GAS}.json
 
 Units (from Cambium/Prophet → display):
   CO2: kg/MWh → ton/MWh  (÷ 1000)
-  CH4: g/MWh  → lb/MWh   (÷ 453.592)
-  N2O: g/MWh  → lb/MWh   (÷ 453.592)
+  CH4: g/MWh  → g/MWh    (no conversion)
+  N2O: g/MWh  → g/MWh    (no conversion)
 """
 
 import json
@@ -51,8 +51,8 @@ SCENARIO_ORDER = list(SCENARIO_MAP.keys())
 # Unit conversion divisors
 UNIT_DIVISOR = {
     "CO2": 1000.0,      # kg/MWh → ton/MWh
-    "CH4": 453.592,     # g/MWh  → lb/MWh
-    "N2O": 453.592,     # g/MWh  → lb/MWh
+    "CH4": 1.0,         # g/MWh  → g/MWh  (keep SI units)
+    "N2O": 1.0,         # g/MWh  → g/MWh  (keep SI units)
 }
 
 

@@ -337,8 +337,8 @@ function VehiclePenetration({ activeStep }) {
               </select>
             </div>
             {/* End Year — regular dropdown, same style as Base Year */}
-            <div className="flex flex-col gap-1 min-w-[80px] max-w-[100px]">
-              <label className="text-xs font-medium text-gray-600 cursor-help" title="The future target year for projected vehicle penetration rates.">End Year</label>
+            <div className="flex flex-col gap-1 min-w-[110px] max-w-[130px]">
+              <label className="text-xs font-medium text-gray-600 cursor-help" title="The simulation end year. All steps will generate data from the base year through this year. Extend it to cover your latest ABM upload year.">End Year</label>
               <select
                 value={penetrationState.projectedYear || ""}
                 onChange={(e) => {

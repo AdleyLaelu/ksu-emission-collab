@@ -38,6 +38,7 @@ function ProjectedDemand() {
   const penetrationState = useAppStore((s) => s.penetrationState);
   const projectedDemandState = useAppStore((s) => s.projectedDemandState);
   const setProjectedDemandState = useAppStore((s) => s.setProjectedDemandState);
+  const setPenetrationState = useAppStore((s) => s.setPenetrationState);
   const trafficState = useAppStore((s) => s.trafficVolumeState);
 
   // Use the locked traffic mode from store (set in Step 2)
@@ -137,6 +138,8 @@ function ProjectedDemand() {
       formData.append("file", file);
       formData.append("city_name", mappedCity);
       formData.append("year", yr);
+      if (baseYear) formData.append("base_year", String(baseYear));
+      if (endYear) formData.append("end_year", String(endYear));
 
       const abmRes = await fetch(`${API_URL}/process/traffic/abm/upload`, {
         method: "POST",
@@ -159,6 +162,13 @@ function ProjectedDemand() {
       setChartYear(String(yr));
       setProjectedDemandState({ speedEstimated: true });
       saveToCache(yr, file, chartJson, "Import Traffic Data");
+
+      // Auto-extend simulation end year if this upload exceeds current end year
+      const currentEndYear = parseInt(useAppStore.getState().penetrationState.projectedYear, 10);
+      const uploadYear = parseInt(yr, 10);
+      if (uploadYear > currentEndYear) {
+        setPenetrationState({ projectedYear: String(uploadYear) });
+      }
 
       // Track in yearUploads
       setProjectedDemandState({

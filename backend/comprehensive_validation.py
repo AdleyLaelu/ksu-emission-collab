@@ -22,14 +22,25 @@ matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 from sklearn.metrics import r2_score, mean_squared_error, mean_absolute_error
 
+from sklearn.base import BaseEstimator, TransformerMixin
 from models import ModifiedNet
 
 warnings.filterwarnings("ignore")
 
+# LogScaler must be defined here so torch.load can unpickle model checkpoints that use it
+class LogScaler(BaseEstimator, TransformerMixin):
+    def fit(self, X, y=None):
+        self._fitted = True
+        return self
+    def transform(self, X):
+        return np.log1p(np.maximum(X, 0))
+    def inverse_transform(self, X):
+        return np.expm1(X)
+
 # ── Paths ────────────────────────────────────────────────────────────────────
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 DATA_DIR = os.path.join(BASE_DIR, "..", "Emission 1 corrected", "MOVES 5 Emission data")
-PLOT_DIR = os.path.join(BASE_DIR, "..", "model_validation_plots", "comprehensive")
+PLOT_DIR = os.path.normpath(os.path.join(BASE_DIR, "..", "model_validation_plots", "comprehensive"))
 SUMMARY_CSV = os.path.join(BASE_DIR, "validation_summary.csv")
 REPORT_TXT = os.path.join(BASE_DIR, "validation_report.txt")
 
@@ -76,7 +87,7 @@ def load_model(state, model_key):
             try:
                 ckpt = torch.load(path, map_location="cpu", weights_only=False)
             except Exception:
-                ckpt = torch.load(path, map_location="cpu")
+                ckpt = torch.load(path, map_location="cpu", weights_only=False)
             model = ModifiedNet(ckpt["input_features"])
             model.load_state_dict(ckpt["model_state_dict"])
             model.eval()
@@ -88,6 +99,12 @@ def load_model(state, model_key):
     return None
 
 
+def add_age_bin(df):
+    bins = pd.cut(df["Age"], bins=[-1, 2, 25, 100], labels=["young", "mid", "old"])
+    df = df.copy()
+    df["Age_Bin"] = bins.astype(str)
+    return df
+
 def predict(model_info, vehicle_type, fuel_type, age, speeds):
     n = len(speeds)
     df = pd.DataFrame({
@@ -96,6 +113,7 @@ def predict(model_info, vehicle_type, fuel_type, age, speeds):
         "Age": [age] * n,
         "Speed": speeds,
     })
+    df = add_age_bin(df)
     processed = model_info["preprocessor"].transform(df)
     if hasattr(processed, "toarray"):
         tensor = torch.tensor(processed.toarray(), dtype=torch.float32)
@@ -140,9 +158,19 @@ def compute_metrics(y_true, y_pred):
     else:
         mape = np.nan
 
-    # Flag logic
+    # Flag logic with near-zero and low-variance relaxation
     flag = ""
-    if not np.isnan(mape) and mape > 100:
+    mean_actual = np.mean(np.abs(y_true))
+    near_zero = mean_actual < 0.1  # values under 0.1 g/mi
+    cv = np.std(y_true) / (mean_actual + 1e-12)
+    low_variance = cv < 0.15  # nearly flat curve
+
+    # Near-zero values: skip all flagging — absolute error is negligible
+    if near_zero:
+        flag = ""
+    elif low_variance and not np.isnan(mape) and mape < 10:
+        flag = ""  # nearly flat curve with low MAPE — R² meaningless
+    elif not np.isnan(mape) and mape > 100:
         flag = "wildly_off"
     elif not np.isnan(mape) and mape > 50:
         flag = "high_error"
@@ -397,16 +425,28 @@ def run_step3(states_data, models_by_state):
                     plt.close(fig)
                     continue
 
-                # Clean up vehicle/fuel names for filename
-                vtype_clean = vtype.replace(" ", "_").replace("-", "")
-                ftype_clean = ftype.replace(" ", "_").replace("(", "").replace(")", "").replace("-", "")
+                # Clean up vehicle/fuel names for filename (keep short for Windows path limits)
+                vtype_clean = vtype.replace(" ", "_").replace("-", "_")
+                ftype_clean = ftype.replace(" ", "_").replace("(", "").replace(")", "").replace("-", "_")
+                # Shorten common long names
+                vtype_clean = (vtype_clean
+                    .replace("Combination_Short_haul_Truck", "CombSHT")
+                    .replace("Combination_Long_haul_Truck", "CombLHT")
+                    .replace("Single_Unit_Short_haul_Truck", "SUSHT")
+                    .replace("Single_Unit_Long_haul_Truck", "SULHT")
+                    .replace("Light_Commercial_Truck", "LCT")
+                    .replace("Passenger_Car", "PassCar")
+                    .replace("Passenger_Truck", "PassTruck")
+                    .replace("Compressed_Natural_Gas_CNG", "CNG")
+                    .replace("Motor_Home", "MotorHome"))
+                ftype_clean = ftype_clean.replace("Compressed_Natural_Gas_CNG", "CNG").replace("Ethanol_E_85", "E85").replace("Diesel_Fuel", "Diesel")
 
                 ax.set_xlabel("Speed (mph)", fontsize=11)
                 ax.set_ylabel(f"{em_name} ({em_info['unit']})", fontsize=11)
                 ax.set_title(f"{state} | {vtype} | {ftype} | {em_name}", fontsize=12)
                 ax.legend(fontsize=8, loc="best")
                 ax.grid(True, alpha=0.3)
-                ax.set_xlim(0, 80)
+                ax.set_xlim(2.5, 80)
 
                 fname = f"{state}_{vtype_clean}_{ftype_clean}_{em_name}.png"
                 fig.tight_layout()

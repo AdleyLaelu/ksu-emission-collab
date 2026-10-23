@@ -37,18 +37,19 @@ function InputStepper({ finalNext, activeStep, setActiveStep }) {
   const handleNext = async () => {
     const store = useAppStore.getState();
 
-    // Step 0: Vehicle Classification
+    // Step 0: Vehicle Classification — upload base year + all VR years
     if (activeStep === 0) {
       const state = store.classificationState;
+      const storedTransactionId =
+        localStorage.getItem("transaction_id") || "emission-analysis-2025";
+
+      // Upload base year file
       if (state && state.uploadedFile) {
         const formData = new FormData();
-        formData.append("main_city", state.city || "");
+        formData.append("city_name", state.city || "");
         formData.append("year", state.baseYear || "");
         formData.append("user_id", "1");
         formData.append("file", state.uploadedFile, state.uploadedFile.name);
-
-        const storedTransactionId =
-          localStorage.getItem("transaction_id") || "emission-analysis-2025";
         formData.append("transaction_id", storedTransactionId);
 
         try {
@@ -67,56 +68,75 @@ function InputStepper({ finalNext, activeStep, setActiveStep }) {
             console.log("Transaction ID stored:", data.transaction_id);
           }
           lastSentDataRef.current = formData;
-          window.dispatchEvent(
-            new CustomEvent("app-notification", { detail: { text: "Data uploaded successfully" } })
-          );
         } catch (err) {
-          console.error("Upload error:", err);
-          window.dispatchEvent(
-            new CustomEvent("app-notification", { detail: { text: "Data uploaded successfully (mocked)" } })
-          );
-          lastSentDataRef.current = formData;
+          console.error("Upload error (base year):", err);
         }
       }
-    }
 
-    // Step 1: Penetration Rate - use component's handleNext if exported
-    else if (activeStep === 1) {
-      const state = store.penetrationState;
-      if (state && state.penetrationFile) {
+      // Upload additional VR year files
+      const vrYearUploads = state.vrYearUploads || {};
+      for (const [year, entry] of Object.entries(vrYearUploads)) {
+        if (!entry.file) continue;
         const formData = new FormData();
-        formData.append("city", store.classificationState.city || "");
-        formData.append("base_year", store.classificationState.baseYear || "");
-        formData.append("vehicle_type", store.classificationState.vehicleType || "");
-        formData.append("projected_year", state.projectedYear || "");
-
-        const storedTransactionId =
-          localStorage.getItem("transaction_id") || "emission-analysis-2025";
-        formData.append("transaction_id", storedTransactionId);
-
+        formData.append("city_name", state.city || "");
+        formData.append("year", year);
         formData.append("user_id", "1");
-        formData.append("file", state.penetrationFile);
+        formData.append("file", entry.file, entry.file.name);
+        formData.append("transaction_id", storedTransactionId);
 
         try {
           const res = await fetch(
-            `${API_URL}/upload/penetration_rate`,
-            {
-              method: "POST",
-              body: formData,
-            }
+            `${API_URL}/upload/vehicle_classification`,
+            { method: "POST", body: formData }
           );
-          if (!res.ok) throw new Error("Upload failed");
+          if (!res.ok) throw new Error(`Failed to upload VR year ${year}`);
           const data = await res.json();
-          console.log("Backend response:", data);
-          window.dispatchEvent(
-            new CustomEvent("app-notification", { detail: { text: "Data uploaded successfully!" } })
-          );
+          console.log(`VR year ${year} saved:`, data);
         } catch (err) {
-          console.error("Upload error:", err);
-          window.dispatchEvent(
-            new CustomEvent("app-notification", { detail: { text: "Upload failed: " + err.message } })
-          );
+          console.error(`Upload error (VR year ${year}):`, err);
         }
+      }
+
+      window.dispatchEvent(
+        new CustomEvent("app-notification", { detail: { text: "Data uploaded successfully" } })
+      );
+    }
+
+    // Step 1: Projected Vehicle Penetration — upload ALL year files as VR data
+    else if (activeStep === 1) {
+      const state = store.penetrationState;
+      const storedTransactionId =
+        localStorage.getItem("transaction_id") || "emission-analysis-2025";
+      const yearUploads = state.yearUploads || {};
+      let uploadCount = 0;
+
+      for (const [year, entry] of Object.entries(yearUploads)) {
+        if (!entry.file) continue;
+        const formData = new FormData();
+        formData.append("city_name", store.classificationState.city || "");
+        formData.append("year", year);
+        formData.append("user_id", "1");
+        formData.append("file", entry.file, entry.file.name);
+        formData.append("transaction_id", storedTransactionId);
+
+        try {
+          const res = await fetch(
+            `${API_URL}/upload/vehicle_classification`,
+            { method: "POST", body: formData }
+          );
+          if (!res.ok) throw new Error(`Failed to upload VR year ${year}`);
+          const data = await res.json();
+          console.log(`VR year ${year} saved:`, data);
+          uploadCount++;
+        } catch (err) {
+          console.error(`Upload error (VR year ${year}):`, err);
+        }
+      }
+
+      if (uploadCount > 0) {
+        window.dispatchEvent(
+          new CustomEvent("app-notification", { detail: { text: `${uploadCount} projected year(s) uploaded successfully!` } })
+        );
       }
     }
 

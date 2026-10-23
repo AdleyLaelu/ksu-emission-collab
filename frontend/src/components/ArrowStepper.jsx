@@ -38,6 +38,7 @@ export default function ArrowStepper() {
   const GridEmission = useAppStore((s) => s.GridEmission);
 
   const trafficMode = useAppStore((s) => s.trafficMode);
+  const resultsStale = useAppStore((s) => s.resultsStale);
 
   // Validation helpers based on selected traffic mode
   const trafficDataComplete = trafficMode === "ABM"
@@ -324,6 +325,7 @@ export default function ArrowStepper() {
             <FinalResultsPage
               resultsSelection={resultsSelection}
               setResultsSelection={setResultsSelection}
+              autoGenerate={resultsStale}
             />
           )}
         </div>

@@ -26,6 +26,23 @@ warnings.filterwarnings("ignore", category=UserWarning, module="sklearn")
 # Make imports work when running from the backend directory
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from models import ModifiedNet
+from sklearn.base import BaseEstimator, TransformerMixin
+
+# LogScaler must be defined here so torch.load can unpickle model checkpoints that use it
+class LogScaler(BaseEstimator, TransformerMixin):
+    def fit(self, X, y=None):
+        self._fitted = True
+        return self
+    def transform(self, X):
+        return np.log1p(np.maximum(X, 0))
+    def inverse_transform(self, X):
+        return np.expm1(X)
+
+def add_age_bin(df):
+    bins = pd.cut(df["Age"], bins=[-1, 2, 25, 100], labels=["young", "mid", "old"])
+    df = df.copy()
+    df["Age_Bin"] = bins.astype(str)
+    return df
 
 # ── Constants (must match run.py and frontend) ──────────────────────────
 
@@ -82,12 +99,15 @@ VEHICLE_NAME_TO_MODEL = {
 # CO2 and NOx models were trained WITHOUT Electricity as a fuel category
 MODELS_WITHOUT_ELECTRICITY = {"Co2", "NOx"}
 
+# MOVES-standard Lower Heating Values (LHV) for fuel energy content.
+# Source: EPA MOVES Technical Report EPA-420-R-21-006, Table 4-1.
+# Using LHV because MOVES "Total Energy" output is LHV-based.
 KJ_PER_UNIT = {
-    "Gasoline": 123462.432,
-    "Diesel Fuel": 138451.739,
-    "Ethanol - E-85": 85729.28,
-    "Compressed Natural Gas - CNG": 124854.529,
-    "Electricity": 3600.0,
+    "Gasoline": 120238.0,
+    "Diesel Fuel": 137381.0,
+    "Ethanol - E-85": 81800.0,
+    "Compressed Natural Gas - CNG": 120238.0,  # 1 GGE = 1 gallon gasoline energy
+    "Electricity": 3600.0,                      # 1 kWh = 3600 kJ (exact)
 }
 
 UNIT_TYPE = {
@@ -119,12 +139,15 @@ MODEL_FILE_SUFFIX = {
 def load_model(file_path, input_features):
     """Load a single .pth model checkpoint."""
     sys.modules["__main__"].ModifiedNet = ModifiedNet
+    sys.modules["__main__"].LogScaler = LogScaler
     try:
-        checkpoint = torch.load(file_path, map_location="cpu")
-    except Exception:
         checkpoint = torch.load(file_path, map_location="cpu", weights_only=False)
+    except Exception:
+        checkpoint = torch.load(file_path, map_location="cpu")
 
-    model = ModifiedNet(input_features)
+    # Use input_features from checkpoint if available (handles Age_Bin addition)
+    n_features = checkpoint.get("input_features", input_features)
+    model = ModifiedNet(n_features)
     model.load_state_dict(checkpoint["model_state_dict"])
     model.eval()
 
@@ -222,6 +245,7 @@ def predict_batch(model_key, models, model_vehicle, model_fuel, state, age):
             "State": state,
         })
     df = pd.DataFrame(rows)
+    df = add_age_bin(df)
 
     processed = preprocessor.transform(df)
     if hasattr(processed, "toarray"):
@@ -264,7 +288,8 @@ def generate_state(state, state_models):
 
             for age in AGES:
                 preds = predict_batch(energy_key, state_models, model_vehicle, model_fuel, state, age)
-                values = [None if p is None else round((p * 3600 / 62.1371) / kj_per_unit, 8) for p in preds]
+                # Model output is kJ/mile; divide by kJ/unit to get fuel_unit/mile
+                values = [None if p is None else round(p / kj_per_unit, 8) for p in preds]
                 cons_ages[str(age)] = values
 
             output["consumption"][cons_key] = {

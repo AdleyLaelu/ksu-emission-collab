@@ -63,6 +63,7 @@ const ZoomToolbar = ({ chartRef }) => {
 };
 
 const FUEL_METRICS = new Set(["CNG", "Diesel", "Electricity", "Ethanol", "Gasoline"]);
+const EMISSION_METRICS = new Set(["CO2", "NOx", "PM2.5B", "PM2.5T"]);
 
 const VEHICLE_TYPES = [
   "Combination Long-haul Truck",
@@ -104,11 +105,13 @@ const STEP_OVERRIDES = {
 
 const VehicleChartR1R2 = forwardRef(function VehicleChartR1R2({
   metric, cityName, mode,
+  fuelFilter = null,          // when set + emission metric → use byFuel data
   selectedTractId = null,   // locked selection — from parent
   hoveredTractId = null,    // temporary hover — from parent (map swatches)
   onTractSelect = () => {}, // (tractId | null) => void
   controlledIdx = undefined,  // external index-based selection from legend
   onSelectIdx,                // (idx | null) => void
+  overrideData = null,        // runtime-fetched data takes priority over static imports
 }, ref) {
   const isControlled = controlledIdx !== undefined;
   const chartRef = useRef(null);
@@ -125,13 +128,21 @@ const VehicleChartR1R2 = forwardRef(function VehicleChartR1R2({
 
   const state    = CITY_TO_STATE[cityName] || CITY_TO_STATE[cityName?.replace(/\s/g, "")] || null;
   const fileKey  = state && mode ? `${state}_${mode}` : null;
-  const fileData = fileKey ? DATA_MAP[fileKey] : null;
-  const metricData = fileData && metric ? fileData[metric] : null;
+  const fileData = overrideData || (fileKey ? DATA_MAP[fileKey] : null);
+
+  // When fuelFilter is set and metric is an emission type, use per-fuel data
+  const useFuelBreakdown = fuelFilter && EMISSION_METRICS.has(metric);
+  const metricData = useFuelBreakdown
+    ? fileData?.byFuel?.[fuelFilter]?.[metric]
+    : (fileData && metric ? fileData[metric] : null);
 
   if (!metricData) {
+    const msg = useFuelBreakdown
+      ? `No fuel-specific ${metric} data available for ${fuelFilter}.`
+      : (!cityName || !metric ? "Select a city and metric." : `No data for ${metric} — ${cityName}.`);
     return (
       <div className="flex items-center justify-center h-40 text-gray-400 text-sm border border-gray-200 rounded-lg bg-gray-50">
-        {!cityName || !metric ? "Select a city and metric." : `No data for ${metric} — ${cityName}.`}
+        {msg}
       </div>
     );
   }
@@ -262,7 +273,7 @@ const VehicleChartR1R2 = forwardRef(function VehicleChartR1R2({
 
   const options = {
     responsive: true, maintainAspectRatio: false, animation: false,
-    layout: { padding: { top: 22, right: 24, bottom: mode === "R2" ? 40 : 0, left: 0 } },
+    layout: { padding: { top: 22, right: 24, bottom: mode === "R2" ? 75 : 0, left: 0 } },
     hover: { mode: "nearest", intersect: false },
 
     onHover: (_evt, activeElements, chart) => {
@@ -298,6 +309,10 @@ const VehicleChartR1R2 = forwardRef(function VehicleChartR1R2({
     },
 
     plugins: {
+      yearLabels: {
+        enabled: mode === "R2",
+        years: mode === "R2" ? rawLabels : [],
+      },
       legend: { display: false },
       tooltip: {
         mode: "nearest", intersect: false,
@@ -370,28 +385,34 @@ const VehicleChartR1R2 = forwardRef(function VehicleChartR1R2({
     },
   };
 
-  // Plugin to draw year labels below the month ticks for R2
+  // Canvas plugin to draw year labels below month ticks on R2 charts.
+  // IMPORTANT: read data from chart.options (which react-chartjs-2 updates),
+  // NOT from the component closure (which is frozen at mount time).
   const yearLabelsPlugin = {
     id: "yearLabels",
     afterDraw(chart) {
-      const xScale = chart.scales.x;
+      const cfg = chart.options?.plugins?.yearLabels;
+      if (!cfg?.enabled) return;
+      const years = cfg.years;
+      if (!years || years.length === 0) return;
+      const xScale = chart.scales?.x;
+      if (!xScale) return;
       const ctx = chart.ctx;
       ctx.save();
-      ctx.font = "13px Inter, sans-serif";
-      ctx.fillStyle = "#222";
+      ctx.font = "12px sans-serif";
+      ctx.fillStyle = "#444";
       ctx.textAlign = "center";
       ctx.textBaseline = "top";
-      // Position: below the rotated tick labels
-      const yPos = xScale.bottom + 6;
-      // Draw year centered under each 12-month group using rawLabels (years array)
-      for (let yearIdx = 0; yearIdx < rawLabels.length; yearIdx++) {
+      // Draw year labels centered below each year's 12-month span
+      const yPos = chart.chartArea.bottom + 60;
+      for (let yearIdx = 0; yearIdx < years.length; yearIdx++) {
         const startIdx = yearIdx * 12;
-        const endIdx = Math.min(startIdx + 11, labels.length - 1);
-        // Use getPixelForValue to get position by data index (more reliable than getPixelForTick)
+        const endIdx = Math.min(startIdx + 11, chart.data.labels.length - 1);
         const x1 = xScale.getPixelForValue(startIdx);
         const x2 = xScale.getPixelForValue(endIdx);
+        if (isNaN(x1) || isNaN(x2)) continue;
         const centerX = (x1 + x2) / 2;
-        ctx.fillText(rawLabels[yearIdx], centerX, yPos);
+        ctx.fillText(years[yearIdx], centerX, yPos);
       }
       ctx.restore();
     },
@@ -401,7 +422,7 @@ const VehicleChartR1R2 = forwardRef(function VehicleChartR1R2({
     <div className="w-full h-full flex flex-col">
       {/* Chart — fills all remaining height */}
       <div className="relative w-full flex-1 min-h-0 bg-white">
-        <Line ref={chartRef} data={{ labels, datasets }} options={options} plugins={[chartBgPlugin, mode === "R2" ? subGridThirdsYPlugin : subGridPlugin, ...(mode === "R2" ? [yearLabelsPlugin] : [])]} />
+        <Line ref={chartRef} data={{ labels, datasets }} options={options} plugins={[chartBgPlugin, mode === "R2" ? subGridThirdsYPlugin : subGridPlugin, yearLabelsPlugin]} />
         <ZoomToolbar chartRef={chartRef} />
       </div>
     </div>

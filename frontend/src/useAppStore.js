@@ -10,6 +10,33 @@ import { create } from "zustand";
  */
 const useAppStore = create((set, get) => ({
     // ------------------------------
+    // Results staleness tracking
+    // ------------------------------
+    resultsStale: true,
+    lastGeneratedFingerprint: null,
+
+    markResultsStale: () => set({ resultsStale: true }),
+    markResultsFresh: (fingerprint) =>
+      set({ resultsStale: false, lastGeneratedFingerprint: fingerprint }),
+
+    /** Derive a simple fingerprint from current inputs to detect meaningful changes */
+    computeInputFingerprint: () => {
+      const s = get();
+      const parts = [
+        s.classificationState.city || s.classificationState.cityInput || "",
+        s.classificationState.baseYear || "",
+        s.penetrationState.projectedYear || "",
+        s.trafficMode || "",
+        String(s.classificationState.classificationData?.length || 0),
+        String(s.penetrationState.penetrationData?.length || 0),
+        String(s.trafficVolumeState.trafficVolumeData?.length || 0),
+        String(s.projectedDemandState.projectedTrafficVolumeData?.length || 0),
+        Object.keys(s.classificationState.vrYearUploads || {}).sort().join(","),
+      ];
+      return parts.join("|");
+    },
+
+    // ------------------------------
     // Vehicle Data for Graphs (persisted across steps)
     // ------------------------------
     vehicleData: {},
@@ -49,11 +76,18 @@ const useAppStore = create((set, get) => ({
     classificationData: [],     // filtered
     allClassificationData: [],  // original
     transactionId: null,
+    vrYearUploads: {},    // { [year]: { file, headers, data, uploadedAt } }
+    selectedVrYear: null, // currently selected year in VR year list
   },
   setClassificationState: (partial) =>
-    set((state) => ({
-      classificationState: { ...state.classificationState, ...partial },
-    })),
+    set((state) => {
+      const update = { classificationState: { ...state.classificationState, ...partial } };
+      // Mark stale if data-bearing fields changed
+      if ('classificationData' in partial || 'city' in partial || 'cityInput' in partial || 'baseYear' in partial || 'classificationFile' in partial || 'vrYearUploads' in partial) {
+        update.resultsStale = true;
+      }
+      return update;
+    }),
 
     
   // ------------------------------
@@ -69,9 +103,13 @@ const useAppStore = create((set, get) => ({
     selectedYear: null,      // currently selected year in the year list
   },
   setPenetrationState: (partial) =>
-    set((state) => ({
-      penetrationState: { ...state.penetrationState, ...partial },
-    })),
+    set((state) => {
+      const update = { penetrationState: { ...state.penetrationState, ...partial } };
+      if ('penetrationData' in partial || 'projectedYear' in partial || 'penetrationFile' in partial) {
+        update.resultsStale = true;
+      }
+      return update;
+    }),
 
   // ------------------------------
   // Traffic mode slice (ABM vs MFD, locked after Step 2 confirms)
@@ -96,9 +134,13 @@ const useAppStore = create((set, get) => ({
     speedTable: [],
   },
   setTrafficVolumeState: (partial) =>
-    set((state) => ({
-      trafficVolumeState: { ...state.trafficVolumeState, ...partial },
-    })),
+    set((state) => {
+      const update = { trafficVolumeState: { ...state.trafficVolumeState, ...partial } };
+      if ('trafficVolumeData' in partial || 'trafficVolumeFile' in partial || 'abmFile' in partial || 'trafficMFTParametersData' in partial) {
+        update.resultsStale = true;
+      }
+      return update;
+    }),
 
   // ------------------------------
   // Consumption & Emission slice (Vehicle Energy Consumption & Emission Rates)
@@ -140,9 +182,13 @@ const useAppStore = create((set, get) => ({
     yearUploads: {},
   },
   setProjectedDemandState: (partial) =>
-    set((state) => ({
-      projectedDemandState: { ...state.projectedDemandState, ...partial },
-    })),
+    set((state) => {
+      const update = { projectedDemandState: { ...state.projectedDemandState, ...partial } };
+      if ('projectedTrafficVolumeData' in partial || 'projectedTrafficVolumeFile' in partial || 'abmProjectedFile' in partial) {
+        update.resultsStale = true;
+      }
+      return update;
+    }),
 
   // ------------------------------
   // Theme slice
@@ -229,6 +275,9 @@ const useAppStore = create((set, get) => ({
         classificationHeaders: [],
         classificationData: [],
         allClassificationData: [],
+        transactionId: null,
+        vrYearUploads: {},
+        selectedVrYear: null,
       },
     })),
 }));

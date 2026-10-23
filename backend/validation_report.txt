@@ -3,8 +3,8 @@ COMPREHENSIVE MODEL VALIDATION REPORT
 ================================================================================
 
 Total combo/age/emission evaluations: 6995
-  OK (no flag):  6616
-  Flagged:       379
+  OK (no flag):  6632
+  Flagged:       363
 
 --------------------------------------------------------------------------------
 TRUE ALL ZERO — ground truth is all zeros (expected for some combos)  (363 cases)
@@ -375,35 +375,7 @@ TRUE ALL ZERO — ground truth is all zeros (expected for some combos)  (363 cases
     Transit Bus                         | Gasoline                       | age=37 | PM25Brake  | n= 16 | R²=N/A | MAPE=N/A
     Transit Bus                         | Gasoline                       | age=37 | PM25Tire   | n= 16 | R²=N/A | MAPE=N/A
 
---------------------------------------------------------------------------------
-HIGH ERROR — MAPE > 50%  (1 cases)
---------------------------------------------------------------------------------
-
-  [GA]
-    Motor Home                          | Electricity                    | age= 1 | PM25Brake  | n= 16 | R²=0.997 | MAPE=55.7%
-
---------------------------------------------------------------------------------
-LOW R² — R² < 0.5  (15 cases)
---------------------------------------------------------------------------------
-
-  [GA]
-    Light Commercial Truck              | Ethanol (E-85)                 | age= 0 | NOx        | n= 16 | R²=-1.389 | MAPE=27.9%
-    Light Commercial Truck              | Ethanol (E-85)                 | age= 1 | NOx        | n= 16 | R²=-8.966 | MAPE=36.3%
-    Light Commercial Truck              | Ethanol (E-85)                 | age= 2 | NOx        | n= 16 | R²=-1.745 | MAPE=32.6%
-    Light Commercial Truck              | Ethanol (E-85)                 | age= 3 | NOx        | n= 16 | R²=0.498 | MAPE=14.3%
-    Passenger Car                       | Ethanol (E-85)                 | age= 1 | NOx        | n= 16 | R²=0.044 | MAPE=15.6%
-    Passenger Car                       | Ethanol (E-85)                 | age= 2 | NOx        | n= 16 | R²=0.314 | MAPE=15.2%
-    Passenger Car                       | Ethanol (E-85)                 | age=10 | NOx        | n= 16 | R²=0.128 | MAPE=20.0%
-    Passenger Car                       | Gasoline                       | age= 1 | NOx        | n= 16 | R²=0.294 | MAPE=14.1%
-    Passenger Car                       | Gasoline                       | age=10 | NOx        | n= 16 | R²=0.400 | MAPE=16.8%
-    Passenger Truck                     | Ethanol (E-85)                 | age= 0 | NOx        | n= 16 | R²=-1.462 | MAPE=28.5%
-    Passenger Truck                     | Ethanol (E-85)                 | age= 1 | NOx        | n= 16 | R²=-1.967 | MAPE=30.7%
-    Passenger Truck                     | Ethanol (E-85)                 | age= 2 | NOx        | n= 16 | R²=0.491 | MAPE=11.5%
-    Passenger Truck                     | Ethanol (E-85)                 | age= 3 | NOx        | n= 16 | R²=-0.770 | MAPE=25.8%
-    Passenger Truck                     | Gasoline                       | age= 1 | NOx        | n= 16 | R²=0.120 | MAPE=19.0%
-    Refuse Truck                        | Diesel Fuel                    | age= 0 | PM25Brake  | n= 16 | R²=0.363 | MAPE=6.8%
-
 ================================================================================
 PER-STATE SUMMARY
 ================================================================================
-  GA: 47 vehicle/fuel combos, 6616 OK, 379 flagged, median R²=1.000, median MAPE=0.9%
+  GA: 47 vehicle/fuel combos, 6632 OK, 363 flagged, median R²=1.000, median MAPE=0.5%

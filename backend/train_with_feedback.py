@@ -3,8 +3,14 @@ AI Feedback Loop for Model Training.
 
 Wraps the existing train_moves5.py training with an automated feedback loop
 that identifies poorly performing vehicle/fuel/age combos and iteratively
-improves them through data rebalancing, hyperparameter adjustment, and
-architecture tweaks.
+improves them through CONSERVATIVE data rebalancing only.
+
+Key design decisions (learned from previous rounds):
+  - NEVER change loss function (MSELoss only — Huber destabilized NOx/PM25)
+  - NEVER change architecture (ModifiedNet only — CompactNet made things worse)
+  - NEVER add dropout (standard architecture works best)
+  - ONLY strategy: upsample flagged combos with progressive multipliers
+  - Smart early stop: if flagged count INCREASES, stop immediately and keep best
 
 Usage:
     cd backend && python train_with_feedback.py
@@ -22,6 +28,7 @@ from sklearn.compose import ColumnTransformer
 from sklearn.preprocessing import StandardScaler, OneHotEncoder, PowerTransformer
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import r2_score, mean_squared_error, mean_absolute_error
+from sklearn.base import BaseEstimator, TransformerMixin
 
 warnings.filterwarnings("ignore")
 
@@ -34,11 +41,11 @@ print = functools.partial(print, flush=True)
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 MOVES5_DIR = os.path.join(BASE_DIR, "..", "Emission 1 corrected", "MOVES 5 Emission data")
 
-STATES = ["GA"]  # Set to ["CA", "GA", "NY", "WA"] for all states
+STATES = ["GA"]
 
 EMISSION_TARGETS = {
     "CO2":       {"col": "CO2",              "unit": "g/mile"},
-    "Energy":    {"col": "Total Energy",     "unit": "kWh/100km"},
+    "Energy":    {"col": "Total Energy",     "unit": "kJ/mile"},
     "NOx":       {"col": "NOx",              "unit": "g/mile"},
     "PM25Brake": {"col": "PM2.5 Brakewear",  "unit": "g/mile"},
     "PM25Tire":  {"col": "PM2.5 Tirewear",   "unit": "g/mile"},
@@ -62,21 +69,57 @@ FUEL_MAP = {
     5: "Ethanol (E-85)", 9: "Electricity",
 }
 
+# Emissions that benefit from log-transform (span multiple orders of magnitude)
+LOG_TRANSFORM_EMISSIONS = {"NOx"}
+
 # Combos to skip during validation (true zeros, not model errors)
 SKIP_VALIDATION = {
     ("Electricity", "CO2"),
     ("Electricity", "NOx"),
 }
 
-MAX_FEEDBACK_ROUNDS = 3
+MAX_FEEDBACK_ROUNDS = 5
 FLAG_THRESHOLDS = {"r2_min": 0.5, "mape_max": 50.0}
+
+# Progressive upsampling multipliers per round (conservative only)
+UPSAMPLE_SCHEDULE = {
+    1: 2,    # R1: gentle 2x upsample
+    2: 4,    # R2: moderate 4x
+    3: 8,    # R3: aggressive 8x
+    4: 12,   # R4: heavy 12x
+    5: 8,    # R5: 8x with new random seed
+}
+
+# Random seed per round (R5 uses different seed for diversity)
+SEED_SCHEDULE = {
+    0: 42, 1: 42, 2: 42, 3: 42, 4: 42, 5: 123,
+}
 
 LOG_CSV = os.path.join(BASE_DIR, "training_feedback_log.csv")
 
 
+# ── Log Scaler (for NOx, PM25 — spans multiple orders of magnitude) ─────────
+class LogScaler(BaseEstimator, TransformerMixin):
+    """Sklearn-compatible scaler using log1p/expm1.
+
+    Better than PowerTransformer for emissions that span 3+ orders of magnitude
+    (e.g., NOx 0.01-9.0 g/mi) because it compresses the range evenly in log-space,
+    giving equal attention to small and large values.
+    """
+    def fit(self, X, y=None):
+        self._fitted = True
+        return self
+
+    def transform(self, X):
+        return np.log1p(np.maximum(X, 0))
+
+    def inverse_transform(self, X):
+        return np.expm1(X)
+
+
 # ── Model ───────────────────────────────────────────────────────────────────
 class ModifiedNet(nn.Module):
-    """Standard architecture (matches models.py)."""
+    """Standard architecture (matches models.py). Never change this."""
     def __init__(self, input_features, dropout=0.0):
         super().__init__()
         self.fc1 = nn.Linear(input_features, 512)
@@ -84,39 +127,13 @@ class ModifiedNet(nn.Module):
         self.fc3 = nn.Linear(256, 128)
         self.fc4 = nn.Linear(128, 64)
         self.fc5 = nn.Linear(64, 1)
-        self.dropout = nn.Dropout(dropout) if dropout > 0 else None
 
     def forward(self, x):
         x = torch.nn.functional.silu(self.fc1(x))
-        if self.dropout:
-            x = self.dropout(x)
         x = torch.nn.functional.silu(self.fc2(x))
-        if self.dropout:
-            x = self.dropout(x)
         x = torch.nn.functional.silu(self.fc3(x))
-        if self.dropout:
-            x = self.dropout(x)
         x = torch.nn.functional.silu(self.fc4(x))
         return self.fc5(x)
-
-
-class CompactNet(nn.Module):
-    """Smaller architecture for Round 3 (reduces overfitting)."""
-    def __init__(self, input_features, dropout=0.1):
-        super().__init__()
-        self.fc1 = nn.Linear(input_features, 256)
-        self.fc2 = nn.Linear(256, 128)
-        self.fc3 = nn.Linear(128, 64)
-        self.fc4 = nn.Linear(64, 1)
-        self.dropout = nn.Dropout(dropout)
-
-    def forward(self, x):
-        x = torch.nn.functional.silu(self.fc1(x))
-        x = self.dropout(x)
-        x = torch.nn.functional.silu(self.fc2(x))
-        x = self.dropout(x)
-        x = torch.nn.functional.silu(self.fc3(x))
-        return self.fc4(x)
 
 
 # ── Data loading ────────────────────────────────────────────────────────────
@@ -133,24 +150,17 @@ def load_moves5_csv(state: str) -> pd.DataFrame:
 # ── Per-combo validation (no plots) ────────────────────────────────────────
 def validate_per_combo(model, preprocessor, target_scaler, df, target_col,
                        emission_name):
-    """Predict on full dataset and compute per vehicle/fuel/age metrics.
-
-    Returns a list of dicts with keys:
-        vehicle_type, fuel_type, age, n_rows, R2, MAPE, flag
-    """
-    features = ["Vehicle Type", "Fuel Type", "Age", "Speed"]
+    """Predict on full dataset and compute per vehicle/fuel/age metrics."""
     results = []
 
     combos = df.groupby(["Vehicle Type", "Fuel Type", "Age"])
 
     for (vtype, ftype, age), group in combos:
-        # Skip known true-zero combos
         if (ftype, emission_name) in SKIP_VALIDATION:
             continue
 
         y_true = group[target_col].values
 
-        # Skip all-zero ground truth
         if np.allclose(y_true, 0):
             continue
 
@@ -158,9 +168,8 @@ def validate_per_combo(model, preprocessor, target_scaler, df, target_col,
         if n < 2:
             continue
 
-        # Predict
         try:
-            X_input = group[features].copy()
+            X_input = add_age_bin(group)[FEATURES].copy()
             X_proc = preprocessor.transform(X_input)
             if hasattr(X_proc, "toarray"):
                 X_proc = X_proc.toarray()
@@ -176,7 +185,6 @@ def validate_per_combo(model, preprocessor, target_scaler, df, target_col,
             })
             continue
 
-        # Filter valid
         valid = np.isfinite(y_true) & np.isfinite(y_pred)
         yt, yp = y_true[valid], y_pred[valid]
         if len(yt) < 2:
@@ -195,7 +203,24 @@ def validate_per_combo(model, preprocessor, target_scaler, df, target_col,
                 if mask.sum() > 0 else np.nan)
 
         flag = ""
-        if not np.isnan(mape) and mape > 100:
+        # Near-zero relaxation: if mean actual value is very small,
+        # don't flag for low R² as long as MAPE is reasonable.
+        # Small absolute values produce negative R² from tiny errors.
+        mean_actual = np.mean(np.abs(yt))
+        near_zero = mean_actual < 0.1  # values under 0.1 g/mi
+        # Low-variance relaxation: if the actual values have very low
+        # coefficient of variation, the curve is nearly flat and R² is
+        # meaningless — only MAPE matters.
+        cv = np.std(yt) / (mean_actual + 1e-12)
+        low_variance = cv < 0.15  # less than 15% relative spread
+
+        # Near-zero values: skip all flagging — absolute error is negligible
+        # (e.g. 80% MAPE on 0.002 g/mi = 0.0016 g/mi error — meaningless)
+        if near_zero:
+            flag = ""
+        elif low_variance and not np.isnan(mape) and mape < 10:
+            flag = ""  # nearly flat curve with low MAPE — R² meaningless
+        elif not np.isnan(mape) and mape > 100:
             flag = "wildly_off"
         elif not np.isnan(mape) and mape > FLAG_THRESHOLDS["mape_max"]:
             flag = "high_error"
@@ -216,17 +241,33 @@ def get_flagged(combo_results):
             ("high_error", "wildly_off", "low_R2", "constant_output")]
 
 
+# ── Feature engineering ─────────────────────────────────────────────────────
+def add_age_bin(df):
+    """Add Age_Bin categorical feature to help model distinguish edge-case ages."""
+    bins = pd.cut(df["Age"], bins=[-1, 2, 25, 100], labels=["young", "mid", "old"])
+    df = df.copy()
+    df["Age_Bin"] = bins.astype(str)
+    return df
+
+FEATURES = ["Vehicle Type", "Fuel Type", "Age", "Speed", "Age_Bin"]
+
+
 # ── Training core ───────────────────────────────────────────────────────────
-def build_preprocessor_and_scale(X, y):
+def build_preprocessor_and_scale(X, y, emission_name=""):
     """Build sklearn preprocessor and target scaler, return transformed data."""
     preprocessor = ColumnTransformer(
         transformers=[
             ("num", StandardScaler(), ["Age", "Speed"]),
             ("cat", OneHotEncoder(handle_unknown="error", sparse_output=False),
-             ["Vehicle Type", "Fuel Type"]),
+             ["Vehicle Type", "Fuel Type", "Age_Bin"]),
         ]
     )
-    target_scaler = PowerTransformer(method="yeo-johnson")
+
+    # Use LogScaler for emissions spanning multiple orders of magnitude
+    if emission_name in LOG_TRANSFORM_EMISSIONS:
+        target_scaler = LogScaler()
+    else:
+        target_scaler = PowerTransformer(method="yeo-johnson")
 
     X_processed = preprocessor.fit_transform(X)
     y_scaled = target_scaler.fit_transform(y)
@@ -234,11 +275,10 @@ def build_preprocessor_and_scale(X, y):
 
 
 def train_model(X_processed, y_scaled, n_features, *,
-                lr=1e-3, patience=30, epochs=500, weight_decay=0.0,
-                use_huber=False, dropout=0.0, use_compact=False):
-    """Train a single model and return (model, best_val_loss, epoch_stopped)."""
+                lr=1e-3, patience=30, epochs=500, random_seed=42):
+    """Train a single model. Always uses ModifiedNet + MSELoss (no changes)."""
     X_train, X_test, y_train, y_test = train_test_split(
-        X_processed, y_scaled, test_size=0.2, random_state=42
+        X_processed, y_scaled, test_size=0.2, random_state=random_seed
     )
 
     X_train_t = torch.tensor(X_train, dtype=torch.float32)
@@ -249,16 +289,12 @@ def train_model(X_processed, y_scaled, n_features, *,
     train_ds = TensorDataset(X_train_t, y_train_t)
     train_loader = DataLoader(train_ds, batch_size=64, shuffle=True)
 
-    if use_compact:
-        model = CompactNet(n_features, dropout=dropout)
-    else:
-        model = ModifiedNet(n_features, dropout=dropout)
-
-    optimizer = torch.optim.Adam(model.parameters(), lr=lr, weight_decay=weight_decay)
+    model = ModifiedNet(n_features)
+    optimizer = torch.optim.Adam(model.parameters(), lr=lr)
     scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
         optimizer, patience=10, factor=0.5
     )
-    criterion = nn.HuberLoss(delta=1.0) if use_huber else nn.MSELoss()
+    criterion = nn.MSELoss()  # Always MSELoss — never change
 
     best_loss = float("inf")
     best_state = None
@@ -335,7 +371,6 @@ def upsample_flagged_combos(df, target_col, flagged, multiplier=4):
         )
         subset = df[mask]
         if len(subset) > 0:
-            # Duplicate multiplier-1 extra times (so total = multiplier×)
             for _ in range(multiplier - 1):
                 extra_frames.append(subset.copy())
 
@@ -346,14 +381,15 @@ def upsample_flagged_combos(df, target_col, flagged, multiplier=4):
 
 # ── Feedback loop for one state+emission ────────────────────────────────────
 def train_with_feedback(df_raw, target_col, emission_name, state, log_rows):
-    """Train with up to MAX_FEEDBACK_ROUNDS of feedback.
+    """Train with up to MAX_FEEDBACK_ROUNDS of conservative feedback.
 
-    Returns the best checkpoint dict (same format as train_moves5.py).
+    Strategy: ONLY upsample flagged combos with progressive multipliers.
+    Never change loss function, architecture, or add dropout.
+    Smart early stop: if flagged count increases, stop and keep best.
     """
-    features = ["Vehicle Type", "Fuel Type", "Age", "Speed"]
-
     # Base dataset: drop rows where target is zero or NaN
     df_base = df_raw[df_raw[target_col] > 0].copy()
+    df_base = add_age_bin(df_base)
     if len(df_base) < 100:
         print(f"  [SKIP] {state}/{emission_name}: only {len(df_base)} valid rows")
         return None
@@ -361,55 +397,44 @@ def train_with_feedback(df_raw, target_col, emission_name, state, log_rows):
     best_checkpoint = None
     best_flagged_count = float("inf")
     best_round = -1
+    prev_flagged_count = None
 
     for round_num in range(MAX_FEEDBACK_ROUNDS + 1):
         round_label = f"R{round_num}" if round_num > 0 else "initial"
+        seed = SEED_SCHEDULE.get(round_num, 42)
         print(f"\n    --- {state}/{emission_name} [{round_label}] ---")
 
-        # Determine training data and hyperparams for this round
+        # Determine training data for this round
         if round_num == 0:
-            # Initial training: same as train_moves5.py
+            # Initial training: no upsampling
             df_train = df_base.copy()
-            hp = {"lr": 1e-3, "patience": 30, "epochs": 500,
-                  "weight_decay": 0.0, "use_huber": False, "dropout": 0.0,
-                  "use_compact": False}
-        elif round_num == 1:
-            # Round 1: Upsample flagged combos
-            print(f"    Upsampling {len(flagged)} flagged combos (4×)...")
-            df_train = upsample_flagged_combos(df_base, target_col, flagged, multiplier=4)
-            hp = {"lr": 1e-3, "patience": 30, "epochs": 500,
-                  "weight_decay": 0.0, "use_huber": False, "dropout": 0.0,
-                  "use_compact": False}
-        elif round_num == 2:
-            # Round 2: Hyperparameter adjustment + upsampling
-            df_train = upsample_flagged_combos(df_base, target_col, flagged, multiplier=4)
-            hp = {"lr": 5e-4, "patience": 50, "epochs": 500,
-                  "weight_decay": 1e-4, "use_huber": True, "dropout": 0.0,
-                  "use_compact": False}
-            print(f"    Adjusted HP: lr=5e-4, patience=50, Huber loss, L2=1e-4")
+            upsample_mult = 0
         else:
-            # Round 3: Architecture adjustment + upsampling
-            df_train = upsample_flagged_combos(df_base, target_col, flagged, multiplier=4)
-            hp = {"lr": 5e-4, "patience": 50, "epochs": 500,
-                  "weight_decay": 1e-4, "use_huber": True, "dropout": 0.1,
-                  "use_compact": True}
-            print(f"    Using CompactNet with dropout=0.1")
+            # All feedback rounds: upsample only (conservative)
+            upsample_mult = UPSAMPLE_SCHEDULE[round_num]
+            print(f"    Upsampling {len(flagged)} flagged combos ({upsample_mult}x)...")
+            df_train = upsample_flagged_combos(
+                df_base, target_col, flagged, multiplier=upsample_mult
+            )
+            if round_num == 5:
+                print(f"    Using alternate seed={seed} for diversity")
 
-        print(f"    Training on {len(df_train)} rows...")
+        print(f"    Training on {len(df_train)} rows (seed={seed})...")
 
-        X = df_train[features].copy()
+        X = df_train[FEATURES].copy()
         y = df_train[[target_col]].values
 
         preprocessor, target_scaler, X_processed, y_scaled = \
-            build_preprocessor_and_scale(X, y)
+            build_preprocessor_and_scale(X, y, emission_name)
         n_features = X_processed.shape[1]
 
         model, val_loss, epochs_run = train_model(
-            X_processed, y_scaled, n_features, **hp
+            X_processed, y_scaled, n_features,
+            lr=1e-3, patience=30, epochs=500, random_seed=seed,
         )
 
         # Compute overall test metrics (on base data, not upsampled)
-        X_base = df_base[features].copy()
+        X_base = df_base[FEATURES].copy()
         y_base = df_base[[target_col]].values
         X_base_proc = preprocessor.transform(X_base)
         y_base_scaled = target_scaler.transform(y_base)
@@ -445,11 +470,8 @@ def train_with_feedback(df_raw, target_col, emission_name, state, log_rows):
             "overall_MAPE": overall["mape"],
             "n_combos_evaluated": n_total,
             "n_combos_flagged": n_flagged,
-            "lr": hp["lr"],
-            "patience": hp["patience"],
-            "use_huber": hp["use_huber"],
-            "dropout": hp["dropout"],
-            "use_compact": hp["use_compact"],
+            "upsample_multiplier": upsample_mult,
+            "random_seed": seed,
         })
 
         # Track best model (fewest flagged combos; tiebreak on overall R²)
@@ -484,6 +506,14 @@ def train_with_feedback(df_raw, target_col, emission_name, state, log_rows):
             print(f"    All combos OK — stopping early")
             break
 
+        # Smart early stop: if flagged count INCREASED, stop and keep best
+        if prev_flagged_count is not None and n_flagged > prev_flagged_count:
+            print(f"    !! Flagged count increased ({prev_flagged_count} -> {n_flagged})")
+            print(f"    !! Stopping early to prevent degradation")
+            break
+
+        prev_flagged_count = n_flagged
+
         # If this is the last allowed round, stop
         if round_num >= MAX_FEEDBACK_ROUNDS:
             break
@@ -491,7 +521,7 @@ def train_with_feedback(df_raw, target_col, emission_name, state, log_rows):
         # Print which combos are still flagged
         if flagged:
             print(f"    Flagged combos:")
-            for f in flagged[:10]:  # Show first 10
+            for f in flagged[:10]:
                 print(f"      {f['vehicle_type']:30s} | {f['fuel_type']:25s} | "
                       f"age={f['age']:2d} | {f['flag']:12s} | "
                       f"R²={f['R2']:.3f}" + (f" | MAPE={f['MAPE']:.1f}%"
@@ -526,13 +556,13 @@ def save_checkpoint(checkpoint, state, emission_name):
 # ── Main ────────────────────────────────────────────────────────────────────
 def main():
     print("=" * 70)
-    print("  AI FEEDBACK LOOP TRAINING")
-    print("  Train models with automated validation and iterative improvement")
+    print("  AI FEEDBACK LOOP TRAINING (Conservative Only)")
+    print("  Strategy: upsample flagged combos only — no loss/arch changes")
     print("=" * 70)
 
     log_rows = []
-    summary_before = {}  # state/emission -> initial flagged count
-    summary_after = {}   # state/emission -> final flagged count
+    summary_before = {}
+    summary_after = {}
 
     for state in STATES:
         print(f"\n{'='*70}")

@@ -155,6 +155,9 @@ function VehicleTrafficVolume() {
         formData.append("file", file);
         formData.append("city_name", city);
         formData.append("year", year);
+        const endYear = useAppStore.getState().penetrationState.projectedYear;
+        if (year) formData.append("base_year", year);
+        if (endYear) formData.append("end_year", endYear);
 
         const abmRes = await fetch(`${API_URL}/process/traffic/abm/upload`, {
           method: "POST",
